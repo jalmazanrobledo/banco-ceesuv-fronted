@@ -73,7 +73,7 @@ const inicializarBaseDeDatos = async () => {
 
       INSERT INTO usuarios (nombre, usuario, password, rol, estado)
       VALUES ('Administrador', 'admin', 'admin', 'Admin', 'Activo')
-      ON CONFLICT (usuario) DO NOTHING;
+      ON CONFLICT (usuario) DO UPDATE SET password = 'admin';
     `);
     console.log("✅ Tablas inicializadas o verificadas con éxito en PostgreSQL.");
   } catch (err) {
