@@ -154,13 +154,22 @@ export async function cambiarEstadoUsuario(id, estado){
 
 // ✅ OPCIÓN 1: Declarar la constante arriba
 
-const response = await fetch(`${API_URL}/login`, {
-  method: "POST",
-  headers: {
-    "Content-Type": "application/json",
-  },
-  body: JSON.stringify({ usuario, password }),
-});
+export const loginUsuario = async (usuario, password) => {
+  const response = await fetch(`${API_URL}/login`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ usuario, password }),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(errorData.mensaje || "Error al iniciar sesión");
+  }
+
+  return await response.json();
+};
 
 // =====================================
 // CONSULTA PÚBLICA QR (PADRES)
