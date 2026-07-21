@@ -26,7 +26,7 @@ const pool = new Pool(
   process.env.DATABASE_URL
     ? {
         connectionString: process.env.DATABASE_URL,
-        ssl: { rejectUnauthorized: false } // Requerido para la mayoría de DBs en la nube
+        ssl: { rejectUnauthorized: false } // Requerido para DBs en la nube como Render
       }
     : {
         user: "postgres",
@@ -36,6 +36,53 @@ const pool = new Pool(
         port: 5432,
       }
 );
+
+// =====================================
+// Inicialización automática de Tablas
+// =====================================
+const inicializarBaseDeDatos = async () => {
+  try {
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS usuarios (
+        id SERIAL PRIMARY KEY,
+        nombre VARCHAR(100) NOT NULL,
+        usuario VARCHAR(50) UNIQUE NOT NULL,
+        password VARCHAR(100) NOT NULL,
+        rol VARCHAR(20) NOT NULL DEFAULT 'Admin',
+        estado VARCHAR(20) NOT NULL DEFAULT 'Activo',
+        fecha_registro TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+
+      CREATE TABLE IF NOT EXISTS alumnos (
+        id SERIAL PRIMARY KEY,
+        nombre VARCHAR(100) NOT NULL,
+        grado VARCHAR(50) NOT NULL,
+        coins INT DEFAULT 0,
+        token_qr VARCHAR(100) UNIQUE NOT NULL
+      );
+
+      CREATE TABLE IF NOT EXISTS movimientos (
+        id SERIAL PRIMARY KEY,
+        alumno_id INT REFERENCES alumnos(id) ON DELETE CASCADE,
+        tipo VARCHAR(10) NOT NULL,
+        cantidad INT NOT NULL,
+        motivo VARCHAR(255),
+        usuario VARCHAR(50),
+        fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+
+      INSERT INTO usuarios (nombre, usuario, password, rol, estado)
+      VALUES ('Administrador', 'admin', 'admin', 'Admin', 'Activo')
+      ON CONFLICT (usuario) DO NOTHING;
+    `);
+    console.log("✅ Tablas inicializadas o verificadas con éxito en PostgreSQL.");
+  } catch (err) {
+    console.error("❌ Error al inicializar tablas en PostgreSQL:", err);
+  }
+};
+
+// Ejecutamos la inicialización
+inicializarBaseDeDatos();
 
 // =====================================
 // Ruta principal
