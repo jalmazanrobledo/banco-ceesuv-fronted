@@ -66,10 +66,12 @@ function Alumnos() {
     setCoins(0);
   };
 
-  // Construcción de la URL pública para el QR
-  const qrTargetUrl = alumnoSeleccionado && alumnoSeleccionado.token_qr
-    ? `${window.location.origin}/consulta/${alumnoSeleccionado.token_qr}`
-    : `${window.location.origin}/consulta/desconocido`;
+  // ✅ AHORA:
+const DOMINIO_PUBLICO = "https://banco-ceesuv-fronted.vercel.app";
+
+const qrTargetUrl = alumnoSeleccionado && alumnoSeleccionado.token_qr
+  ? `${DOMINIO_PUBLICO}/consulta/${alumnoSeleccionado.token_qr}`
+  : `${DOMINIO_PUBLICO}/consulta/desconocido`;
 
   const qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(qrTargetUrl)}`;
 
