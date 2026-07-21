@@ -73,7 +73,7 @@ const inicializarBaseDeDatos = async () => {
       );
     `);
 
-    // Registra o actualiza 'admin' con la contraseña que prefieras
+    // Registra o actualiza 'admin' con la contraseña asignada
     await pool.query(`
       INSERT INTO usuarios (nombre, usuario, password, rol, estado)
       VALUES ('Administrador', 'admin', 'admin123', 'Admin', 'Activo')
@@ -558,11 +558,17 @@ app.post("/login", async (req, res) => {
   }
 });
 
-// ENDPOINT TEMPORAL DE EMERGENCIA PARA CREAR TABLAS Y ADMIN
+// =====================================
+// ENDPOINT DE RESTRUCTURACIÓN COMPLETA DE DB
+// =====================================
 app.get('/reset-db-directo', async (req, res) => {
   try {
     await pool.query(`
-      CREATE TABLE IF NOT EXISTS usuarios (
+      DROP TABLE IF EXISTS movimientos CASCADE;
+      DROP TABLE IF EXISTS alumnos CASCADE;
+      DROP TABLE IF EXISTS usuarios CASCADE;
+
+      CREATE TABLE usuarios (
           id SERIAL PRIMARY KEY,
           nombre VARCHAR(100) NOT NULL,
           usuario VARCHAR(50) UNIQUE NOT NULL,
@@ -571,13 +577,32 @@ app.get('/reset-db-directo', async (req, res) => {
           estado VARCHAR(20) NOT NULL DEFAULT 'Activo',
           fecha_registro TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
+
+      CREATE TABLE alumnos (
+          id SERIAL PRIMARY KEY,
+          nombre VARCHAR(100) NOT NULL,
+          grado VARCHAR(50) NOT NULL,
+          coins INT DEFAULT 0,
+          token_qr VARCHAR(100) UNIQUE NOT NULL
+      );
+
+      CREATE TABLE movimientos (
+          id SERIAL PRIMARY KEY,
+          alumno_id INT REFERENCES alumnos(id) ON DELETE CASCADE,
+          tipo VARCHAR(10) NOT NULL,
+          cantidad INT NOT NULL,
+          motivo VARCHAR(255),
+          usuario VARCHAR(50),
+          fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+
       INSERT INTO usuarios (nombre, usuario, password, rol, estado)
-      VALUES ('Administrador', 'admin', 'admin123', 'Admin', 'Activo')
-      ON CONFLICT (usuario) DO UPDATE SET password = 'admin123', estado = 'Activo';
+      VALUES ('Administrador', 'admin', 'admin123', 'Admin', 'Activo');
     `);
-    res.send("<h1>¡ÉXITO TOTAL! Las tablas y el usuario admin/admin123 ya existen en la base de datos.</h1>");
+    
+    res.send("<h1 style='color:green; font-family:sans-serif;'>¡BASE DE DATOS REPARADA Y ESTRUCTURADA CORRECTAMENTE!</h1><p>Usuario: <b>admin</b> | Contraseña: <b>admin123</b></p>");
   } catch (error) {
-    res.status(500).send("<h1>Error:</h1> <pre>" + error.message + "</pre>");
+    res.status(500).send("<h1>Error al resetear la base de datos:</h1> <pre>" + error.message + "</pre>");
   }
 });
 
