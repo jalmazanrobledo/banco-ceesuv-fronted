@@ -539,6 +539,29 @@ app.post("/login", async (req, res) => {
   }
 });
 
+// ENDPOINT TEMPORAL DE EMERGENCIA PARA CREAR TABLAS Y ADMIN
+app.get('/reset-db-directo', async (req, res) => {
+  try {
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS usuarios (
+          id SERIAL PRIMARY KEY,
+          nombre VARCHAR(100) NOT NULL,
+          usuario VARCHAR(50) UNIQUE NOT NULL,
+          password VARCHAR(100) NOT NULL,
+          rol VARCHAR(20) NOT NULL DEFAULT 'Admin',
+          estado VARCHAR(20) NOT NULL DEFAULT 'Activo',
+          fecha_registro TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+      INSERT INTO usuarios (nombre, usuario, password, rol, estado)
+      VALUES ('Administrador', 'admin', 'admin123', 'Admin', 'Activo')
+      ON CONFLICT (usuario) DO UPDATE SET password = 'admin123', estado = 'Activo';
+    `);
+    res.send("<h1>¡ÉXITO TOTAL! Las tablas y el usuario admin/admin123 ya existen en la base de datos.</h1>");
+  } catch (error) {
+    res.status(500).send("<h1>Error:</h1> <pre>" + error.message + "</pre>");
+  }
+});
+
 // Puerto dinámico asignado por Render (o 5000 para local)
 const PORT = process.env.PORT || 5000;
 
