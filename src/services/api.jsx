@@ -1,4 +1,4 @@
-const API_URL = "https://nombre-real-de-tu-app.onrender.com";
+const API_URL = "https://banco-ceesuv-backend.onrender.com"; // Pon tu URL real de Render
 
 export async function obtenerAlumnos() {
 
@@ -152,20 +152,15 @@ export async function cambiarEstadoUsuario(id, estado){
 
 }
 
-// =====================================
-// AUTENTICACIÓN
-// =====================================
-export async function loginUsuario(credenciales) {
-  const respuesta = await fetch(`${API}/login`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify(credenciales)
-  });
+// ✅ OPCIÓN 1: Declarar la constante arriba
 
-  return await respuesta.json();
-}
+const response = await fetch(`${API_URL}/login`, {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify({ usuario, password }),
+});
 
 // =====================================
 // CONSULTA PÚBLICA QR (PADRES)
