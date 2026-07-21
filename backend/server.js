@@ -73,12 +73,12 @@ const inicializarBaseDeDatos = async () => {
       );
     `);
 
-    // 2. Insertar o actualizar forzosamente al usuario admin con la clave "admin"
+    // Registra o actualiza 'admin' con la contraseña que prefieras
     await pool.query(`
       INSERT INTO usuarios (nombre, usuario, password, rol, estado)
-      VALUES ('Administrador', 'admin', 'admin', 'Admin', 'Activo')
+      VALUES ('Administrador', 'admin', 'admin123', 'Admin', 'Activo')
       ON CONFLICT (usuario) 
-      DO UPDATE SET password = 'admin', estado = 'Activo';
+      DO UPDATE SET password = 'admin123', estado = 'Activo';
     `);
 
     console.log("✅ Tablas inicializadas y usuario admin configurado correctamente.");
