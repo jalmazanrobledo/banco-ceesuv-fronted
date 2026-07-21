@@ -42,6 +42,7 @@ const pool = new Pool(
 // =====================================
 const inicializarBaseDeDatos = async () => {
   try {
+    // 1. Crear las tablas si no existen
     await pool.query(`
       CREATE TABLE IF NOT EXISTS usuarios (
         id SERIAL PRIMARY KEY,
@@ -70,14 +71,19 @@ const inicializarBaseDeDatos = async () => {
         usuario VARCHAR(50),
         fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
+    `);
 
+    // 2. Insertar o actualizar forzosamente al usuario admin con la clave "admin"
+    await pool.query(`
       INSERT INTO usuarios (nombre, usuario, password, rol, estado)
       VALUES ('Administrador', 'admin', 'admin', 'Admin', 'Activo')
-      ON CONFLICT (usuario) DO UPDATE SET password = 'admin';
+      ON CONFLICT (usuario) 
+      DO UPDATE SET password = 'admin', estado = 'Activo';
     `);
-    console.log("✅ Tablas inicializadas o verificadas con éxito en PostgreSQL.");
+
+    console.log("✅ Tablas inicializadas y usuario admin configurado correctamente.");
   } catch (err) {
-    console.error("❌ Error al inicializar tablas en PostgreSQL:", err);
+    console.error("❌ Error al inicializar la base de datos:", err);
   }
 };
 
