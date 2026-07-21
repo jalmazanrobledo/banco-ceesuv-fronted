@@ -1,4 +1,4 @@
-const API = "https://tu-backend-ceesuv.onrender.com";
+const API_URL = "https://nombre-real-de-tu-app.onrender.com";
 
 export async function obtenerAlumnos() {
 

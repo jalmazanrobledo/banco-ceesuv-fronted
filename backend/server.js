@@ -4,16 +4,38 @@ const { Pool } = require("pg");
 
 const app = express();
 
-app.use(cors());
+// =====================================
+// Configuración de CORS para Vercel
+// =====================================
+app.use(cors({
+  origin: [
+    "https://banco-ceesuv-fronted.vercel.app",
+    "http://localhost:5173",
+    "http://localhost:3000"
+  ],
+  credentials: true
+}));
+
 app.use(express.json());
 
-const pool = new Pool({
-  user: "postgres",
-  host: "localhost",
-  database: "bancoescolarceesuv",
-  password: "2026",
-  port: 5432,
-});
+// =====================================
+// Configuración de Base de Datos
+// =====================================
+// En Render se usará process.env.DATABASE_URL. Si no existe, usará la configuración local.
+const pool = new Pool(
+  process.env.DATABASE_URL
+    ? {
+        connectionString: process.env.DATABASE_URL,
+        ssl: { rejectUnauthorized: false } // Requerido para la mayoría de DBs en la nube
+      }
+    : {
+        user: "postgres",
+        host: "localhost",
+        database: "bancoescolarceesuv",
+        password: "2026",
+        port: 5432,
+      }
+);
 
 // =====================================
 // Ruta principal
@@ -96,7 +118,6 @@ app.post("/alumnos", async (req, res) => {
   try {
     const { nombre, grado, coins } = req.body;
 
-    // Generamos un token por código en caso de que la DB no aplique el default
     const tokenGenerado = `ceesuv-${Date.now()}-${Math.floor(Math.random() * 899999 + 100000)}`;
 
     const resultado = await pool.query(
@@ -185,7 +206,6 @@ app.post("/movimientos", async (req, res) => {
       usuario
     } = req.body;
 
-    // Obtener saldo actual
     const alumno = await pool.query(
       "SELECT coins FROM alumnos WHERE id = $1",
       [alumno_id]
@@ -214,13 +234,11 @@ app.post("/movimientos", async (req, res) => {
       }
     }
 
-    // Actualizar saldo
     await pool.query(
       "UPDATE alumnos SET coins = $1 WHERE id = $2",
       [nuevoSaldo, alumno_id]
     );
 
-    // Guardar movimiento
     await pool.query(
       `INSERT INTO movimientos
       (alumno_id, tipo, cantidad, motivo, usuario)
@@ -468,12 +486,12 @@ app.post("/login", async (req, res) => {
   }
 });
 
-app.listen(5000, () => {
-  console.log("");
+// Puerto dinámico asignado por Render (o 5000 para local)
+const PORT = process.env.PORT || 5000;
+
+app.listen(PORT, () => {
   console.log("====================================");
   console.log(" Banco Escolar CEESUV");
-  console.log(" Servidor iniciado correctamente");
-  console.log(" http://localhost:5000");
+  console.log(` Servidor iniciado en puerto: ${PORT}`);
   console.log("====================================");
-  console.log("");
 });
