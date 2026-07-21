@@ -508,14 +508,20 @@ app.post("/login", async (req, res) => {
   try {
     const { usuario, password } = req.body;
 
+    // Limpiamos espacios alrededor de las entradas
+    const userClean = usuario ? usuario.trim() : "";
+    const passClean = password ? password.trim() : "";
+
+    // 1. Buscamos el usuario por su nombre (sin importar mayúsculas/minúsculas)
     const resultado = await pool.query(
-      `SELECT id, nombre, usuario, rol, estado 
+      `SELECT id, nombre, usuario, password, rol, estado 
        FROM usuarios 
-       WHERE usuario = $1 AND password = $2`,
-      [usuario, password]
+       WHERE LOWER(usuario) = LOWER($1)`,
+      [userClean]
     );
 
     if (resultado.rows.length === 0) {
+      console.log(`[LOGIN FAIL] Usuario no encontrado: "${userClean}"`);
       return res.status(401).json({
         mensaje: "Usuario o contraseña incorrectos."
       });
@@ -523,16 +529,29 @@ app.post("/login", async (req, res) => {
 
     const usuarioEncontrado = resultado.rows[0];
 
-    if (usuarioEncontrado.estado !== "Activo") {
+    // 2. Verificamos la contraseña
+    if (usuarioEncontrado.password !== passClean) {
+      console.log(`[LOGIN FAIL] Contraseña incorrecta para el usuario: "${userClean}"`);
+      return res.status(401).json({
+        mensaje: "Usuario o contraseña incorrectos."
+      });
+    }
+
+    // 3. Verificamos el estado
+    if (usuarioEncontrado.estado && usuarioEncontrado.estado.toLowerCase() !== "activo") {
       return res.status(403).json({
         mensaje: "El usuario se encuentra inactivo."
       });
     }
 
+    // No enviamos la contraseña de vuelta al frontend por seguridad
+    delete usuarioEncontrado.password;
+
+    console.log(`[LOGIN SUCCESS] Inicio de sesión exitoso: ${usuarioEncontrado.usuario}`);
     res.json(usuarioEncontrado);
 
   } catch (error) {
-    console.error(error);
+    console.error("Error al intentar iniciar sesión:", error);
     res.status(500).json({
       mensaje: "Error al intentar iniciar sesión."
     });
