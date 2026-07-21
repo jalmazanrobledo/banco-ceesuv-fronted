@@ -552,8 +552,11 @@ app.post("/login", async (req, res) => {
 
   } catch (error) {
     console.error("Error al intentar iniciar sesión:", error);
+    // Cambiamos esta línea para ver el error real directamente en el frontend/red
     res.status(500).json({
-      mensaje: "Error al intentar iniciar sesión."
+      mensaje: "Error al intentar iniciar sesión.",
+      detalles: error.message,
+      stack: error.stack
     });
   }
 });
