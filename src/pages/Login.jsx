@@ -62,7 +62,7 @@ function Login() {
         {/* LOGO DE LA ESCUELA */}
         <div style={{ marginBottom: "15px" }}>
           <img
-            src="/logo.png"
+            src="/logo-ceesuv.png"
             alt="Logo CEESUV"
             style={{
               width: "90px",

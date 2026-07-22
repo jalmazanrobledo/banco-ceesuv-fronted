@@ -51,7 +51,7 @@ function Sidebar() {
         {/* LOGO / TITULO */}
         <div style={{ marginBottom: "25px", textAlign: "center" }}>
           <img 
-            src="/logo.png" 
+            src="/logo-ceesuv.png" 
             alt="Logo CEESUV" 
             style={{ 
               maxWidth: "80px", 
