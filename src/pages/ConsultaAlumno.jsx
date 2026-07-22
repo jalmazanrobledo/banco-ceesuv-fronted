@@ -140,14 +140,19 @@ function Alumnos() {
     return alumno.token || alumno.qr_token || alumno.codigo || alumno.id || alumno._id;
   };
 
-  // Genera la URL pública para la cámara
+  // Genera la URL pública garantizada para la cámara
   const obtenerUrlConsulta = (alumno) => {
-    const token = obtenerTokenAlumno(alumno);
-    const domain = window.location.origin.includes("localhost")
-      ? "https://banco-ceesuv-fronted.vercel.app"
-      : window.location.origin;
-      
-    return `${domain}/consulta/${token}`;
+    const token = alumno.token || alumno.qr_token || alumno.codigo || alumno.id || alumno._id || "";
+    
+    // Determinamos el dominio base
+    let domain = window.location.origin;
+    if (domain.includes("localhost")) {
+      domain = "https://banco-ceesuv-fronted.vercel.app";
+    }
+
+    // Limpiamos barras duplicadas y aseguramos https://
+    const baseUrl = domain.replace(/\/+$/, "");
+    return `${baseUrl}/consulta/${token}`;
   };
 
   const listaAlumnos = Array.isArray(alumnos) ? alumnos : [];
@@ -307,12 +312,12 @@ function Alumnos() {
 
       {/* --- MODAL QR --- */}
       {modalQr && alumnoSeleccionado && (() => {
-        const nombreAlumno = alumnoSeleccionado.nombre || alumnoSeleccionado.nombre_completo;
+        const nombreAlumno = alumnoSeleccionado.nombre || alumnoSeleccionado.nombre_completo || "Alumno";
         const gradoAlumno = alumnoSeleccionado.grado || alumnoSeleccionado.grado_estudio || "N/A";
         const urlEnlace = obtenerUrlConsulta(alumnoSeleccionado);
         
-        // Imagen formateada de alta compatibilidad
-        const qrImgSrc = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(urlEnlace)}`;
+        // Formato SVG de alta definición y codificación estricta de URL para la cámara
+        const qrImgSrc = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&format=svg&data=${encodeURIComponent(urlEnlace)}`;
 
         return (
           <div style={styles.modalOverlay}>
@@ -325,21 +330,23 @@ function Alumnos() {
                 Grado: {gradoAlumno}
               </p>
 
-              <div style={{ padding: "20px", background: "#f8f9fa", borderRadius: "8px", margin: "15px 0" }}>
+              <div style={{ padding: "20px", background: "#ffffff", border: "1px solid #e0e0e0", borderRadius: "8px", margin: "15px 0" }}>
                 <img
                   src={qrImgSrc}
                   alt="QR Alumno"
-                  style={{ width: "200px", height: "200px", display: "block", margin: "auto" }}
+                  style={{ width: "220px", height: "220px", display: "block", margin: "auto" }}
                 />
                 
-                <div style={{ marginTop: "12px" }}>
+                {/* Texto visible de confirmación */}
+                <div style={{ marginTop: "12px", background: "#f8f9fa", padding: "8px", borderRadius: "6px" }}>
+                  <p style={{ fontSize: "11px", color: "#6c757d", margin: "0 0 4px 0" }}>Enlace codificado en el QR:</p>
                   <a
                     href={urlEnlace}
                     target="_blank"
                     rel="noreferrer"
-                    style={{ fontSize: "12px", color: "#17a2b8", wordBreak: "break-all", fontWeight: "bold", textDecoration: "underline" }}
+                    style={{ fontSize: "12px", color: "#17a2b8", wordBreak: "break-all", fontWeight: "bold" }}
                   >
-                    🔗 Abrir vista previa de la URL
+                    {urlEnlace}
                   </a>
                 </div>
               </div>
@@ -353,7 +360,7 @@ function Alumnos() {
                     const url = window.URL.createObjectURL(blob);
                     const link = document.createElement("a");
                     link.href = url;
-                    link.download = `QR_${nombreAlumno.replace(/\s+/g, "_")}.png`;
+                    link.download = `QR_${nombreAlumno.replace(/\s+/g, "_")}.svg`;
                     link.click();
                   }}
                   style={{
@@ -367,7 +374,7 @@ function Alumnos() {
                     fontSize: "13px"
                   }}
                 >
-                  💾 Guardar Imagen
+                  💾 Guardar QR
                 </button>
 
                 {/* Botón Imprimir Credencial */}
