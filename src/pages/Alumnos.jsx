@@ -5,7 +5,6 @@ function Alumnos() {
   const [alumnos, setAlumnos] = useState([]);
   const [busqueda, setBusqueda] = useState("");
 
-  // Reemplazar según tu endpoint
   const API_URL = import.meta.env.VITE_API_URL || "https://banco-ceesuv-backend.onrender.com";
 
   useEffect(() => {
@@ -14,17 +13,30 @@ function Alumnos() {
 
   const fetchAlumnos = async () => {
     try {
-      const res = await fetch(`${API_URL}/api/alumnos`);
+      // 👈 CORREGIDO: Se cambia /api/alumnos por /api/alumno
+      const res = await fetch(`${API_URL}/api/alumno`);
       const data = await res.json();
-      setAlumnos(data);
+
+      // Si la respuesta es un arreglo, lo guardamos directamente
+      if (Array.isArray(data)) {
+        setAlumnos(data);
+      } else if (data.alumnos && Array.isArray(data.alumnos)) {
+        setAlumnos(data.alumnos);
+      } else if (data.data && Array.isArray(data.data)) {
+        setAlumnos(data.data);
+      }
     } catch (error) {
       console.error("Error al obtener alumnos:", error);
     }
   };
 
-  const alumnosFiltrados = alumnos.filter((alumno) =>
-    alumno.nombre.toLowerCase().includes(busqueda.toLowerCase())
-  );
+  // Asegura que alumnos sea siempre un array antes de filtrar
+  const listaAlumnos = Array.isArray(alumnos) ? alumnos : [];
+  
+  const alumnosFiltrados = listaAlumnos.filter((alumno) => {
+    const nombreAlumno = alumno.nombre || alumno.nombre_completo || "";
+    return nombreAlumno.toLowerCase().includes(busqueda.toLowerCase());
+  });
 
   return (
     <div style={styles.container}>
@@ -64,19 +76,27 @@ function Alumnos() {
               </tr>
             </thead>
             <tbody>
-              {alumnosFiltrados.map((alumno) => (
-                <tr key={alumno.id} style={styles.tr}>
-                  <td style={styles.td}>{alumno.id}</td>
-                  <td style={styles.tdBold}>{alumno.nombre}</td>
-                  <td style={styles.td}>{alumno.grado}</td>
-                  <td style={styles.tdCoins}>🪙 {alumno.coins}</td>
-                  <td style={styles.tdActions}>
-                    <button style={styles.btnQr}>📱 Código QR</button>
-                    <button style={styles.btnEdit}>✏️ Editar</button>
-                    <button style={styles.btnDelete}>🗑️ Eliminar</button>
+              {alumnosFiltrados.length > 0 ? (
+                alumnosFiltrados.map((alumno) => (
+                  <tr key={alumno.id} style={styles.tr}>
+                    <td style={styles.td}>{alumno.id}</td>
+                    <td style={styles.tdBold}>{alumno.nombre || alumno.nombre_completo}</td>
+                    <td style={styles.td}>{alumno.grado}</td>
+                    <td style={styles.tdCoins}>🪙 {alumno.coins ?? alumno.saldo ?? 0}</td>
+                    <td style={styles.tdActions}>
+                      <button style={styles.btnQr}>📱 Código QR</button>
+                      <button style={styles.btnEdit}>✏️ Editar</button>
+                      <button style={styles.btnDelete}>🗑️ Eliminar</button>
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan="5" style={{ textAlign: "center", padding: "20px", color: "#6c757d" }}>
+                    No se encontraron alumnos registrados.
                   </td>
                 </tr>
-              ))}
+              )}
             </tbody>
           </table>
         </div>
@@ -89,7 +109,7 @@ const styles = {
   container: {
     display: "flex",
     minHeight: "100vh",
-    backgroundColor: "#F4F6F9", // Fondo claro idéntico a Usuarios
+    backgroundColor: "#F4F6F9",
   },
   content: {
     flex: 1,
@@ -102,7 +122,7 @@ const styles = {
     margin: 0,
     fontSize: "28px",
     fontWeight: "bold",
-    color: "#0B2341", // Texto oscuro
+    color: "#0B2341",
   },
   subtitle: {
     margin: "5px 0 0 0",
