@@ -21,12 +21,11 @@ app.use(express.json());
 // =====================================
 // Configuración de Base de Datos
 // =====================================
-// En Render se usará process.env.DATABASE_URL. Si no existe, usará la configuración local.
 const pool = new Pool(
   process.env.DATABASE_URL
     ? {
         connectionString: process.env.DATABASE_URL,
-        ssl: { rejectUnauthorized: false } // Requerido para DBs en la nube como Render
+        ssl: { rejectUnauthorized: false }
       }
     : {
         user: "postgres",
@@ -42,7 +41,6 @@ const pool = new Pool(
 // =====================================
 const inicializarBaseDeDatos = async () => {
   try {
-    // 1. Crear las tablas si no existen
     await pool.query(`
       CREATE TABLE IF NOT EXISTS usuarios (
         id SERIAL PRIMARY KEY,
@@ -73,7 +71,6 @@ const inicializarBaseDeDatos = async () => {
       );
     `);
 
-    // Registra o actualiza 'admin' con la contraseña asignada
     await pool.query(`
       INSERT INTO usuarios (nombre, usuario, password, rol, estado)
       VALUES ('Administrador', 'admin', 'admin123', 'Admin', 'Activo')
@@ -87,13 +84,11 @@ const inicializarBaseDeDatos = async () => {
   }
 };
 
-// Ejecutamos la inicialización
 inicializarBaseDeDatos();
 
 // =====================================
 // Ruta principal
 // =====================================
-
 app.get("/", (req, res) => {
   res.send("Servidor Banco Escolar CEESUV funcionando correctamente.");
 });
@@ -101,12 +96,10 @@ app.get("/", (req, res) => {
 // =====================================
 // Consulta pública vía Código QR (Padres)
 // =====================================
-
 app.get("/consulta/:token", async (req, res) => {
   try {
     const { token } = req.params;
 
-    // 1. Buscar alumno por su token_qr
     const alumnoResult = await pool.query(
       "SELECT id, nombre, grado, coins FROM alumnos WHERE token_qr = $1",
       [token]
@@ -120,7 +113,6 @@ app.get("/consulta/:token", async (req, res) => {
 
     const alumno = alumnoResult.rows[0];
 
-    // 2. Buscar últimos 10 movimientos del alumno
     const movimientosResult = await pool.query(
       `SELECT tipo, cantidad, motivo, fecha 
        FROM movimientos 
@@ -146,7 +138,6 @@ app.get("/consulta/:token", async (req, res) => {
 // =====================================
 // Obtener todos los alumnos
 // =====================================
-
 app.get("/alumnos", async (req, res) => {
   try {
     const resultado = await pool.query(
@@ -166,7 +157,6 @@ app.get("/alumnos", async (req, res) => {
 // =====================================
 // Agregar alumno (Genera token_qr único)
 // =====================================
-
 app.post("/alumnos", async (req, res) => {
   try {
     const { nombre, grado, coins } = req.body;
@@ -194,7 +184,6 @@ app.post("/alumnos", async (req, res) => {
 // =====================================
 // Editar alumno
 // =====================================
-
 app.put("/alumnos/:id", async (req, res) => {
   try {
     const { id } = req.params;
@@ -223,7 +212,6 @@ app.put("/alumnos/:id", async (req, res) => {
 // =====================================
 // Eliminar alumno
 // =====================================
-
 app.delete("/alumnos/:id", async (req, res) => {
   try {
     const { id } = req.params;
@@ -248,7 +236,6 @@ app.delete("/alumnos/:id", async (req, res) => {
 // =====================================
 // Agregar o descontar CEESUV Coins
 // =====================================
-
 app.post("/movimientos", async (req, res) => {
   try {
     const {
@@ -321,7 +308,6 @@ app.post("/movimientos", async (req, res) => {
 // =====================================
 // Dashboard
 // =====================================
-
 app.get("/dashboard", async (req, res) => {
   try {
     const alumnos = await pool.query(
@@ -353,7 +339,6 @@ app.get("/dashboard", async (req, res) => {
 // =====================================
 // Obtener movimientos
 // =====================================
-
 app.get("/movimientos", async (req, res) => {
   try {
     const resultado = await pool.query(`
@@ -384,7 +369,6 @@ app.get("/movimientos", async (req, res) => {
 // =====================================
 // Obtener usuarios
 // =====================================
-
 app.get("/usuarios", async (req, res) => {
   try {
     const resultado = await pool.query(
@@ -412,7 +396,6 @@ app.get("/usuarios", async (req, res) => {
 // =====================================
 // Agregar usuario
 // =====================================
-
 app.post("/usuarios", async (req, res) => {
   try {
     const {
@@ -443,7 +426,6 @@ app.post("/usuarios", async (req, res) => {
 // =====================================
 // Editar usuario
 // =====================================
-
 app.put("/usuarios/:id", async (req, res) => {
   try {
     const { id } = req.params;
@@ -476,7 +458,6 @@ app.put("/usuarios/:id", async (req, res) => {
 // =====================================
 // Cambiar estado del usuario
 // =====================================
-
 app.put("/usuarios/:id/estado", async (req, res) => {
   try {
     const { id } = req.params;
@@ -501,21 +482,29 @@ app.put("/usuarios/:id/estado", async (req, res) => {
 });
 
 // =====================================
-// Login de usuario (ACTUALIZADO Y BLINDADO)
+// Login de usuario (CORREGIDO Y TOTALMENTE BLINDADO)
 // =====================================
-
 app.post("/login", async (req, res) => {
-  // Extraemos datos si vienen planos O si vienen dentro de req.body.usuario
-  const datos = req.body.usuario && typeof req.body.usuario === 'object' 
-    ? req.body.usuario 
-    : req.body;
+  try {
+    // Si req.body.usuario viene como objeto ({ usuario: "admin", password: "123" }), tomamos esa rama
+    const payload = (req.body && typeof req.body.usuario === 'object' && req.body.usuario !== null)
+      ? req.body.usuario 
+      : req.body;
 
-  const { usuario, password, contrasena, pass } = datos;
+    // Extraemos campos soportando variaciones
+    const uRaw = payload.usuario || (typeof req.body.usuario === 'string' ? req.body.usuario : "");
+    const pRaw = payload.password || payload.contrasena || payload.pass || req.body.password || req.body.contrasena || "";
 
-  const userClean = String(usuario || "").trim();
-  const passClean = String(password || contrasena || pass || "").trim();
+    const userClean = String(uRaw).trim();
+    const passClean = String(pRaw).trim();
 
-    // 1. Buscamos el usuario por su nombre (sin importar mayúsculas/minúsculas)
+    console.log(`[LOGIN TRY] Procesando login para usuario: "${userClean}"`);
+
+    if (!userClean || !passClean) {
+      return res.status(400).json({ mensaje: "Usuario y contraseña requeridos." });
+    }
+
+    // 1. Buscamos el usuario por su nombre (LOWER para no depender de mayúsculas)
     const resultado = await pool.query(
       `SELECT id, nombre, usuario, password, rol, estado 
        FROM usuarios 
@@ -547,7 +536,6 @@ app.post("/login", async (req, res) => {
       });
     }
 
-    // No enviamos la contraseña de vuelta al frontend por seguridad
     delete usuarioEncontrado.password;
 
     console.log(`[LOGIN SUCCESS] Inicio de sesión exitoso: ${usuarioEncontrado.usuario}`);
@@ -557,14 +545,13 @@ app.post("/login", async (req, res) => {
     console.error("Error al intentar iniciar sesión:", error);
     res.status(500).json({
       mensaje: "Error al intentar iniciar sesión.",
-      detalles: error.message,
-      stack: error.stack
+      detalles: error.message
     });
   }
 });
 
 // =====================================
-// ENDPOINT DE RESTRUCTURACIÓN COMPLETA DE DB
+// ENDPOINT DE RESETEO/RESTRUCTURACIÓN DE DB
 // =====================================
 app.get('/reset-db-directo', async (req, res) => {
   try {
@@ -611,7 +598,7 @@ app.get('/reset-db-directo', async (req, res) => {
   }
 });
 
-// Puerto dinámico asignado por Render (o 5000 para local)
+// Puerto dinámico asignado por Render
 const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, () => {
