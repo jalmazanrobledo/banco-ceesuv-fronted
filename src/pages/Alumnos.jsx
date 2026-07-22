@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
-import Sidebar from "../components/Sidebar"; // 👈 Importamos la barra lateral
+import Sidebar from "../components/Sidebar";
 import { obtenerAlumnos, guardarAlumno, editarAlumno, eliminarAlumno } from "../services/api";
 
 function Alumnos() {
   const [alumnos, setAlumnos] = useState([]);
+  const [busqueda, setBusqueda] = useState(""); // 👈 Estado para el buscador
   const [modalOpen, setModalOpen] = useState(false);
   const [modalQROpen, setModalQROpen] = useState(false);
   const [alumnoSeleccionado, setAlumnoSeleccionado] = useState(null);
@@ -66,12 +67,16 @@ function Alumnos() {
     setCoins(0);
   };
 
-  // ✅ AHORA:
-const DOMINIO_PUBLICO = "https://banco-ceesuv-fronted.vercel.app";
+  // 🔍 Lógica de filtrado en tiempo real
+  const alumnosFiltrados = alumnos.filter((alumno) =>
+    alumno.nombre.toLowerCase().includes(busqueda.toLowerCase())
+  );
 
-const qrTargetUrl = alumnoSeleccionado && alumnoSeleccionado.token_qr
-  ? `${DOMINIO_PUBLICO}/consulta/${alumnoSeleccionado.token_qr}`
-  : `${DOMINIO_PUBLICO}/consulta/desconocido`;
+  const DOMINIO_PUBLICO = "https://banco-ceesuv-fronted.vercel.app";
+
+  const qrTargetUrl = alumnoSeleccionado && alumnoSeleccionado.token_qr
+    ? `${DOMINIO_PUBLICO}/consulta/${alumnoSeleccionado.token_qr}`
+    : `${DOMINIO_PUBLICO}/consulta/desconocido`;
 
   const qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(qrTargetUrl)}`;
 
@@ -82,14 +87,33 @@ const qrTargetUrl = alumnoSeleccionado && alumnoSeleccionado.token_qr
 
       {/* 2. CONTENIDO PRINCIPAL DE ALUMNOS */}
       <div style={{ flex: 1, padding: "20px" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
-          <h2 style={{ color: "white" }}>👨‍🎓 Gestión de Alumnos</h2>
-          <button
-            onClick={() => setModalOpen(true)}
-            style={{ padding: "10px 15px", background: "#17a2b8", color: "white", border: "none", borderRadius: "5px", cursor: "pointer", fontWeight: "bold" }}
-          >
-            ➕ Agregar Alumno
-          </button>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px", gap: "15px", flexWrap: "wrap" }}>
+          <h2 style={{ color: "white", margin: 0 }}>👨‍🎓 Gestión de Alumnos</h2>
+          
+          <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
+            {/* 🔍 BUSCADOR DE ALUMNOS */}
+            <input
+              type="text"
+              placeholder="🔍 Buscar alumno por nombre..."
+              value={busqueda}
+              onChange={(e) => setBusqueda(e.target.value)}
+              style={{
+                padding: "9px 15px",
+                borderRadius: "5px",
+                border: "1px solid #ccc",
+                outline: "none",
+                width: "250px",
+                fontSize: "14px"
+              }}
+            />
+
+            <button
+              onClick={() => setModalOpen(true)}
+              style={{ padding: "10px 15px", background: "#17a2b8", color: "white", border: "none", borderRadius: "5px", cursor: "pointer", fontWeight: "bold" }}
+            >
+              ➕ Agregar Alumno
+            </button>
+          </div>
         </div>
 
         {/* TABLA DE ALUMNOS */}
@@ -104,34 +128,42 @@ const qrTargetUrl = alumnoSeleccionado && alumnoSeleccionado.token_qr
             </tr>
           </thead>
           <tbody>
-            {alumnos.map((a) => (
-              <tr key={a.id} style={{ borderBottom: "1px solid #eee" }}>
-                <td style={{ padding: "12px" }}>{a.id}</td>
-                <td style={{ padding: "12px" }}>{a.nombre}</td>
-                <td style={{ padding: "12px" }}>{a.grado}</td>
-                <td style={{ padding: "12px", fontWeight: "bold" }}>🪙 {a.coins}</td>
-                <td style={{ padding: "12px", textAlign: "center" }}>
-                  <button
-                    onClick={() => abrirModalQR(a)}
-                    style={{ marginRight: "8px", padding: "6px 12px", background: "#D4AF37", color: "#0B2341", border: "none", borderRadius: "4px", fontWeight: "bold", cursor: "pointer" }}
-                  >
-                    📱 Código QR
-                  </button>
-                  <button
-                    onClick={() => handleEditar(a)}
-                    style={{ marginRight: "8px", padding: "6px 12px", background: "#17a2b8", color: "white", border: "none", borderRadius: "4px", cursor: "pointer" }}
-                  >
-                    ✏️ Editar
-                  </button>
-                  <button
-                    onClick={() => handleEliminar(a.id)}
-                    style={{ padding: "6px 12px", background: "#dc3545", color: "white", border: "none", borderRadius: "4px", cursor: "pointer" }}
-                  >
-                    🗑️ Eliminar
-                  </button>
+            {alumnosFiltrados.length > 0 ? (
+              alumnosFiltrados.map((a) => (
+                <tr key={a.id} style={{ borderBottom: "1px solid #eee" }}>
+                  <td style={{ padding: "12px" }}>{a.id}</td>
+                  <td style={{ padding: "12px" }}>{a.nombre}</td>
+                  <td style={{ padding: "12px" }}>{a.grado}</td>
+                  <td style={{ padding: "12px", fontWeight: "bold" }}>🪙 {a.coins}</td>
+                  <td style={{ padding: "12px", textAlign: "center" }}>
+                    <button
+                      onClick={() => abrirModalQR(a)}
+                      style={{ marginRight: "8px", padding: "6px 12px", background: "#D4AF37", color: "#0B2341", border: "none", borderRadius: "4px", fontWeight: "bold", cursor: "pointer" }}
+                    >
+                      📱 Código QR
+                    </button>
+                    <button
+                      onClick={() => handleEditar(a)}
+                      style={{ marginRight: "8px", padding: "6px 12px", background: "#17a2b8", color: "white", border: "none", borderRadius: "4px", cursor: "pointer" }}
+                    >
+                      ✏️ Editar
+                    </button>
+                    <button
+                      onClick={() => handleEliminar(a.id)}
+                      style={{ padding: "6px 12px", background: "#dc3545", color: "white", border: "none", borderRadius: "4px", cursor: "pointer" }}
+                    >
+                      🗑️ Eliminar
+                    </button>
+                  </td>
+                </tr>
+              ))
+            ) : (
+              <tr>
+                <td colSpan="5" style={{ padding: "20px", textAlign: "center", color: "#666" }}>
+                  {busqueda ? `No se encontraron alumnos que coincidan con "${busqueda}"` : "No hay alumnos registrados."}
                 </td>
               </tr>
-            ))}
+            )}
           </tbody>
         </table>
 
