@@ -1,5 +1,4 @@
-import { useState, useEffect, useRef } from "react";
-import { QRCodeSVG } from "qrcode.react";
+import { useState, useEffect } from "react";
 import Sidebar from "../components/Sidebar";
 
 function Alumnos() {
@@ -136,7 +135,7 @@ function Alumnos() {
     setModalQr(true);
   };
 
-  // Obtiene la clave/token/ID del alumno
+  // Obtiene el ID/Token del alumno
   const obtenerTokenAlumno = (alumno) => {
     return alumno.token || alumno.qr_token || alumno.codigo || alumno.id || alumno._id;
   };
@@ -156,35 +155,6 @@ function Alumnos() {
     const nombre = alumno.nombre || alumno.nombre_completo || alumno.nombreAlumno || "";
     return nombre.toLowerCase().includes(busqueda.toLowerCase());
   });
-
-  // Función para descargar QR en PNG
-  const descargarQR = (urlConsulta, nombreAlumno) => {
-    const svg = document.getElementById("qr-code-svg");
-    if (!svg) return;
-
-    const svgData = new XMLSerializer().serializeToString(svg);
-    const canvas = document.createElement("canvas");
-    const ctx = canvas.getContext("2d");
-    const img = new Image();
-
-    img.onload = () => {
-      canvas.width = 300;
-      canvas.height = 300;
-      ctx.fillStyle = "white";
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-      ctx.drawImage(img, 0, 0, 300, 300);
-
-      const pngUrl = canvas.toDataURL("image/png");
-      const downloadLink = document.createElement("a");
-      downloadLink.href = pngUrl;
-      downloadLink.download = `QR_${nombreAlumno.replace(/\s+/g, "_")}.png`;
-      document.body.appendChild(downloadLink);
-      downloadLink.click();
-      document.body.removeChild(downloadLink);
-    };
-
-    img.src = "data:image/svg+xml;base64," + btoa(unescape(encodeURIComponent(svgData)));
-  };
 
   return (
     <div style={styles.container}>
@@ -335,11 +305,14 @@ function Alumnos() {
         </div>
       )}
 
-      {/* --- MODAL QR CON QR NATIVO Y ENLACE GARANTIZADO --- */}
+      {/* --- MODAL QR --- */}
       {modalQr && alumnoSeleccionado && (() => {
         const nombreAlumno = alumnoSeleccionado.nombre || alumnoSeleccionado.nombre_completo;
         const gradoAlumno = alumnoSeleccionado.grado || alumnoSeleccionado.grado_estudio || "N/A";
         const urlEnlace = obtenerUrlConsulta(alumnoSeleccionado);
+        
+        // Imagen formateada de alta compatibilidad
+        const qrImgSrc = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(urlEnlace)}`;
 
         return (
           <div style={styles.modalOverlay}>
@@ -352,25 +325,21 @@ function Alumnos() {
                 Grado: {gradoAlumno}
               </p>
 
-              {/* Generación QR Directa */}
               <div style={{ padding: "20px", background: "#f8f9fa", borderRadius: "8px", margin: "15px 0" }}>
-                <QRCodeSVG
-                  id="qr-code-svg"
-                  value={urlEnlace}
-                  size={200}
-                  level="H"
-                  includeMargin={true}
+                <img
+                  src={qrImgSrc}
+                  alt="QR Alumno"
+                  style={{ width: "200px", height: "200px", display: "block", margin: "auto" }}
                 />
                 
-                {/* Enlace clickeable de prueba directa */}
-                <div style={{ marginTop: "10px" }}>
+                <div style={{ marginTop: "12px" }}>
                   <a
                     href={urlEnlace}
                     target="_blank"
                     rel="noreferrer"
-                    style={{ fontSize: "12px", color: "#17a2b8", wordBreak: "break-all", fontWeight: "bold" }}
+                    style={{ fontSize: "12px", color: "#17a2b8", wordBreak: "break-all", fontWeight: "bold", textDecoration: "underline" }}
                   >
-                    🔗 {urlEnlace}
+                    🔗 Abrir vista previa de la URL
                   </a>
                 </div>
               </div>
@@ -378,7 +347,15 @@ function Alumnos() {
               <div style={{ display: "flex", gap: "10px", justifyContent: "center", marginBottom: "15px" }}>
                 {/* Botón Descargar Imagen */}
                 <button
-                  onClick={() => descargarQR(urlEnlace, nombreAlumno)}
+                  onClick={async () => {
+                    const response = await fetch(qrImgSrc);
+                    const blob = await response.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    const link = document.createElement("a");
+                    link.href = url;
+                    link.download = `QR_${nombreAlumno.replace(/\s+/g, "_")}.png`;
+                    link.click();
+                  }}
                   style={{
                     backgroundColor: "#17a2b8",
                     color: "white",
@@ -397,7 +374,6 @@ function Alumnos() {
                 <button
                   onClick={() => {
                     const win = window.open("", "", "width=600,height=600");
-                    const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(urlEnlace)}`;
 
                     win.document.write(`
                       <html>
@@ -417,7 +393,7 @@ function Alumnos() {
                           <div class="card">
                             <h2>CEESUV</h2>
                             <h3>BANCO ESCOLAR</h3>
-                            <img src="${qrApiUrl}" />
+                            <img src="${qrImgSrc}" />
                             <p><strong>${nombreAlumno}</strong></p>
                             <p>Grado: ${gradoAlumno}</p>
                             <p class="instruction">Escanear para consultar estado de cuenta</p>
