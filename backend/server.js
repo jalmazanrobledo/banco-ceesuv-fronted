@@ -505,12 +505,15 @@ app.put("/usuarios/:id/estado", async (req, res) => {
 // =====================================
 
 app.post("/login", async (req, res) => {
-  try {
-    const { usuario, password } = req.body;
+  // Extraemos datos si vienen planos O si vienen dentro de req.body.usuario
+  const datos = req.body.usuario && typeof req.body.usuario === 'object' 
+    ? req.body.usuario 
+    : req.body;
 
-    // Convertimos de forma explícita a String antes de usar .trim()
-    const userClean = String(usuario || "").trim();
-    const passClean = String(password || "").trim();
+  const { usuario, password, contrasena, pass } = datos;
+
+  const userClean = String(usuario || "").trim();
+  const passClean = String(password || contrasena || pass || "").trim();
 
     // 1. Buscamos el usuario por su nombre (sin importar mayúsculas/minúsculas)
     const resultado = await pool.query(
