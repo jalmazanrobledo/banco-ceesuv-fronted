@@ -5,6 +5,11 @@ import Sidebar from "../components/Sidebar";
 function Operaciones() {
   const [alumnos, setAlumnos] = useState([]);
   const [alumnoSeleccionado, setAlumnoSeleccionado] = useState("");
+  
+  // Estados para el Buscador Autocompletado
+  const [busqueda, setBusqueda] = useState("");
+  const [mostrarLista, setMostrarLista] = useState(false);
+
   const [pestana, setPestana] = useState("directa"); // 'directa' o 'ahorro'
 
   // Formulario Operación Directa
@@ -13,7 +18,7 @@ function Operaciones() {
   const [motivoDirecto, setMotivoDirecto] = useState("");
 
   // Formulario Ahorro y Rendimiento
-  const [tipoAhorro, setTipoAhorro] = useState("AHORRO_DEPOSITO"); // AHORRO_DEPOSITO, AHORRO_RETIRO, AHORRO_RENDIMIENTO
+  const [tipoAhorro, setTipoAhorro] = useState("AHORRO_DEPOSITO");
   const [montoAhorro, setMontoAhorro] = useState("");
   const [porcentajeInteres, setPorcentajeInteres] = useState("5");
   const [motivoAhorro, setMotivoAhorro] = useState("Abono a fondo de ahorro");
@@ -33,8 +38,22 @@ function Operaciones() {
     }
   }
 
-  // Alumno actualmente seleccionado en el select
+  // Filtrado predictivo de alumnos segun lo escrito
+  const alumnosFiltrados = alumnos.filter((a) => {
+    const textoCompleto = `${a.nombre || ""} ${a.grado || ""} ${a.matricula || ""}`.toLowerCase();
+    return textoCompleto.includes(busqueda.toLowerCase());
+  });
+
+  // Alumno actualmente seleccionado
   const alumnoActual = alumnos.find((a) => String(a.id) === String(alumnoSeleccionado));
+
+  // Función al hacer clic en un alumno de la lista filtrada
+  const seleccionarAlumno = (alumno) => {
+    setAlumnoSeleccionado(alumno.id);
+    setBusqueda(`${alumno.nombre} ${alumno.grado ? `(${alumno.grado})` : ""}`);
+    setMostrarLista(false);
+    setMensaje(null);
+  };
 
   // Calcular rendimiento automático según porcentaje
   const calcularRendimiento = () => {
@@ -131,40 +150,122 @@ function Operaciones() {
           </div>
         )}
 
-        {/* SELECCIÓN DE ALUMNO */}
+        {/* SELECCIÓN DE ALUMNO CON BUSCADOR DINÁMICO */}
         <div
           style={{
             background: "white",
             padding: "20px",
             borderRadius: "12px",
             boxShadow: "0 4px 12px rgba(0,0,0,.08)",
-            marginBottom: "25px"
+            marginBottom: "25px",
+            position: "relative"
           }}
         >
           <label style={{ fontWeight: "bold", color: "#0B2341", display: "block", marginBottom: "8px" }}>
-            👤 Seleccionar Alumno:
+            🔍 Buscar Alumno por Nombre o Grado:
           </label>
-          <select
-            value={alumnoSeleccionado}
-            onChange={(e) => {
-              setAlumnoSeleccionado(e.target.value);
-              setMensaje(null);
-            }}
-            style={{
-              width: "100%",
-              padding: "12px",
-              borderRadius: "8px",
-              border: "1px solid #CCC",
-              fontSize: "16px"
-            }}
-          >
-            <option value="">-- Selecciona un Alumno --</option>
-            {alumnos.map((a) => (
-              <option key={a.id} value={a.id}>
-                {a.nombre} - {a.grado || "Sin grado"}
-              </option>
-            ))}
-          </select>
+
+          {/* INPUT DE BÚSQUEDA */}
+          <div style={{ position: "relative" }}>
+            <input
+              type="text"
+              value={busqueda}
+              placeholder="Escribe el nombre del alumno..."
+              onChange={(e) => {
+                setBusqueda(e.target.value);
+                setMostrarLista(true);
+                if (e.target.value === "") {
+                  setAlumnoSeleccionado("");
+                }
+              }}
+              onFocus={() => setMostrarLista(true)}
+              style={{
+                width: "100%",
+                padding: "12px 15px",
+                borderRadius: "8px",
+                border: "1px solid #CCC",
+                fontSize: "15px",
+                boxSizing: "border-box"
+              }}
+            />
+
+            {/* BOTÓN PARA LIMPIAR BÚSQUEDA */}
+            {busqueda && (
+              <button
+                type="button"
+                onClick={() => {
+                  setBusqueda("");
+                  setAlumnoSeleccionado("");
+                  setMostrarLista(false);
+                }}
+                style={{
+                  position: "absolute",
+                  right: "12px",
+                  top: "50%",
+                  transform: "translateY(-50%)",
+                  border: "none",
+                  background: "transparent",
+                  cursor: "pointer",
+                  fontSize: "16px",
+                  color: "#888"
+                }}
+              >
+                ✖
+              </button>
+            )}
+          </div>
+
+          {/* LISTA DESPLEGABLE PREDICTIVA */}
+          {mostrarLista && busqueda.length > 0 && (
+            <ul
+              style={{
+                position: "absolute",
+                top: "100%",
+                left: 0,
+                right: 0,
+                backgroundColor: "white",
+                border: "1px solid #DDD",
+                borderRadius: "0 0 8px 8px",
+                maxHeight: "200px",
+                overflowY: "auto",
+                zIndex: 100,
+                listStyle: "none",
+                margin: 0,
+                padding: 0,
+                boxShadow: "0 8px 16px rgba(0,0,0,0.15)"
+              }}
+            >
+              {alumnosFiltrados.length > 0 ? (
+                alumnosFiltrados.map((a) => (
+                  <li
+                    key={a.id}
+                    onMouseDown={() => seleccionarAlumno(a)}
+                    style={{
+                      padding: "12px 15px",
+                      cursor: "pointer",
+                      borderBottom: "1px solid #EEE",
+                      fontSize: "14px",
+                      color: "#333",
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center"
+                    }}
+                    onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#F4F7FA")}
+                    onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "white")}
+                  >
+                    <span><strong>{a.nombre}</strong></span>
+                    <span style={{ fontSize: "12px", color: "#666", background: "#EAEAEA", padding: "2px 8px", borderRadius: "4px" }}>
+                      {a.grado || "Sin grado"}
+                    </span>
+                  </li>
+                ))
+              ) : (
+                <li style={{ padding: "12px 15px", color: "#888", fontSize: "14px" }}>
+                  No se encontró ningún alumno con ese nombre.
+                </li>
+              )}
+            </ul>
+          )}
 
           {/* TARJETAS DE SALDO EN TIEMPO REAL */}
           {alumnoActual && (
@@ -271,7 +372,7 @@ function Operaciones() {
               value={montoDirecto}
               onChange={(e) => setMontoDirecto(e.target.value)}
               placeholder="Ej. 50"
-              style={{ width: "100%", padding: "10px", borderRadius: "6px", border: "1px solid #CCC", marginBottom: "15px" }}
+              style={{ width: "100%", padding: "10px", borderRadius: "6px", border: "1px solid #CCC", marginBottom: "15px", boxSizing: "border-box" }}
             />
 
             <label style={{ display: "block", marginBottom: "5px", fontWeight: "bold" }}>Motivo / Concepto:</label>
@@ -280,7 +381,7 @@ function Operaciones() {
               value={motivoDirecto}
               onChange={(e) => setMotivoDirecto(e.target.value)}
               placeholder="Ej. Participación en clase / Compra en tiendita"
-              style={{ width: "100%", padding: "10px", borderRadius: "6px", border: "1px solid #CCC", marginBottom: "20px" }}
+              style={{ width: "100%", padding: "10px", borderRadius: "6px", border: "1px solid #CCC", marginBottom: "20px", boxSizing: "border-box" }}
             />
 
             <button
@@ -323,7 +424,7 @@ function Operaciones() {
                   if (e.target.value === "AHORRO_DEPOSITO") setMotivoAhorro("Transferencia a Cuenta de Ahorro");
                   if (e.target.value === "AHORRO_RETIRO") setMotivoAhorro("Retiro de Ahorro a Disponible");
                 }}
-                style={{ width: "100%", padding: "10px", borderRadius: "6px", border: "1px solid #CCC" }}
+                style={{ width: "100%", padding: "10px", borderRadius: "6px", border: "1px solid #CCC", boxSizing: "border-box" }}
               >
                 <option value="AHORRO_DEPOSITO">📥 Depositar en Ahorro (Pasa de Disponible ➔ Ahorro)</option>
                 <option value="AHORRO_RETIRO">📤 Retirar de Ahorro (Pasa de Ahorro ➔ Disponible)</option>
@@ -339,7 +440,7 @@ function Operaciones() {
                   type="number"
                   value={porcentajeInteres}
                   onChange={(e) => setPorcentajeInteres(e.target.value)}
-                  style={{ width: "100%", padding: "8px", borderRadius: "6px", border: "1px solid #CCC", marginBottom: "10px" }}
+                  style={{ width: "100%", padding: "8px", borderRadius: "6px", border: "1px solid #CCC", marginBottom: "10px", boxSizing: "border-box" }}
                 />
                 <div style={{ fontSize: "15px", color: "#B45309", fontWeight: "bold" }}>
                   💡 Interés ganado calculado: +{calcularRendimiento()} Coins
@@ -353,7 +454,7 @@ function Operaciones() {
                   value={montoAhorro}
                   onChange={(e) => setMontoAhorro(e.target.value)}
                   placeholder="Ej. 20"
-                  style={{ width: "100%", padding: "10px", borderRadius: "6px", border: "1px solid #CCC" }}
+                  style={{ width: "100%", padding: "10px", borderRadius: "6px", border: "1px solid #CCC", boxSizing: "border-box" }}
                 />
               </div>
             )}
