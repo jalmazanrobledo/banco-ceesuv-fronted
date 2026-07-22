@@ -22,8 +22,9 @@ function Sidebar() {
     background: "rgba(255,255,255,0.05)"
   };
 
-  // Convertimos a minúsculas para evitar fallas si en BD dice "administrador" o "Administrador"
-  const esAdmin = usuario?.rol?.toLowerCase() === "administrador";
+  // Válido para 'Admin', 'admin', 'Administrador', 'administrador'
+  const rolLwr = usuario?.rol?.toLowerCase() || "";
+  const esAdmin = rolLwr.includes("admin");
 
   return (
     <div
@@ -76,7 +77,7 @@ function Sidebar() {
             💰 Movimientos
           </Link>
 
-          {/* Se muestra si es Administrador */}
+          {/* Se muestra para cualquier variante de Admin */}
           {esAdmin && (
             <Link to="/usuarios" style={estiloLink}>
               👤 Usuarios
