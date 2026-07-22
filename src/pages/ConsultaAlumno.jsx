@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
+import { QRCodeSVG } from "qrcode.react";
 import Sidebar from "../components/Sidebar";
 
 function Alumnos() {
@@ -6,12 +7,11 @@ function Alumnos() {
   const [busqueda, setBusqueda] = useState("");
   const [endpointValido, setEndpointValido] = useState("");
 
-  // Estados para Modales
+  // Modales
   const [modalAgregar, setModalAgregar] = useState(false);
   const [modalEditar, setModalEditar] = useState(false);
   const [modalQr, setModalQr] = useState(false);
 
-  // Estado para alumno seleccionado
   const [alumnoSeleccionado, setAlumnoSeleccionado] = useState(null);
 
   // Formularios
@@ -53,9 +53,7 @@ function Alumnos() {
     }
   };
 
-  // --- HANDLERS DE ACCIONES ---
-
-  // 1. Crear Alumno
+  // HANDLERS
   const handleCrearAlumno = async (e) => {
     e.preventDefault();
     if (!nuevoAlumno.nombre) return alert("Ingresa el nombre del alumno.");
@@ -81,7 +79,6 @@ function Alumnos() {
     }
   };
 
-  // 2. Abrir Editar
   const handleAbrirEditar = (alumno) => {
     setAlumnoEditar({
       id: alumno.id || alumno._id,
@@ -92,7 +89,6 @@ function Alumnos() {
     setModalEditar(true);
   };
 
-  // Guardar Cambios Editar
   const handleGuardarEdicion = async (e) => {
     e.preventDefault();
     try {
@@ -115,7 +111,6 @@ function Alumnos() {
     }
   };
 
-  // 3. Eliminar Alumno
   const handleEliminar = async (alumno) => {
     const id = alumno.id || alumno._id;
     const nombre = alumno.nombre || alumno.nombre_completo;
@@ -136,19 +131,24 @@ function Alumnos() {
     }
   };
 
-  // 4. Mostrar QR
   const handleVerQr = (alumno) => {
     setAlumnoSeleccionado(alumno);
     setModalQr(true);
   };
 
-  // Construye la URL pública limpia que el escáner del celular abrirá
-  const obtenerUrlConsulta = (id) => {
-    const baseUrl = window.location.origin.includes("localhost")
+  // Obtiene la clave/token/ID del alumno
+  const obtenerTokenAlumno = (alumno) => {
+    return alumno.token || alumno.qr_token || alumno.codigo || alumno.id || alumno._id;
+  };
+
+  // Genera la URL pública para la cámara
+  const obtenerUrlConsulta = (alumno) => {
+    const token = obtenerTokenAlumno(alumno);
+    const domain = window.location.origin.includes("localhost")
       ? "https://banco-ceesuv-fronted.vercel.app"
       : window.location.origin;
-    
-    return `${baseUrl}/consulta/${id}`;
+      
+    return `${domain}/consulta/${token}`;
   };
 
   const listaAlumnos = Array.isArray(alumnos) ? alumnos : [];
@@ -156,6 +156,35 @@ function Alumnos() {
     const nombre = alumno.nombre || alumno.nombre_completo || alumno.nombreAlumno || "";
     return nombre.toLowerCase().includes(busqueda.toLowerCase());
   });
+
+  // Función para descargar QR en PNG
+  const descargarQR = (urlConsulta, nombreAlumno) => {
+    const svg = document.getElementById("qr-code-svg");
+    if (!svg) return;
+
+    const svgData = new XMLSerializer().serializeToString(svg);
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d");
+    const img = new Image();
+
+    img.onload = () => {
+      canvas.width = 300;
+      canvas.height = 300;
+      ctx.fillStyle = "white";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(img, 0, 0, 300, 300);
+
+      const pngUrl = canvas.toDataURL("image/png");
+      const downloadLink = document.createElement("a");
+      downloadLink.href = pngUrl;
+      downloadLink.download = `QR_${nombreAlumno.replace(/\s+/g, "_")}.png`;
+      document.body.appendChild(downloadLink);
+      downloadLink.click();
+      document.body.removeChild(downloadLink);
+    };
+
+    img.src = "data:image/svg+xml;base64," + btoa(unescape(encodeURIComponent(svgData)));
+  };
 
   return (
     <div style={styles.container}>
@@ -306,15 +335,11 @@ function Alumnos() {
         </div>
       )}
 
-      {/* --- MODAL QR CON ENLACE DIRECTO --- */}
+      {/* --- MODAL QR CON QR NATIVO Y ENLACE GARANTIZADO --- */}
       {modalQr && alumnoSeleccionado && (() => {
-        const idAlumno = alumnoSeleccionado.id || alumnoSeleccionado._id;
         const nombreAlumno = alumnoSeleccionado.nombre || alumnoSeleccionado.nombre_completo;
         const gradoAlumno = alumnoSeleccionado.grado || alumnoSeleccionado.grado_estudio || "N/A";
-        
-        // Enlace sin codificación extra para que la API de QR lo interprete como URL limpia
-        const urlParaQr = obtenerUrlConsulta(idAlumno);
-        const qrImageApi = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${urlParaQr}`;
+        const urlEnlace = obtenerUrlConsulta(alumnoSeleccionado);
 
         return (
           <div style={styles.modalOverlay}>
@@ -327,29 +352,33 @@ function Alumnos() {
                 Grado: {gradoAlumno}
               </p>
 
+              {/* Generación QR Directa */}
               <div style={{ padding: "20px", background: "#f8f9fa", borderRadius: "8px", margin: "15px 0" }}>
-                <img
-                  src={qrImageApi}
-                  alt="QR Consulta Alumno"
-                  style={{ width: "200px", height: "200px" }}
+                <QRCodeSVG
+                  id="qr-code-svg"
+                  value={urlEnlace}
+                  size={200}
+                  level="H"
+                  includeMargin={true}
                 />
-                <p style={{ fontSize: "11px", color: "#888", marginTop: "8px", wordBreak: "break-all" }}>
-                  {urlParaQr}
-                </p>
+                
+                {/* Enlace clickeable de prueba directa */}
+                <div style={{ marginTop: "10px" }}>
+                  <a
+                    href={urlEnlace}
+                    target="_blank"
+                    rel="noreferrer"
+                    style={{ fontSize: "12px", color: "#17a2b8", wordBreak: "break-all", fontWeight: "bold" }}
+                  >
+                    🔗 {urlEnlace}
+                  </a>
+                </div>
               </div>
 
               <div style={{ display: "flex", gap: "10px", justifyContent: "center", marginBottom: "15px" }}>
-                {/* Botón Descargar Imagen PNG */}
+                {/* Botón Descargar Imagen */}
                 <button
-                  onClick={async () => {
-                    const response = await fetch(qrImageApi);
-                    const blob = await response.blob();
-                    const url = window.URL.createObjectURL(blob);
-                    const link = document.createElement("a");
-                    link.href = url;
-                    link.download = `QR_${nombreAlumno.replace(/\s+/g, "_")}.png`;
-                    link.click();
-                  }}
+                  onClick={() => descargarQR(urlEnlace, nombreAlumno)}
                   style={{
                     backgroundColor: "#17a2b8",
                     color: "white",
@@ -368,7 +397,8 @@ function Alumnos() {
                 <button
                   onClick={() => {
                     const win = window.open("", "", "width=600,height=600");
-                    
+                    const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(urlEnlace)}`;
+
                     win.document.write(`
                       <html>
                         <head>
@@ -387,7 +417,7 @@ function Alumnos() {
                           <div class="card">
                             <h2>CEESUV</h2>
                             <h3>BANCO ESCOLAR</h3>
-                            <img src="${qrImageApi}" />
+                            <img src="${qrApiUrl}" />
                             <p><strong>${nombreAlumno}</strong></p>
                             <p>Grado: ${gradoAlumno}</p>
                             <p class="instruction">Escanear para consultar estado de cuenta</p>
@@ -446,7 +476,7 @@ const styles = {
   btnEdit: { backgroundColor: "#17a2b8", color: "white", border: "none", padding: "6px 10px", borderRadius: "5px", fontSize: "12px", cursor: "pointer" },
   btnDelete: { backgroundColor: "#dc3545", color: "white", border: "none", padding: "6px 10px", borderRadius: "5px", fontSize: "12px", cursor: "pointer" },
 
-  // Estilos Modales
+  // Modales
   modalOverlay: { position: "fixed", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: "rgba(0,0,0,0.5)", display: "flex", justifyContent: "center", alignItems: "center", zIndex: 1000 },
   modalCard: { backgroundColor: "white", padding: "25px", borderRadius: "10px", width: "400px", maxWidth: "90%", boxShadow: "0 4px 12px rgba(0,0,0,0.15)" },
   modalTitle: { margin: "0 0 15px 0", color: "#0B2341", fontSize: "20px" },
