@@ -273,7 +273,7 @@ function ConsultaAlumno() {
 
         {/* PIE DE PÁGINA */}
         <div style={{ textAlign: "center", color: "#888", fontSize: "11px", marginTop: "20px", marginBottom: "20px" }}>
-          © {new Date().getFullYear()} Centro de Estudios Superior del Valle — Banco Escolar
+          © {new Date().getFullYear()} Centro de Estudios Elementales y Superiores de Valles
         </div>
 
       </div>
