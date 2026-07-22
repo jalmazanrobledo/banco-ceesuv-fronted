@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useParams } from "react route-dom";
+import { useParams } from "react-router-dom";
 import { consultarPorQR } from "../services/api";
 
 function ConsultaAlumno() {
@@ -53,7 +53,7 @@ function ConsultaAlumno() {
     );
   }
 
-  // VISTA DE ERROR / QR NO VÁLIDO
+  // VISTA DE ERROR
   if (!datos) {
     return (
       <div
@@ -75,7 +75,8 @@ function ConsultaAlumno() {
             padding: "35px 25px",
             borderRadius: "16px",
             boxShadow: "0 10px 25px rgba(0,0,0,0.08)",
-            maxWidth: "380px"
+            maxWidth: "380px",
+            width: "100%"
           }}
         >
           <div style={{ fontSize: "48px", marginBottom: "10px" }}>❌</div>
@@ -101,10 +102,11 @@ function ConsultaAlumno() {
         padding: "20px 15px",
         display: "flex",
         justifyContent: "center",
+        alignItems: "flex-start",
         boxSizing: "border-box"
       }}
     >
-      <div style={{ width: "100%", maxWidth: "450px" }}>
+      <div style={{ width: "100%", maxWidth: "480px", marginTop: "10px" }}>
         
         {/* ENCABEZADO INSTITUCIONAL CEESUV */}
         <div style={{ textAlign: "center", color: "white", marginBottom: "20px" }}>
@@ -112,24 +114,23 @@ function ConsultaAlumno() {
             src="/logo-ceesuv.png"
             alt="Logo CEESUV"
             onError={(e) => {
-              // Fallback sutil si la ruta del logo fuera diferente
               e.target.style.display = 'none';
             }}
             style={{
-              width: "75px",
-              height: "75px",
+              width: "80px",
+              height: "80px",
               borderRadius: "50%",
               backgroundColor: "white",
-              padding: "4px",
+              padding: "5px",
               boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
               marginBottom: "10px",
               objectFit: "contain"
             }}
           />
-          <h2 style={{ margin: 0, fontSize: "20px", fontWeight: "bold", letterSpacing: "0.5px" }}>
+          <h2 style={{ margin: 0, fontSize: "22px", fontWeight: "bold", letterSpacing: "0.5px" }}>
             CEESUV
           </h2>
-          <p style={{ margin: "3px 0 0 0", fontSize: "12px", opacity: 0.85, color: "#D4AF37", fontWeight: "600" }}>
+          <p style={{ margin: "4px 0 0 0", fontSize: "13px", opacity: 0.9, color: "#D4AF37", fontWeight: "600" }}>
             Portal de Consulta de Banco Escolar
           </p>
         </div>
@@ -139,20 +140,20 @@ function ConsultaAlumno() {
           style={{
             background: "white",
             borderRadius: "16px",
-            padding: "20px",
+            padding: "22px 20px",
             boxShadow: "0 10px 25px rgba(11, 35, 65, 0.12)",
             marginBottom: "20px"
           }}
         >
           {/* INFORMACIÓN DEL ALUMNO */}
           <div style={{ textAlign: "center", borderBottom: "1px solid #EEE", paddingBottom: "15px", marginBottom: "18px" }}>
-            <h2 style={{ margin: "0 0 5px 0", color: "#0B2341", fontSize: "20px" }}>{alumno.nombre}</h2>
+            <h2 style={{ margin: "0 0 6px 0", color: "#0B2341", fontSize: "21px" }}>{alumno.nombre}</h2>
             <span
               style={{
                 display: "inline-block",
                 background: "#E8F0FE",
                 color: "#1A73E8",
-                padding: "4px 12px",
+                padding: "4px 14px",
                 borderRadius: "20px",
                 fontSize: "13px",
                 fontWeight: "bold"
@@ -239,7 +240,7 @@ function ConsultaAlumno() {
                     <div>
                       <span
                         style={{
-                          fontSize: "12px",
+                          fontSize: "11px",
                           fontWeight: "bold",
                           color: esPositivo ? "#2E7D32" : "#D32F2F",
                           background: esPositivo ? "#E8F5E9" : "#FFEBEE",
@@ -271,7 +272,7 @@ function ConsultaAlumno() {
         </div>
 
         {/* PIE DE PÁGINA */}
-        <div style={{ textAlign: "center", color: "#888", fontSize: "11px", marginTop: "20px" }}>
+        <div style={{ textAlign: "center", color: "#888", fontSize: "11px", marginTop: "20px", marginBottom: "20px" }}>
           © {new Date().getFullYear()} Centro de Estudios Superior del Valle — Banco Escolar
         </div>
 
