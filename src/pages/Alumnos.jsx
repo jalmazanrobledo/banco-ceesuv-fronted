@@ -12,30 +12,45 @@ function Alumnos() {
   }, []);
 
   const fetchAlumnos = async () => {
-    try {
-      const res = await fetch(`${API_URL}/api/alumno`);
-      const data = await res.json();
+    // Lista de posibles rutas en el backend de Express
+    const rutasPosibles = [
+      `${API_URL}/api/alumnos`,
+      `${API_URL}/alumnos`,
+      `${API_URL}/api/alumno`,
+      `${API_URL}/alumno`
+    ];
 
-      console.log("Datos recibidos del backend:", data);
+    for (const url of rutasPosibles) {
+      try {
+        console.log("Probando endpoint:", url);
+        const res = await fetch(url);
+        
+        if (res.ok) {
+          const data = await res.json();
+          console.log("✅ Datos obtenidos con éxito desde:", url, data);
 
-      let lista = [];
-      if (Array.isArray(data)) {
-        lista = data;
-      } else if (data.alumnos && Array.isArray(data.alumnos)) {
-        lista = data.alumnos;
-      } else if (data.data && Array.isArray(data.data)) {
-        lista = data.data;
+          let lista = [];
+          if (Array.isArray(data)) {
+            lista = data;
+          } else if (data.alumnos && Array.isArray(data.alumnos)) {
+            lista = data.alumnos;
+          } else if (data.data && Array.isArray(data.data)) {
+            lista = data.data;
+          }
+
+          setAlumnos(lista);
+          return; // Detener el ciclo al encontrar una ruta válida
+        }
+      } catch (error) {
+        console.warn(`Ruta ${url} falló, intentando siguiente...`);
       }
-
-      setAlumnos(lista);
-    } catch (error) {
-      console.error("Error al obtener alumnos:", error);
     }
+
+    console.error("❌ Ninguna ruta devolvió un resultado exitoso.");
   };
 
   const listaAlumnos = Array.isArray(alumnos) ? alumnos : [];
 
-  // 👈 Única declaración de alumnosFiltrados
   const alumnosFiltrados = listaAlumnos.filter((alumno) => {
     const nombre = alumno.nombre || alumno.nombre_completo || alumno.nombreAlumno || "";
     return nombre.toLowerCase().includes(busqueda.toLowerCase());
