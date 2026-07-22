@@ -18,13 +18,16 @@ function RutaProtegida({ children }) {
   return children;
 }
 
-// 2. Protege rutas EXCLUSIVAS de Administrador
+// 2. Protege rutas EXCLUSIVAS de Administrador (CORREGIDO)
 function RutaAdmin({ children }) {
   const usuarioGuardado = localStorage.getItem("usuarioCEESUV");
   const usuario = usuarioGuardado ? JSON.parse(usuarioGuardado) : null;
 
-  // Si no hay sesión o el rol NO es Administrador, lo mandamos al dashboard
-  if (!usuario || usuario.rol?.toLowerCase() !== "administrador") {
+  const rolLwr = usuario?.rol?.toLowerCase() || "";
+  const esAdmin = rolLwr.includes("admin");
+
+  // Si no hay sesión o NO es Administrador/Admin, redirecciona al dashboard
+  if (!usuario || !esAdmin) {
     return <Navigate to="/dashboard" replace />;
   }
 
@@ -38,7 +41,7 @@ function App() {
         {/* Ruta principal: Pantalla de Login */}
         <Route path="/" element={<Login />} />
 
-        {/* 👇 RUTA PÚBLICA PARA EL CÓDIGO QR (PADRES) 👇 */}
+        {/* Ruta pública para el Código QR (Padres) */}
         <Route path="/consulta/:token" element={<ConsultaAlumno />} />
 
         {/* Rutas accesibles para Docentes y Administradores */}
