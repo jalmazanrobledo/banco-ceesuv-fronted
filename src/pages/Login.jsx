@@ -19,14 +19,18 @@ function Login() {
       return;
     }
 
-    const res = await loginUsuario(credenciales);
+    try {
+      const res = await loginUsuario(credenciales);
 
-    if (res.mensaje) {
-      setError(res.mensaje);
-    } else {
-      // Guardamos la sesión en localStorage
-      localStorage.setItem("usuarioCEESUV", JSON.stringify(res));
-      navigate("/dashboard");
+      if (res.mensaje) {
+        setError(res.mensaje);
+      } else {
+        // Guardamos la sesión en localStorage
+        localStorage.setItem("usuarioCEESUV", JSON.stringify(res));
+        navigate("/dashboard");
+      }
+    } catch (err) {
+      setError(err.message || "Error al conectar con el servidor.");
     }
   }
 
@@ -37,95 +41,180 @@ function Login() {
         height: "100vh",
         alignItems: "center",
         justifyContent: "center",
-        background: "#0B2341"
+        background: "linear-gradient(135deg, #0B2341 0%, #1A365D 100%)",
+        fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif",
+        padding: "20px",
+        boxSizing: "border-box"
       }}
     >
       <form
         onSubmit={handleSubmit}
         style={{
           background: "white",
-          padding: "40px",
-          borderRadius: "15px",
-          boxShadow: "0 10px 25px rgba(0,0,0,.3)",
-          width: "350px",
+          padding: "40px 35px",
+          borderRadius: "16px",
+          boxShadow: "0 15px 35px rgba(0, 0, 0, 0.4)",
+          width: "380px",
+          maxWidth: "100%",
           textAlign: "center"
         }}
       >
-        <h2 style={{ color: "#0B2341", marginBottom: "10px" }}>
+        {/* LOGO DE LA ESCUELA */}
+        <div style={{ marginBottom: "15px" }}>
+          <img
+            src="/logo.png"
+            alt="Logo CEESUV"
+            style={{
+              width: "90px",
+              height: "90px",
+              objectFit: "contain",
+              margin: "0 auto",
+              display: "block"
+            }}
+            onError={(e) => {
+              // Si no encuentra la imagen /logo.png, muestra este respaldo gráfico
+              e.target.style.display = "none";
+            }}
+          />
+        </div>
+
+        {/* NOMBRE DE LA ESCUELA Y TITULO */}
+        <h3
+          style={{
+            color: "#0B2341",
+            margin: "0 0 4px 0",
+            fontSize: "18px",
+            fontWeight: "800",
+            letterSpacing: "0.5px"
+          }}
+        >
+          CEESUV
+        </h3>
+        
+        <h2
+          style={{
+            color: "#D4AF37",
+            margin: "0 0 6px 0",
+            fontSize: "22px",
+            fontWeight: "bold"
+          }}
+        >
           🏦 Banco Escolar
         </h2>
-        <h4 style={{ color: "#666", marginTop: 0, marginBottom: "25px" }}>
-          CEESUV
-        </h4>
 
+        {/* ESLOGAN INSTITUCIONAL */}
+        <p
+          style={{
+            color: "#666",
+            fontSize: "12px",
+            marginTop: 0,
+            marginBottom: "25px",
+            fontStyle: "italic",
+            lineHeight: "1.4"
+          }}
+        >
+          "Educación Humanista basada en Valores"
+        </p>
+
+        {/* MENSAJE DE ERROR */}
         {error && (
           <div
             style={{
               background: "#FFD2D2",
               color: "#D8000C",
-              padding: "10px",
+              padding: "10px 12px",
               borderRadius: "8px",
-              marginBottom: "15px",
-              fontSize: "14px"
+              marginBottom: "20px",
+              fontSize: "13px",
+              fontWeight: "600",
+              textAlign: "left",
+              borderLeft: "4px solid #D8000C"
             }}
           >
-            {error}
+            ⚠️ {error}
           </div>
         )}
 
-        <div style={{ marginBottom: "15px", textAlign: "left" }}>
-          <label style={{ fontSize: "14px", fontWeight: "bold", color: "#333" }}>
+        {/* CAMPOS DEL FORMULARIO */}
+        <div style={{ marginBottom: "18px", textAlign: "left" }}>
+          <label
+            style={{
+              fontSize: "13px",
+              fontWeight: "bold",
+              color: "#0B2341",
+              display: "block",
+              marginBottom: "6px"
+            }}
+          >
             Usuario:
           </label>
           <input
             type="text"
+            placeholder="Ej. admin"
             value={credenciales.usuario}
             onChange={(e) =>
               setCredenciales({ ...credenciales, usuario: e.target.value })
             }
             style={{
               width: "100%",
-              padding: "10px",
-              marginTop: "5px",
+              padding: "11px 14px",
               borderRadius: "8px",
               border: "1px solid #CCC",
-              boxSizing: "border-box"
+              boxSizing: "border-box",
+              fontSize: "14px",
+              outline: "none",
+              transition: "border 0.2s"
             }}
           />
         </div>
 
-        <div style={{ marginBottom: "20px", textAlign: "left" }}>
-          <label style={{ fontSize: "14px", fontWeight: "bold", color: "#333" }}>
+        <div style={{ marginBottom: "25px", textAlign: "left" }}>
+          <label
+            style={{
+              fontSize: "13px",
+              fontWeight: "bold",
+              color: "#0B2341",
+              display: "block",
+              marginBottom: "6px"
+            }}
+          >
             Contraseña:
           </label>
           <input
             type="password"
+            placeholder="••••••••"
             value={credenciales.password}
             onChange={(e) =>
               setCredenciales({ ...credenciales, password: e.target.value })
             }
             style={{
               width: "100%",
-              padding: "10px",
-              marginTop: "5px",
+              padding: "11px 14px",
               borderRadius: "8px",
               border: "1px solid #CCC",
-              boxSizing: "border-box"
+              boxSizing: "border-box",
+              fontSize: "14px",
+              outline: "none",
+              transition: "border 0.2s"
             }}
           />
         </div>
 
+        {/* BOTÓN DE INGRESO */}
         <button
           type="submit"
           style={{
             width: "100%",
-            padding: "12px",
+            padding: "13px",
             background: "#0B2341",
-            color: "white",
-            border: "none",
+            color: "#D4AF37",
+            border: "2px solid #D4AF37",
             borderRadius: "8px",
             fontWeight: "bold",
-            cursor: "pointer"
+            fontSize: "15px",
+            cursor: "pointer",
+            boxShadow: "0 4px 10px rgba(11, 35, 65, 0.25)",
+            transition: "all 0.2s ease-in-out"
           }}
         >
           Iniciar Sesión

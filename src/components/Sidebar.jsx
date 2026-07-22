@@ -1,25 +1,37 @@
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 
 function Sidebar() {
   const location = useLocation();
+  const navigate = useNavigate();
 
-  const estylosBoton = (path) => ({
-    width: "100%",
-    padding: "12px 15px",
-    marginBottom: "10px",
-    backgroundColor: location.pathname === path ? "#D4AF37" : "#0B2341",
-    color: location.pathname === path ? "#0B2341" : "white",
-    border: "none",
-    borderRadius: "8px",
-    fontWeight: "bold",
-    textAlign: "left",
-    cursor: "pointer",
-    fontSize: "14px",
-    display: "flex",
-    alignItems: "center",
-    gap: "10px",
-    transition: "all 0.2s ease-in-out"
-  });
+  // Función para cerrar sesión de manera segura
+  const handleCerrarSesion = () => {
+    localStorage.clear();
+    sessionStorage.clear();
+    navigate("/login"); // Te manda a /login explícitamente en lugar de "/"
+  };
+
+  const estylosBoton = (path) => {
+    const isActive = location.pathname === path;
+    return {
+      width: "100%",
+      padding: "12px 15px",
+      marginBottom: "8px",
+      backgroundColor: isActive ? "#D4AF37" : "transparent", // Transparente cuando no está activo
+      color: isActive ? "#0B2341" : "#E0E0E0", // Texto visible en blanco/gris claro
+      border: isActive ? "none" : "1px solid rgba(212, 175, 55, 0.2)", // Borde dorado tenue para definir las cajas
+      borderRadius: "8px",
+      fontWeight: "bold",
+      textAlign: "left",
+      cursor: "pointer",
+      fontSize: "14px",
+      display: "flex",
+      alignItems: "center",
+      gap: "10px",
+      transition: "all 0.2s ease-in-out",
+      boxSizing: "border-box"
+    };
+  };
 
   return (
     <div
@@ -32,20 +44,36 @@ function Sidebar() {
         boxSizing: "border-box",
         display: "flex",
         flexDirection: "column",
-        justify: "space-between"
+        justifyContent: "space-between"
       }}
     >
       <div>
         {/* LOGO / TITULO */}
-        <div style={{ marginBottom: "30px", textAlign: "center" }}>
-          <h2 style={{ margin: 0, color: "#D4AF37", fontSize: "22px" }}>CEESUV</h2>
-          <span style={{ fontSize: "12px", color: "#AAA" }}>BANCO ESCOLAR</span>
+        <div style={{ marginBottom: "25px", textAlign: "center" }}>
+          <img 
+            src="/logo.png" 
+            alt="Logo CEESUV" 
+            style={{ 
+              maxWidth: "80px", 
+              maxHeight: "80px", 
+              marginBottom: "8px",
+              objectFit: "contain",
+              display: "block",
+              margin: "0 auto 8px auto"
+            }} 
+            onError={(e) => { e.target.style.display = 'none'; }} // Oculta si no encuentra la imagen
+          />
+          <h2 style={{ margin: 0, color: "#D4AF37", fontSize: "20px", tracking: "1px" }}>CEESUV</h2>
+          <span style={{ fontSize: "11px", color: "#B0C4DE", fontWeight: "600", letterSpacing: "1px" }}>
+            BANCO ESCOLAR
+          </span>
         </div>
 
         {/* NAVEGACIÓN */}
         <nav style={{ display: "flex", flexDirection: "column" }}>
-          <Link to="/" style={{ textDecoration: "none" }}>
-            <button style={estylosBoton("/")}>
+          {/* Apuntamos a /dashboard para que no regrese al Login */}
+          <Link to="/dashboard" style={{ textDecoration: "none" }}>
+            <button style={estylosBoton("/dashboard")}>
               🏠 Inicio
             </button>
           </Link>
@@ -76,22 +104,24 @@ function Sidebar() {
         </nav>
       </div>
 
-      {/* BOTÓN CERRAR SESIÓN */}
-      <div>
+      {/* BOTÓN CERRAR SESIÓN (Hasta abajo con espacio de seguridad) */}
+      <div style={{ marginTop: "auto", paddingTop: "20px" }}>
         <button
-          onClick={() => {
-            localStorage.clear();
-            window.location.href = "/";
-          }}
+          onClick={handleCerrarSesion}
           style={{
             width: "100%",
-            padding: "10px",
+            padding: "12px",
             backgroundColor: "#DC3545",
             color: "white",
             border: "none",
-            borderRadius: "6px",
+            borderRadius: "8px",
             fontWeight: "bold",
-            cursor: "pointer"
+            cursor: "pointer",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: "8px",
+            boxShadow: "0 4px 6px rgba(0,0,0,0.2)"
           }}
         >
           🚪 Cerrar Sesión

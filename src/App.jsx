@@ -13,13 +13,13 @@ function RutaProtegida({ children }) {
   const usuarioGuardado = localStorage.getItem("usuarioCEESUV");
 
   if (!usuarioGuardado) {
-    return <Navigate to="/" replace />;
+    return <Navigate to="/login" replace />;
   }
 
   return children;
 }
 
-// 2. Protege rutas EXCLUSIVAS de Administrador (CORREGIDO)
+// 2. Protege rutas EXCLUSIVAS de Administrador
 function RutaAdmin({ children }) {
   const usuarioGuardado = localStorage.getItem("usuarioCEESUV");
   const usuario = usuarioGuardado ? JSON.parse(usuarioGuardado) : null;
@@ -27,27 +27,43 @@ function RutaAdmin({ children }) {
   const rolLwr = usuario?.rol?.toLowerCase() || "";
   const esAdmin = rolLwr.includes("admin");
 
-  // Si no hay sesión o NO es Administrador/Admin, redirecciona al dashboard
-  if (!usuario || !esAdmin) {
+  if (!usuario) {
+    return <Navigate to="/login" replace />;
+  }
+
+  // Si no es Administrador/Admin, redirecciona al dashboard
+  if (!esAdmin) {
     return <Navigate to="/dashboard" replace />;
   }
 
   return children;
 }
 
+// 3. Redirección inteligente para la raíz "/"
+function RedireccionInicial() {
+  const usuarioGuardado = localStorage.getItem("usuarioCEESUV");
+  
+  if (usuarioGuardado) {
+    return <Navigate to="/dashboard" replace />;
+  }
+  
+  return <Navigate to="/login" replace />;
+}
+
 function App() {
   return (
     <BrowserRouter>
       <Routes>
-        {/* Ruta principal: Pantalla de Login */}
-        <Route path="/" element={<Login />} />
+        {/* Redirección dinámica según si hay sesión iniciada */}
+        <Route path="/" element={<RedireccionInicial />} />
 
-        <Route path="/operaciones" element={<Operaciones />} />
+        {/* Pantalla de Login */}
+        <Route path="/login" element={<Login />} />
 
         {/* Ruta pública para el Código QR (Padres) */}
         <Route path="/consulta/:token" element={<ConsultaAlumno />} />
 
-        {/* Rutas accesibles para Docentes y Administradores */}
+        {/* Rutas protegidas accesibles para Docentes y Administradores */}
         <Route
           path="/dashboard"
           element={
@@ -62,6 +78,15 @@ function App() {
           element={
             <RutaProtegida>
               <Alumnos />
+            </RutaProtegida>
+          }
+        />
+
+        <Route
+          path="/operaciones"
+          element={
+            <RutaProtegida>
+              <Operaciones />
             </RutaProtegida>
           }
         />
@@ -85,7 +110,7 @@ function App() {
           }
         />
 
-        {/* Redirección por defecto */}
+        {/* Redirección por defecto si la ruta no existe */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>
