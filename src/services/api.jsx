@@ -47,7 +47,15 @@ export async function registrarMovimiento(movimiento) {
         },
         body: JSON.stringify(movimiento)
     });
-    return await respuesta.json();
+
+    const data = await respuesta.json();
+
+    // Si el servidor responde con un error (400, 500, etc.), lanzamos una excepción
+    if (!respuesta.ok) {
+        throw new Error(data.mensaje || "Error al procesar el movimiento");
+    }
+
+    return data;
 }
 
 export async function obtenerMovimientos() {

@@ -57,18 +57,24 @@ const inicializarBaseDeDatos = async () => {
         nombre VARCHAR(100) NOT NULL,
         grado VARCHAR(50) NOT NULL,
         coins INT DEFAULT 0,
+        coins_ahorro INT DEFAULT 0,
         token_qr VARCHAR(100) UNIQUE NOT NULL
       );
 
       CREATE TABLE IF NOT EXISTS movimientos (
         id SERIAL PRIMARY KEY,
         alumno_id INT REFERENCES alumnos(id) ON DELETE CASCADE,
-        tipo VARCHAR(10) NOT NULL,
+        tipo VARCHAR(30) NOT NULL,
         cantidad INT NOT NULL,
         motivo VARCHAR(255),
         usuario VARCHAR(50),
         fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
+    `);
+
+    // Asegurar que la columna coins_ahorro exista en bases ya creadas
+    await pool.query(`
+      ALTER TABLE alumnos ADD COLUMN IF NOT EXISTS coins_ahorro INT DEFAULT 0;
     `);
 
     await pool.query(`
@@ -101,7 +107,7 @@ app.get("/consulta/:token", async (req, res) => {
     const { token } = req.params;
 
     const alumnoResult = await pool.query(
-      "SELECT id, nombre, grado, coins FROM alumnos WHERE token_qr = $1",
+      "SELECT id, nombre, grado, coins, COALESCE(coins_ahorro, 0) AS coins_ahorro FROM alumnos WHERE token_qr = $1",
       [token]
     );
 
@@ -141,7 +147,7 @@ app.get("/consulta/:token", async (req, res) => {
 app.get("/alumnos", async (req, res) => {
   try {
     const resultado = await pool.query(
-      "SELECT * FROM alumnos ORDER BY id"
+      "SELECT id, nombre, grado, coins, COALESCE(coins_ahorro, 0) AS coins_ahorro, token_qr FROM alumnos ORDER BY id"
     );
 
     res.json(resultado.rows);
@@ -159,16 +165,16 @@ app.get("/alumnos", async (req, res) => {
 // =====================================
 app.post("/alumnos", async (req, res) => {
   try {
-    const { nombre, grado, coins } = req.body;
+    const { nombre, grado, coins, coins_ahorro } = req.body;
 
     const tokenGenerado = `ceesuv-${Date.now()}-${Math.floor(Math.random() * 899999 + 100000)}`;
 
     const resultado = await pool.query(
       `INSERT INTO alumnos
-      (nombre, grado, coins, token_qr)
-      VALUES ($1, $2, $3, $4)
+      (nombre, grado, coins, coins_ahorro, token_qr)
+      VALUES ($1, $2, $3, $4, $5)
       RETURNING *`,
-      [nombre, grado, coins, tokenGenerado]
+      [nombre, grado, coins || 0, coins_ahorro || 0, tokenGenerado]
     );
 
     res.json(resultado.rows[0]);
@@ -187,16 +193,17 @@ app.post("/alumnos", async (req, res) => {
 app.put("/alumnos/:id", async (req, res) => {
   try {
     const { id } = req.params;
-    const { nombre, grado, coins } = req.body;
+    const { nombre, grado, coins, coins_ahorro } = req.body;
 
     const resultado = await pool.query(
       `UPDATE alumnos
        SET nombre=$1,
            grado=$2,
-           coins=$3
-       WHERE id=$4
+           coins=$3,
+           coins_ahorro=$4
+       WHERE id=$5
        RETURNING *`,
-      [nombre, grado, coins, id]
+      [nombre, grado, coins, coins_ahorro || 0, id]
     );
 
     res.json(resultado.rows[0]);
@@ -234,7 +241,7 @@ app.delete("/alumnos/:id", async (req, res) => {
 });
 
 // =====================================
-// Agregar o descontar CEESUV Coins
+// Agregar o descontar CEESUV Coins / Operaciones de Ahorro
 // =====================================
 app.post("/movimientos", async (req, res) => {
   try {
@@ -246,59 +253,72 @@ app.post("/movimientos", async (req, res) => {
       usuario
     } = req.body;
 
-    const alumno = await pool.query(
-      "SELECT coins FROM alumnos WHERE id = $1",
+    const alumnoQuery = await pool.query(
+      "SELECT coins, COALESCE(coins_ahorro, 0) AS coins_ahorro FROM alumnos WHERE id = $1",
       [alumno_id]
     );
 
-    if (alumno.rows.length === 0) {
+    if (alumnoQuery.rows.length === 0) {
       return res.status(404).json({
         mensaje: "Alumno no encontrado."
       });
     }
 
-    let saldoActual = alumno.rows[0].coins;
-    let nuevoSaldo = saldoActual;
+    let coinsDisponibles = Number(alumnoQuery.rows[0].coins);
+    let coinsAhorro = Number(alumnoQuery.rows[0].coins_ahorro);
+    const monto = Number(cantidad);
 
     if (tipo === "ENTRADA") {
-      nuevoSaldo += Number(cantidad);
-    }
-
-    if (tipo === "SALIDA") {
-      nuevoSaldo -= Number(cantidad);
-
-      if (nuevoSaldo < 0) {
-        return res.status(400).json({
-          mensaje: "El alumno no tiene suficientes CEESUV Coins."
-        });
+      coinsDisponibles += monto;
+    } else if (tipo === "SALIDA") {
+      if (coinsDisponibles < monto) {
+        return res.status(400).json({ mensaje: "El alumno no tiene suficientes Coins disponibles." });
       }
+      coinsDisponibles -= monto;
+    } else if (tipo === "AHORRO_DEPOSITO") {
+      if (coinsDisponibles < monto) {
+        return res.status(400).json({ mensaje: "El alumno no tiene suficiente saldo disponible para ahorrar." });
+      }
+      coinsDisponibles -= monto;
+      coinsAhorro += monto;
+    } else if (tipo === "AHORRO_RETIRO") {
+      if (coinsAhorro < monto) {
+        return res.status(400).json({ mensaje: "El alumno no tiene suficiente saldo en ahorro." });
+      }
+      coinsAhorro -= monto;
+      coinsDisponibles += monto;
+    } else if (tipo === "AHORRO_RENDIMIENTO") {
+      coinsAhorro += monto;
     }
 
+    // Actualizamos saldos en la tabla alumnos
     await pool.query(
-      "UPDATE alumnos SET coins = $1 WHERE id = $2",
-      [nuevoSaldo, alumno_id]
+      "UPDATE alumnos SET coins = $1, coins_ahorro = $2 WHERE id = $3",
+      [coinsDisponibles, coinsAhorro, alumno_id]
     );
 
+    // Registramos en la tabla movimientos
     await pool.query(
       `INSERT INTO movimientos
       (alumno_id, tipo, cantidad, motivo, usuario)
-      VALUES ($1,$2,$3,$4,$5)`,
+      VALUES ($1, $2, $3, $4, $5)`,
       [
         alumno_id,
         tipo,
-        cantidad,
-        motivo,
-        usuario
+        monto,
+        motivo || 'Movimiento de saldo',
+        usuario || 'Sistema'
       ]
     );
 
     res.json({
       mensaje: "Movimiento registrado correctamente.",
-      saldo: nuevoSaldo
+      coins: coinsDisponibles,
+      coins_ahorro: coinsAhorro
     });
 
   } catch (error) {
-    console.error(error);
+    console.error("Error al registrar movimiento:", error);
     res.status(500).json({
       mensaje: "Error al registrar movimiento."
     });
@@ -318,6 +338,10 @@ app.get("/dashboard", async (req, res) => {
       "SELECT COALESCE(SUM(coins),0) AS total FROM alumnos"
     );
 
+    const coinsAhorro = await pool.query(
+      "SELECT COALESCE(SUM(coins_ahorro),0) AS total FROM alumnos"
+    );
+
     const movimientos = await pool.query(
       "SELECT COUNT(*) AS total FROM movimientos"
     );
@@ -325,6 +349,7 @@ app.get("/dashboard", async (req, res) => {
     res.json({
       alumnos: Number(alumnos.rows[0].total),
       coins: Number(coins.rows[0].total),
+      coins_ahorro: Number(coinsAhorro.rows[0].total),
       movimientos: Number(movimientos.rows[0].total)
     });
 
@@ -482,29 +507,24 @@ app.put("/usuarios/:id/estado", async (req, res) => {
 });
 
 // =====================================
-// Login de usuario (CORREGIDO Y TOTALMENTE BLINDADO)
+// Login de usuario
 // =====================================
 app.post("/login", async (req, res) => {
   try {
-    // Si req.body.usuario viene como objeto ({ usuario: "admin", password: "123" }), tomamos esa rama
     const payload = (req.body && typeof req.body.usuario === 'object' && req.body.usuario !== null)
       ? req.body.usuario 
       : req.body;
 
-    // Extraemos campos soportando variaciones
     const uRaw = payload.usuario || (typeof req.body.usuario === 'string' ? req.body.usuario : "");
     const pRaw = payload.password || payload.contrasena || payload.pass || req.body.password || req.body.contrasena || "";
 
     const userClean = String(uRaw).trim();
     const passClean = String(pRaw).trim();
 
-    console.log(`[LOGIN TRY] Procesando login para usuario: "${userClean}"`);
-
     if (!userClean || !passClean) {
       return res.status(400).json({ mensaje: "Usuario y contraseña requeridos." });
     }
 
-    // 1. Buscamos el usuario por su nombre (LOWER para no depender de mayúsculas)
     const resultado = await pool.query(
       `SELECT id, nombre, usuario, password, rol, estado 
        FROM usuarios 
@@ -513,7 +533,6 @@ app.post("/login", async (req, res) => {
     );
 
     if (resultado.rows.length === 0) {
-      console.log(`[LOGIN FAIL] Usuario no encontrado: "${userClean}"`);
       return res.status(401).json({
         mensaje: "Usuario o contraseña incorrectos."
       });
@@ -521,15 +540,12 @@ app.post("/login", async (req, res) => {
 
     const usuarioEncontrado = resultado.rows[0];
 
-    // 2. Verificamos la contraseña
     if (usuarioEncontrado.password !== passClean) {
-      console.log(`[LOGIN FAIL] Contraseña incorrecta para el usuario: "${userClean}"`);
       return res.status(401).json({
         mensaje: "Usuario o contraseña incorrectos."
       });
     }
 
-    // 3. Verificamos el estado
     if (usuarioEncontrado.estado && usuarioEncontrado.estado.toLowerCase() !== "activo") {
       return res.status(403).json({
         mensaje: "El usuario se encuentra inactivo."
@@ -538,7 +554,6 @@ app.post("/login", async (req, res) => {
 
     delete usuarioEncontrado.password;
 
-    console.log(`[LOGIN SUCCESS] Inicio de sesión exitoso: ${usuarioEncontrado.usuario}`);
     res.json(usuarioEncontrado);
 
   } catch (error) {
@@ -575,13 +590,14 @@ app.get('/reset-db-directo', async (req, res) => {
           nombre VARCHAR(100) NOT NULL,
           grado VARCHAR(50) NOT NULL,
           coins INT DEFAULT 0,
+          coins_ahorro INT DEFAULT 0,
           token_qr VARCHAR(100) UNIQUE NOT NULL
       );
 
       CREATE TABLE movimientos (
           id SERIAL PRIMARY KEY,
           alumno_id INT REFERENCES alumnos(id) ON DELETE CASCADE,
-          tipo VARCHAR(10) NOT NULL,
+          tipo VARCHAR(30) NOT NULL,
           cantidad INT NOT NULL,
           motivo VARCHAR(255),
           usuario VARCHAR(50),
