@@ -51,18 +51,19 @@ function Sidebar() {
         {/* LOGO / TITULO */}
         <div style={{ marginBottom: "25px", textAlign: "center" }}>
           <img 
-            src="/logo-ceesuv.png" 
-            alt="Logo CEESUV" 
-            style={{ 
-              maxWidth: "80px", 
-              maxHeight: "80px", 
-              marginBottom: "8px",
-              objectFit: "contain",
-              display: "block",
-              margin: "0 auto 8px auto"
-            }} 
-            onError={(e) => { e.target.style.display = 'none'; }} // Oculta si no encuentra la imagen
-          />
+  src="/logo-ceesuv.png" 
+  alt="Logo CEESUV" 
+  style={{ 
+    maxWidth: "85px", 
+    maxHeight: "85px", 
+    marginBottom: "10px",
+    objectFit: "contain",
+    display: "block",
+    margin: "0 auto 10px auto",
+    // Filtro para contrastar en fondo oscuro:
+    filter: "brightness(1.1) drop-shadow(0px 0px 8px rgba(212, 175, 55, 0.6))" 
+  }} 
+/>
           <h2 style={{ margin: 0, color: "#D4AF37", fontSize: "20px", tracking: "1px" }}>CEESUV</h2>
           <span style={{ fontSize: "11px", color: "#B0C4DE", fontWeight: "600", letterSpacing: "1px" }}>
             BANCO ESCOLAR
