@@ -61,21 +61,20 @@ function Login() {
       >
         {/* LOGO DE LA ESCUELA */}
         <div style={{ marginBottom: "15px" }}>
-          <img
-            src="/logo-ceesuv.png"
-            alt="Logo CEESUV"
-            style={{
-              width: "90px",
-              height: "90px",
-              objectFit: "contain",
-              margin: "0 auto",
-              display: "block"
-            }}
-            onError={(e) => {
-              // Si no encuentra la imagen /logo.png, muestra este respaldo gráfico
-              e.target.style.display = "none";
-            }}
-          />
+          <img 
+  src="/logo-ceesuv.png" 
+  alt="Logo CEESUV" 
+  style={{ 
+    maxWidth: "85px", 
+    maxHeight: "85px", 
+    marginBottom: "10px",
+    objectFit: "contain",
+    display: "block",
+    margin: "0 auto 10px auto",
+    // Filtro para contrastar en fondo oscuro:
+    filter: "brightness(1.1) drop-shadow(0px 0px 8px rgba(212, 175, 55, 0.6))" 
+  }} 
+/>
         </div>
 
         {/* NOMBRE DE LA ESCUELA Y TITULO */}
