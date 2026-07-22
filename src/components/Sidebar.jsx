@@ -1,4 +1,5 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
+import logoCeesuv from "/logo-ceesuv.png"; // Importación directa del archivo
 
 function Sidebar() {
   const location = useLocation();
@@ -8,7 +9,7 @@ function Sidebar() {
   const handleCerrarSesion = () => {
     localStorage.clear();
     sessionStorage.clear();
-    navigate("/login"); // Te manda a /login explícitamente en lugar de "/"
+    navigate("/login");
   };
 
   const estylosBoton = (path) => {
@@ -17,9 +18,9 @@ function Sidebar() {
       width: "100%",
       padding: "12px 15px",
       marginBottom: "8px",
-      backgroundColor: isActive ? "#D4AF37" : "transparent", // Transparente cuando no está activo
-      color: isActive ? "#0B2341" : "#E0E0E0", // Texto visible en blanco/gris claro
-      border: isActive ? "none" : "1px solid rgba(212, 175, 55, 0.2)", // Borde dorado tenue para definir las cajas
+      backgroundColor: isActive ? "#D4AF37" : "transparent",
+      color: isActive ? "#0B2341" : "#E0E0E0",
+      border: isActive ? "none" : "1px solid rgba(212, 175, 55, 0.2)",
       borderRadius: "8px",
       fontWeight: "bold",
       textAlign: "left",
@@ -49,46 +50,44 @@ function Sidebar() {
     >
       <div>
         {/* LOGO / TITULO */}
-<div style={{ marginBottom: "25px", textAlign: "center" }}>
-  {/* Círculo contenedor con fondo blanco para máximo contraste */}
-  <div
-    style={{
-      width: "95px",
-      height: "95px",
-      backgroundColor: "#FFFFFF",
-      borderRadius: "50%",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      margin: "0 auto 12px auto",
-      padding: "8px",
-      boxShadow: "0 4px 15px rgba(0, 0, 0, 0.3), 0 0 0 2px #D4AF37", // Anillo dorado elegante en el borde
-      boxSizing: "border-box"
-    }}
-  >
-    <img 
-      src="/logo-ceesuv.png" 
-      alt="Logo CEESUV" 
-      style={{ 
-        width: "100%", 
-        height: "100%", 
-        objectFit: "contain" 
-      }} 
-    />
-  </div>
+        <div style={{ marginBottom: "25px", textAlign: "center" }}>
+          {/* Contenedor blanco redondo para contraste perfecto */}
+          <div
+            style={{
+              width: "90px",
+              height: "90px",
+              backgroundColor: "#FFFFFF",
+              borderRadius: "50%",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              margin: "0 auto 12px auto",
+              padding: "8px",
+              boxShadow: "0 4px 15px rgba(0, 0, 0, 0.4), 0 0 0 2px #D4AF37",
+              boxSizing: "border-box"
+            }}
+          >
+            <img 
+              src={logoCeesuv} 
+              alt="Logo CEESUV" 
+              style={{ 
+                width: "100%", 
+                height: "100%", 
+                objectFit: "contain" 
+              }} 
+            />
+          </div>
 
-  <h2 style={{ margin: 0, color: "#D4AF37", fontSize: "20px", letterSpacing: "1px" }}>
-    CEESUV
-  </h2>
-  <span style={{ fontSize: "11px", color: "#B0C4DE", fontWeight: "600", letterSpacing: "1px" }}>
-    BANCO ESCOLAR
-  </span>
-</div>
-        
+          <h2 style={{ margin: 0, color: "#D4AF37", fontSize: "20px", letterSpacing: "1px" }}>
+            CEESUV
+          </h2>
+          <span style={{ fontSize: "11px", color: "#B0C4DE", fontWeight: "600", letterSpacing: "1px" }}>
+            BANCO ESCOLAR
+          </span>
+        </div>
 
         {/* NAVEGACIÓN */}
         <nav style={{ display: "flex", flexDirection: "column" }}>
-          {/* Apuntamos a /dashboard para que no regrese al Login */}
           <Link to="/dashboard" style={{ textDecoration: "none" }}>
             <button style={estylosBoton("/dashboard")}>
               🏠 Inicio
@@ -121,7 +120,7 @@ function Sidebar() {
         </nav>
       </div>
 
-      {/* BOTÓN CERRAR SESIÓN (Hasta abajo con espacio de seguridad) */}
+      {/* BOTÓN CERRAR SESIÓN */}
       <div style={{ marginTop: "auto", paddingTop: "20px" }}>
         <button
           onClick={handleCerrarSesion}
