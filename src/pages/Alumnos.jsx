@@ -13,22 +13,36 @@ function Alumnos() {
 
   const fetchAlumnos = async () => {
     try {
-      // 👈 CORREGIDO: Se cambia /api/alumnos por /api/alumno
+      // Intentamos con la ruta de tu backend
       const res = await fetch(`${API_URL}/api/alumno`);
       const data = await res.json();
 
-      // Si la respuesta es un arreglo, lo guardamos directamente
+      // Esto te mostrará en la consola del navegador exactamente qué estructura trae la base de datos
+      console.log("Datos recibidos del backend:", data);
+
+      // Extraemos el arreglo según la estructura que devuelva el backend
+      let lista = [];
       if (Array.isArray(data)) {
-        setAlumnos(data);
+        lista = data;
       } else if (data.alumnos && Array.isArray(data.alumnos)) {
-        setAlumnos(data.alumnos);
+        lista = data.alumnos;
       } else if (data.data && Array.isArray(data.data)) {
-        setAlumnos(data.data);
+        lista = data.data;
       }
+
+      setAlumnos(lista);
     } catch (error) {
       console.error("Error al obtener alumnos:", error);
     }
   };
+
+  const listaAlumnos = Array.isArray(alumnos) ? alumnos : [];
+
+  const alumnosFiltrados = listaAlumnos.filter((alumno) => {
+    // Busca el nombre sin importar si en PostgreSQL se llama 'nombre', 'nombre_completo' o 'nombreAlumno'
+    const nombre = alumno.nombre || alumno.nombre_completo || alumno.nombreAlumno || "";
+    return nombre.toLowerCase().includes(busqueda.toLowerCase());
+  });
 
   // Asegura que alumnos sea siempre un array antes de filtrar
   const listaAlumnos = Array.isArray(alumnos) ? alumnos : [];
@@ -77,26 +91,39 @@ function Alumnos() {
             </thead>
             <tbody>
               {alumnosFiltrados.length > 0 ? (
-                alumnosFiltrados.map((alumno) => (
-                  <tr key={alumno.id} style={styles.tr}>
-                    <td style={styles.td}>{alumno.id}</td>
-                    <td style={styles.tdBold}>{alumno.nombre || alumno.nombre_completo}</td>
-                    <td style={styles.td}>{alumno.grado}</td>
-                    <td style={styles.tdCoins}>🪙 {alumno.coins ?? alumno.saldo ?? 0}</td>
-                    <td style={styles.tdActions}>
-                      <button style={styles.btnQr}>📱 Código QR</button>
-                      <button style={styles.btnEdit}>✏️ Editar</button>
-                      <button style={styles.btnDelete}>🗑️ Eliminar</button>
-                    </td>
-                  </tr>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan="5" style={{ textAlign: "center", padding: "20px", color: "#6c757d" }}>
-                    No se encontraron alumnos registrados.
-                  </td>
-                </tr>
-              )}
+  alumnosFiltrados.map((alumno, index) => (
+    <tr key={alumno.id || alumno._id || index} style={styles.tr}>
+      <td style={styles.td}>{alumno.id || alumno._id || index + 1}</td>
+      
+      {/* Mapea dinámicamente el nombre */}
+      <td style={styles.tdBold}>
+        {alumno.nombre || alumno.nombre_completo || alumno.nombreAlumno || "Sin Nombre"}
+      </td>
+      
+      {/* Mapea dinámicamente el grado */}
+      <td style={styles.td}>
+        {alumno.grado || alumno.grado_estudio || alumno.grupo || "N/A"}
+      </td>
+
+      {/* Mapea dinámicamente las monedas */}
+      <td style={styles.tdCoins}>
+        🪙 {alumno.coins ?? alumno.saldo ?? alumno.ceesuv_coins ?? 0}
+      </td>
+
+      <td style={styles.tdActions}>
+        <button style={styles.btnQr}>📱 Código QR</button>
+        <button style={styles.btnEdit}>✏️ Editar</button>
+        <button style={styles.btnDelete}>🗑️ Eliminar</button>
+      </td>
+    </tr>
+  ))
+) : (
+  <tr>
+    <td colSpan="5" style={{ textAlign: "center", padding: "20px", color: "#6c757d" }}>
+      No se encontraron alumnos registrados.
+    </td>
+  </tr>
+)}
             </tbody>
           </table>
         </div>
