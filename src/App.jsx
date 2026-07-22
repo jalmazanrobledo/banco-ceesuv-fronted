@@ -6,6 +6,7 @@ import Movimientos from "./pages/Movimientos";
 import Usuarios from "./pages/Usuarios";
 import Login from "./pages/Login";
 import ConsultaAlumno from "./pages/ConsultaAlumno";
+import Operaciones from "./pages/Operaciones";
 
 // 1. Protege rutas que requieren estar logueado (Cualquier rol)
 function RutaProtegida({ children }) {
@@ -40,6 +41,8 @@ function App() {
       <Routes>
         {/* Ruta principal: Pantalla de Login */}
         <Route path="/" element={<Login />} />
+
+        <Route path="/operaciones" element={<Operaciones />} />
 
         {/* Ruta pública para el Código QR (Padres) */}
         <Route path="/consulta/:token" element={<ConsultaAlumno />} />

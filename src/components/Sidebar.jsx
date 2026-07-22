@@ -48,6 +48,12 @@ function Sidebar() {
             👥 Usuarios
           </Link>
         )}
+        <Link to="/operaciones" style={{ textDecoration: 'none' }}>
+          <button style={/* estilo similar a tus otros botones */}>
+            💳 Operaciones
+          </button>
+          </Link>
+
       </nav>
 
       {/* BOTÓN CERRAR SESIÓN */}
