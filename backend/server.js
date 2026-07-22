@@ -501,16 +501,16 @@ app.put("/usuarios/:id/estado", async (req, res) => {
 });
 
 // =====================================
-// Login de usuario
+// Login de usuario (ACTUALIZADO Y BLINDADO)
 // =====================================
 
 app.post("/login", async (req, res) => {
   try {
     const { usuario, password } = req.body;
 
-    // Limpiamos espacios alrededor de las entradas
-    const userClean = usuario ? usuario.trim() : "";
-    const passClean = password ? password.trim() : "";
+    // Convertimos de forma explícita a String antes de usar .trim()
+    const userClean = String(usuario || "").trim();
+    const passClean = String(password || "").trim();
 
     // 1. Buscamos el usuario por su nombre (sin importar mayúsculas/minúsculas)
     const resultado = await pool.query(
@@ -552,7 +552,6 @@ app.post("/login", async (req, res) => {
 
   } catch (error) {
     console.error("Error al intentar iniciar sesión:", error);
-    // Cambiamos esta línea para ver el error real directamente en el frontend/red
     res.status(500).json({
       mensaje: "Error al intentar iniciar sesión.",
       detalles: error.message,
