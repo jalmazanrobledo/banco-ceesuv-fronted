@@ -91,11 +91,11 @@ function Alumnos() {
             </thead>
             <tbody>
               {alumnosFiltrados.length > 0 ? (
-  alumnosFiltrados.map((alumno, index) => (
-    <tr key={alumno.id || alumno._id || index} style={styles.tr}>
-      <td style={styles.td}>{alumno.id || alumno._id || index + 1}</td>
+          alumnosFiltrados.map((alumno, index) => (
+          <tr key={alumno.id || alumno._id || index} style={styles.tr}>
+          <td style={styles.td}>{alumno.id || alumno._id || index + 1}</td>
       
-      {/* Mapea dinámicamente el nombre */}
+          {/* Mapea dinámicamente el nombre */}
       <td style={styles.tdBold}>
         {alumno.nombre || alumno.nombre_completo || alumno.nombreAlumno || "Sin Nombre"}
       </td>
