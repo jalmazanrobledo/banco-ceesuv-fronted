@@ -26,26 +26,25 @@ function Sidebar() {
         </div>
       </div>
 
-      {/* TARJETA USUARIO */}
+      {/* TARJETA USUARIO (DORADO + TEXTO NEGRO) */}
       {usuario && (
-        <div style={styles.userCard}>
+        <div style={styles.goldCard}>
           <span style={{ fontSize: "20px" }}>👤</span>
           <div>
-            <p style={styles.userName}>{usuario.nombre || usuario.usuario}</p>
-            <span style={styles.userRole}>{usuario.rol}</span>
+            <p style={styles.goldCardTitle}>{usuario.nombre || usuario.usuario}</p>
+            <span style={styles.goldCardSub}>{usuario.rol}</span>
           </div>
         </div>
       )}
 
-      {/* NAVEGACIÓN */}
+      {/* NAVEGACIÓN (TODOS LOS BOTONES EN DORADO + TEXTO NEGRO) */}
       <nav style={styles.nav}>
-        <Link to="/dashboard" style={styles.link}>🏠 Inicio</Link>
-        <Link to="/alumnos" style={styles.link}>👨‍🎓 Alumnos</Link>
-        <Link to="/movimientos" style={styles.link}>💰 Movimientos</Link>
+        <Link to="/dashboard" style={styles.goldLink}>🏠 Inicio</Link>
+        <Link to="/alumnos" style={styles.goldLink}>👨‍🎓 Alumnos</Link>
+        <Link to="/movimientos" style={styles.goldLink}>💰 Movimientos</Link>
         
-        {/* BOTÓN DE USUARIOS DESTACADO EN DORADO */}
         {esAdmin && (
-          <Link to="/usuarios" style={styles.linkAdmin}>
+          <Link to="/usuarios" style={styles.goldLink}>
             👥 Usuarios
           </Link>
         )}
@@ -79,7 +78,6 @@ const styles = {
     borderBottom: "1px solid rgba(255,255,255,0.1)",
     paddingBottom: "15px",
   },
-  /* 👈 CUADRO DE FONDO BLANCO PARA EL LOGO */
   logoContainer: {
     width: "50px",
     height: "50px",
@@ -108,23 +106,29 @@ const styles = {
     textTransform: "uppercase",
     letterSpacing: "1px",
   },
-  userCard: {
-    background: "rgba(255,255,255,0.08)",
-    padding: "10px",
+  /* 👈 TARJETA DE USUARIO EN DORADO */
+  goldCard: {
+    backgroundColor: "#D4AF37",
+    color: "#0B2341",
+    padding: "10px 12px",
     borderRadius: "8px",
     display: "flex",
     alignItems: "center",
     gap: "10px",
     marginBottom: "20px",
+    boxShadow: "0 2px 6px rgba(0,0,0,0.2)",
   },
-  userName: {
+  goldCardTitle: {
     margin: 0,
     fontSize: "14px",
     fontWeight: "bold",
+    color: "#0B2341",
   },
-  userRole: {
-    fontSize: "11px",
-    color: "#17a2b8",
+  goldCardSub: {
+    fontSize: "12px",
+    fontWeight: "600",
+    color: "#0B2341",
+    opacity: 0.85,
   },
   nav: {
     display: "flex",
@@ -132,25 +136,17 @@ const styles = {
     gap: "10px",
     flex: 1,
   },
-  link: {
-    color: "white",
-    textDecoration: "none",
-    padding: "10px 12px",
-    borderRadius: "6px",
-    fontSize: "15px",
-    fontWeight: "500",
-    backgroundColor: "rgba(255,255,255,0.05)",
-  },
-  /* 👈 ESTILO DESTACADO DORADO CON LETRAS Y TEXTO EN NEGRO/AZUL */
-  linkAdmin: {
+  /* 👈 ESTILO UNIFORME DORADO PARA TODOS LOS BOTONES */
+  goldLink: {
     color: "#0B2341",
     textDecoration: "none",
     padding: "10px 12px",
     borderRadius: "6px",
     fontSize: "15px",
     fontWeight: "bold",
-    backgroundColor: "#D4AF37", // Dorado CEESUV
-    boxShadow: "0 2px 6px rgba(212, 175, 55, 0.4)",
+    backgroundColor: "#D4AF37",
+    boxShadow: "0 2px 4px rgba(0,0,0,0.15)",
+    display: "block",
   },
   logoutBtn: {
     marginTop: "auto",
