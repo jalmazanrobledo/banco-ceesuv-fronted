@@ -6,12 +6,11 @@ function Alumnos() {
   const [busqueda, setBusqueda] = useState("");
   const [endpointValido, setEndpointValido] = useState("");
 
-  // Estados para Modales
+  // Modales
   const [modalAgregar, setModalAgregar] = useState(false);
   const [modalEditar, setModalEditar] = useState(false);
   const [modalQr, setModalQr] = useState(false);
 
-  // Estado para alumno seleccionado
   const [alumnoSeleccionado, setAlumnoSeleccionado] = useState(null);
 
   // Formularios
@@ -37,7 +36,7 @@ function Alumnos() {
         const res = await fetch(url);
         if (res.ok) {
           const data = await res.json();
-          setEndpointValido(url); // Guardamos la ruta que sí funcionó
+          setEndpointValido(url);
 
           let lista = [];
           if (Array.isArray(data)) lista = data;
@@ -53,9 +52,7 @@ function Alumnos() {
     }
   };
 
-  // --- HANDLERS DE ACCIONES ---
-
-  // 1. Crear Alumno
+  // HANDLERS
   const handleCrearAlumno = async (e) => {
     e.preventDefault();
     if (!nuevoAlumno.nombre) return alert("Ingresa el nombre del alumno.");
@@ -81,7 +78,6 @@ function Alumnos() {
     }
   };
 
-  // 2. Abrir Editar
   const handleAbrirEditar = (alumno) => {
     setAlumnoEditar({
       id: alumno.id || alumno._id,
@@ -92,7 +88,6 @@ function Alumnos() {
     setModalEditar(true);
   };
 
-  // Guardar Cambios Editar
   const handleGuardarEdicion = async (e) => {
     e.preventDefault();
     try {
@@ -115,7 +110,6 @@ function Alumnos() {
     }
   };
 
-  // 3. Eliminar Alumno
   const handleEliminar = async (alumno) => {
     const id = alumno.id || alumno._id;
     const nombre = alumno.nombre || alumno.nombre_completo;
@@ -136,10 +130,29 @@ function Alumnos() {
     }
   };
 
-  // 4. Mostrar QR
   const handleVerQr = (alumno) => {
     setAlumnoSeleccionado(alumno);
     setModalQr(true);
+  };
+
+  // Obtiene el ID/Token del alumno
+  const obtenerTokenAlumno = (alumno) => {
+    return alumno.token || alumno.qr_token || alumno.codigo || alumno.id || alumno._id;
+  };
+
+  // Genera la URL pública garantizada para la cámara
+  const obtenerUrlConsulta = (alumno) => {
+    const token = alumno.token || alumno.qr_token || alumno.codigo || alumno.id || alumno._id || "";
+    
+    // Determinamos el dominio base
+    let domain = window.location.origin;
+    if (domain.includes("localhost")) {
+      domain = "https://banco-ceesuv-fronted.vercel.app";
+    }
+
+    // Limpiamos barras duplicadas y aseguramos https://
+    const baseUrl = domain.replace(/\/+$/, "");
+    return `${baseUrl}/consulta/${token}`;
   };
 
   const listaAlumnos = Array.isArray(alumnos) ? alumnos : [];
@@ -297,112 +310,129 @@ function Alumnos() {
         </div>
       )}
 
-      {/* --- MODAL QR CON GUARDADO E IMPRESIÓN --- */}
-      {modalQr && alumnoSeleccionado && (
-        <div style={styles.modalOverlay}>
-          <div style={{ ...styles.modalCard, textAlign: "center" }}>
-            <h2 style={styles.modalTitle}>📱 Código QR de Alumno</h2>
-            <p style={{ color: "#0B2341", fontWeight: "bold", margin: "10px 0", fontSize: "16px" }}>
-              {alumnoSeleccionado.nombre || alumnoSeleccionado.nombre_completo}
-            </p>
-            <p style={{ color: "#6c757d", fontSize: "13px", margin: 0 }}>
-              Grado: {alumnoSeleccionado.grado || alumnoSeleccionado.grado_estudio || "N/A"}
-            </p>
+      {/* --- MODAL QR --- */}
+      {modalQr && alumnoSeleccionado && (() => {
+        const nombreAlumno = alumnoSeleccionado.nombre || alumnoSeleccionado.nombre_completo || "Alumno";
+        const gradoAlumno = alumnoSeleccionado.grado || alumnoSeleccionado.grado_estudio || "N/A";
+        const urlEnlace = obtenerUrlConsulta(alumnoSeleccionado);
+        
+        // Formato SVG de alta definición y codificación estricta de URL para la cámara
+        const qrImgSrc = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&format=svg&data=${encodeURIComponent(urlEnlace)}`;
 
-            <div style={{ padding: "20px", background: "#f8f9fa", borderRadius: "8px", margin: "15px 0" }}>
-              <img
-                src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${alumnoSeleccionado.id || alumnoSeleccionado._id}`}
-                alt="QR Alumno"
-                style={{ width: "200px", height: "200px" }}
-              />
+        return (
+          <div style={styles.modalOverlay}>
+            <div style={{ ...styles.modalCard, textAlign: "center" }}>
+              <h2 style={styles.modalTitle}>📱 Código QR de Alumno</h2>
+              <p style={{ color: "#0B2341", fontWeight: "bold", margin: "10px 0 2px 0", fontSize: "16px" }}>
+                {nombreAlumno}
+              </p>
+              <p style={{ color: "#6c757d", fontSize: "13px", margin: 0 }}>
+                Grado: {gradoAlumno}
+              </p>
+
+              <div style={{ padding: "20px", background: "#ffffff", border: "1px solid #e0e0e0", borderRadius: "8px", margin: "15px 0" }}>
+                <img
+                  src={qrImgSrc}
+                  alt="QR Alumno"
+                  style={{ width: "220px", height: "220px", display: "block", margin: "auto" }}
+                />
+                
+                {/* Texto visible de confirmación */}
+                <div style={{ marginTop: "12px", background: "#f8f9fa", padding: "8px", borderRadius: "6px" }}>
+                  <p style={{ fontSize: "11px", color: "#6c757d", margin: "0 0 4px 0" }}>Enlace codificado en el QR:</p>
+                  <a
+                    href={urlEnlace}
+                    target="_blank"
+                    rel="noreferrer"
+                    style={{ fontSize: "12px", color: "#17a2b8", wordBreak: "break-all", fontWeight: "bold" }}
+                  >
+                    {urlEnlace}
+                  </a>
+                </div>
+              </div>
+
+              <div style={{ display: "flex", gap: "10px", justifyContent: "center", marginBottom: "15px" }}>
+                {/* Botón Descargar Imagen */}
+                <button
+                  onClick={async () => {
+                    const response = await fetch(qrImgSrc);
+                    const blob = await response.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    const link = document.createElement("a");
+                    link.href = url;
+                    link.download = `QR_${nombreAlumno.replace(/\s+/g, "_")}.svg`;
+                    link.click();
+                  }}
+                  style={{
+                    backgroundColor: "#17a2b8",
+                    color: "white",
+                    border: "none",
+                    padding: "8px 12px",
+                    borderRadius: "6px",
+                    cursor: "pointer",
+                    fontWeight: "bold",
+                    fontSize: "13px"
+                  }}
+                >
+                  💾 Guardar QR
+                </button>
+
+                {/* Botón Imprimir Credencial */}
+                <button
+                  onClick={() => {
+                    const win = window.open("", "", "width=600,height=600");
+
+                    win.document.write(`
+                      <html>
+                        <head>
+                          <title>Credencial CEESUV - ${nombreAlumno}</title>
+                          <style>
+                            body { font-family: Arial, sans-serif; text-align: center; padding: 20px; }
+                            .card { border: 2px solid #0B2341; padding: 20px; border-radius: 12px; width: 280px; margin: auto; }
+                            h2 { color: #0B2341; margin: 5px 0; }
+                            h3 { color: #d4af37; margin: 0 0 15px 0; font-size: 14px; }
+                            img { width: 180px; height: 180px; }
+                            p { font-size: 14px; color: #333; margin: 5px 0; }
+                            .instruction { font-size: 11px; color: #666; margin-top: 10px; }
+                          </style>
+                        </head>
+                        <body>
+                          <div class="card">
+                            <h2>CEESUV</h2>
+                            <h3>BANCO ESCOLAR</h3>
+                            <img src="${qrImgSrc}" />
+                            <p><strong>${nombreAlumno}</strong></p>
+                            <p>Grado: ${gradoAlumno}</p>
+                            <p class="instruction">Escanear para consultar estado de cuenta</p>
+                          </div>
+                          <script>
+                            window.onload = function() { window.print(); window.close(); }
+                          </script>
+                        </body>
+                      </html>
+                    `);
+                    win.document.close();
+                  }}
+                  style={{
+                    backgroundColor: "#d4af37",
+                    color: "#0B2341",
+                    border: "none",
+                    padding: "8px 12px",
+                    borderRadius: "6px",
+                    cursor: "pointer",
+                    fontWeight: "bold",
+                    fontSize: "13px"
+                  }}
+                >
+                  🖨️ Imprimir Credencial
+                </button>
+              </div>
+
+              <button onClick={() => setModalQr(false)} style={styles.btnCancel}>Cerrar</button>
             </div>
-
-            <div style={{ display: "flex", gap: "10px", justifyContent: "center", marginBottom: "15px" }}>
-              {/* Botón Descargar Imagen PNG */}
-              <button
-                onClick={async () => {
-                  const id = alumnoSeleccionado.id || alumnoSeleccionado._id;
-                  const nombre = alumnoSeleccionado.nombre || alumnoSeleccionado.nombre_completo;
-                  const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${id}`;
-                  
-                  const response = await fetch(qrUrl);
-                  const blob = await response.blob();
-                  const url = window.URL.createObjectURL(blob);
-                  const link = document.createElement("a");
-                  link.href = url;
-                  link.download = `QR_${nombre.replace(/\s+/g, "_")}.png`;
-                  link.click();
-                }}
-                style={{
-                  backgroundColor: "#17a2b8",
-                  color: "white",
-                  border: "none",
-                  padding: "8px 12px",
-                  borderRadius: "6px",
-                  cursor: "pointer",
-                  fontWeight: "bold",
-                  fontSize: "13px"
-                }}
-              >
-                💾 Guardar Imagen
-              </button>
-
-              {/* Botón Imprimir Credencial */}
-              <button
-                onClick={() => {
-                  const win = window.open("", "", "width=600,height=600");
-                  const nombre = alumnoSeleccionado.nombre || alumnoSeleccionado.nombre_completo;
-                  const grado = alumnoSeleccionado.grado || "N/A";
-                  const id = alumnoSeleccionado.id || alumnoSeleccionado._id;
-                  
-                  win.document.write(`
-                    <html>
-                      <head>
-                        <title>Credencial CEESUV - ${nombre}</title>
-                        <style>
-                          body { font-family: Arial, sans-serif; text-align: center; padding: 20px; }
-                          .card { border: 2px solid #0B2341; padding: 20px; border-radius: 12px; width: 280px; margin: auto; }
-                          h2 { color: #0B2341; margin: 5px 0; }
-                          h3 { color: #d4af37; margin: 0 0 15px 0; font-size: 14px; }
-                          img { width: 180px; height: 180px; }
-                          p { font-size: 14px; color: #333; margin: 5px 0; }
-                        </style>
-                      </head>
-                      <body>
-                        <div class="card">
-                          <h2>CEESUV</h2>
-                          <h3>BANCO ESCOLAR</h3>
-                          <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${id}" />
-                          <p><strong>${nombre}</strong></p>
-                          <p>Grado: ${grado}</p>
-                        </div>
-                        <script>
-                          window.onload = function() { window.print(); window.close(); }
-                        </script>
-                      </body>
-                    </html>
-                  `);
-                  win.document.close();
-                }}
-                style={{
-                  backgroundColor: "#d4af37",
-                  color: "#0B2341",
-                  border: "none",
-                  padding: "8px 12px",
-                  borderRadius: "6px",
-                  cursor: "pointer",
-                  fontWeight: "bold",
-                  fontSize: "13px"
-                }}
-              >
-                🖨️ Imprimir Credencial
-              </button>
-            </div>
-
-            <button onClick={() => setModalQr(false)} style={styles.btnCancel}>Cerrar</button>
           </div>
-        </div>
-      )}
+        );
+      })()}
     </div>
   );
 }
@@ -429,7 +459,7 @@ const styles = {
   btnEdit: { backgroundColor: "#17a2b8", color: "white", border: "none", padding: "6px 10px", borderRadius: "5px", fontSize: "12px", cursor: "pointer" },
   btnDelete: { backgroundColor: "#dc3545", color: "white", border: "none", padding: "6px 10px", borderRadius: "5px", fontSize: "12px", cursor: "pointer" },
 
-  // Estilos Modales
+  // Modales
   modalOverlay: { position: "fixed", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: "rgba(0,0,0,0.5)", display: "flex", justifyContent: "center", alignItems: "center", zIndex: 1000 },
   modalCard: { backgroundColor: "white", padding: "25px", borderRadius: "10px", width: "400px", maxWidth: "90%", boxShadow: "0 4px 12px rgba(0,0,0,0.15)" },
   modalTitle: { margin: "0 0 15px 0", color: "#0B2341", fontSize: "20px" },
