@@ -142,10 +142,13 @@ function Alumnos() {
     setModalQr(true);
   };
 
-  // Generador de la URL de consulta que leerá el teléfono
+  // Construye la URL pública limpia que el escáner del celular abrirá
   const obtenerUrlConsulta = (id) => {
-    // Genera automáticamente: https://banco-ceesuv-fronted.vercel.app/consulta/1
-    return `${window.location.origin}/consulta/${id}`;
+    const baseUrl = window.location.origin.includes("localhost")
+      ? "https://banco-ceesuv-fronted.vercel.app"
+      : window.location.origin;
+    
+    return `${baseUrl}/consulta/${id}`;
   };
 
   const listaAlumnos = Array.isArray(alumnos) ? alumnos : [];
@@ -309,8 +312,9 @@ function Alumnos() {
         const nombreAlumno = alumnoSeleccionado.nombre || alumnoSeleccionado.nombre_completo;
         const gradoAlumno = alumnoSeleccionado.grado || alumnoSeleccionado.grado_estudio || "N/A";
         
-        // Enlace que abrirá la cámara del celular
-        const urlParaQr = encodeURIComponent(obtenerUrlConsulta(idAlumno));
+        // Enlace sin codificación extra para que la API de QR lo interprete como URL limpia
+        const urlParaQr = obtenerUrlConsulta(idAlumno);
+        const qrImageApi = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${urlParaQr}`;
 
         return (
           <div style={styles.modalOverlay}>
@@ -325,18 +329,20 @@ function Alumnos() {
 
               <div style={{ padding: "20px", background: "#f8f9fa", borderRadius: "8px", margin: "15px 0" }}>
                 <img
-                  src={`https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${urlParaQr}`}
+                  src={qrImageApi}
                   alt="QR Consulta Alumno"
                   style={{ width: "200px", height: "200px" }}
                 />
+                <p style={{ fontSize: "11px", color: "#888", marginTop: "8px", wordBreak: "break-all" }}>
+                  {urlParaQr}
+                </p>
               </div>
 
               <div style={{ display: "flex", gap: "10px", justifyContent: "center", marginBottom: "15px" }}>
                 {/* Botón Descargar Imagen PNG */}
                 <button
                   onClick={async () => {
-                    const qrDownloadUrl = `https://api.qrserver.com/v1/create-qr-code/?size=350x350&data=${urlParaQr}`;
-                    const response = await fetch(qrDownloadUrl);
+                    const response = await fetch(qrImageApi);
                     const blob = await response.blob();
                     const url = window.URL.createObjectURL(blob);
                     const link = document.createElement("a");
@@ -362,7 +368,6 @@ function Alumnos() {
                 <button
                   onClick={() => {
                     const win = window.open("", "", "width=600,height=600");
-                    const targetLink = obtenerUrlConsulta(idAlumno);
                     
                     win.document.write(`
                       <html>
@@ -382,7 +387,7 @@ function Alumnos() {
                           <div class="card">
                             <h2>CEESUV</h2>
                             <h3>BANCO ESCOLAR</h3>
-                            <img src="https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(targetLink)}" />
+                            <img src="${qrImageApi}" />
                             <p><strong>${nombreAlumno}</strong></p>
                             <p>Grado: ${gradoAlumno}</p>
                             <p class="instruction">Escanear para consultar estado de cuenta</p>
