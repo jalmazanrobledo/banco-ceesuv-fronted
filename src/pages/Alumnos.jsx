@@ -1,474 +1,245 @@
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import Sidebar from "../components/Sidebar";
+import { obtenerAlumnos, guardarAlumno, editarAlumno, eliminarAlumno } from "../services/api";
 
 function Alumnos() {
   const [alumnos, setAlumnos] = useState([]);
   const [busqueda, setBusqueda] = useState("");
-  const [endpointValido, setEndpointValido] = useState("");
-
-  // Modales
-  const [modalAgregar, setModalAgregar] = useState(false);
-  const [modalEditar, setModalEditar] = useState(false);
-  const [modalQr, setModalQr] = useState(false);
-
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalQROpen, setModalQROpen] = useState(false);
   const [alumnoSeleccionado, setAlumnoSeleccionado] = useState(null);
 
-  // Formularios
-  const [nuevoAlumno, setNuevoAlumno] = useState({ nombre: "", grado: "", coins: 0 });
-  const [alumnoEditar, setAlumnoEditar] = useState({ id: "", nombre: "", grado: "", coins: 0 });
-
-  const API_URL = import.meta.env.VITE_API_URL || "https://banco-ceesuv-backend.onrender.com";
+  // Formulario
+  const [nombre, setNombre] = useState("");
+  const [grado, setGrado] = useState("");
+  const [coins, setCoins] = useState(0);
+  const [editId, setEditId] = useState(null);
 
   useEffect(() => {
-    fetchAlumnos();
+    cargarAlumnos();
   }, []);
 
-  const fetchAlumnos = async () => {
-    const rutasPosibles = [
-      `${API_URL}/api/alumnos`,
-      `${API_URL}/alumnos`,
-      `${API_URL}/api/alumno`,
-      `${API_URL}/alumno`
-    ];
-
-    for (const url of rutasPosibles) {
-      try {
-        const res = await fetch(url);
-        if (res.ok) {
-          const data = await res.json();
-          setEndpointValido(url);
-
-          let lista = [];
-          if (Array.isArray(data)) lista = data;
-          else if (data.alumnos) lista = data.alumnos;
-          else if (data.data) lista = data.data;
-
-          setAlumnos(lista);
-          return;
-        }
-      } catch (error) {
-        console.warn(`Falló ${url}`);
-      }
-    }
-  };
-
-  // HANDLERS
-  const handleCrearAlumno = async (e) => {
-    e.preventDefault();
-    if (!nuevoAlumno.nombre) return alert("Ingresa el nombre del alumno.");
-
+  const cargarAlumnos = async () => {
     try {
-      const res = await fetch(endpointValido || `${API_URL}/api/alumnos`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(nuevoAlumno)
-      });
-
-      if (res.ok) {
-        alert("¡Alumno agregado con éxito!");
-        setModalAgregar(false);
-        setNuevoAlumno({ nombre: "", grado: "", coins: 0 });
-        fetchAlumnos();
-      } else {
-        alert("Error al guardar alumno.");
-      }
-    } catch (err) {
-      console.error(err);
-      alert("Error de conexión al agregar alumno.");
+      const data = await obtenerAlumnos();
+      setAlumnos(data || []);
+    } catch (error) {
+      console.error("Error al cargar alumnos:", error);
     }
   };
 
-  const handleAbrirEditar = (alumno) => {
-    setAlumnoEditar({
-      id: alumno.id || alumno._id,
-      nombre: alumno.nombre || alumno.nombre_completo || "",
-      grado: alumno.grado || alumno.grado_estudio || "",
-      coins: alumno.coins ?? alumno.saldo ?? 0
-    });
-    setModalEditar(true);
-  };
-
-  const handleGuardarEdicion = async (e) => {
+  const handleGuardar = async (e) => {
     e.preventDefault();
-    try {
-      const res = await fetch(`${endpointValido}/${alumnoEditar.id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(alumnoEditar)
-      });
+    if (editId) {
+      await editarAlumno(editId, { nombre, grado, coins });
+    } else {
+      await guardarAlumno({ nombre, grado, coins });
+    }
+    cerrarModal();
+    cargarAlumnos();
+  };
 
-      if (res.ok) {
-        alert("Alumno actualizado correctamente.");
-        setModalEditar(false);
-        fetchAlumnos();
-      } else {
-        alert("No se pudo actualizar los datos.");
-      }
-    } catch (err) {
-      console.error(err);
-      alert("Error al conectar con el servidor.");
+  const handleEditar = (a) => {
+    setEditId(a.id);
+    setNombre(a.nombre);
+    setGrado(a.grado);
+    setCoins(a.coins);
+    setModalOpen(true);
+  };
+
+  const handleEliminar = async (id) => {
+    if (window.confirm("¿Seguro que deseas eliminar este alumno?")) {
+      await eliminarAlumno(id);
+      cargarAlumnos();
     }
   };
 
-  const handleEliminar = async (alumno) => {
-    const id = alumno.id || alumno._id;
-    const nombre = alumno.nombre || alumno.nombre_completo;
-
-    if (window.confirm(`¿Estás seguro de eliminar a ${nombre}?`)) {
-      try {
-        const res = await fetch(`${endpointValido}/${id}`, { method: "DELETE" });
-        if (res.ok) {
-          alert("Alumno eliminado.");
-          fetchAlumnos();
-        } else {
-          alert("No se pudo eliminar el alumno.");
-        }
-      } catch (err) {
-        console.error(err);
-        alert("Error de conexión.");
-      }
-    }
-  };
-
-  const handleVerQr = (alumno) => {
+  const abrirModalQR = (alumno) => {
     setAlumnoSeleccionado(alumno);
-    setModalQr(true);
+    setModalQROpen(true);
   };
 
-  // Obtiene el ID/Token del alumno
-  const obtenerTokenAlumno = (alumno) => {
-    return alumno.token || alumno.qr_token || alumno.codigo || alumno.id || alumno._id;
+  const cerrarModal = () => {
+    setModalOpen(false);
+    setEditId(null);
+    setNombre("");
+    setGrado("");
+    setCoins(0);
   };
 
-  // Genera la URL pública garantizada para la cámara
-  const obtenerUrlConsulta = (alumno) => {
-    const token = alumno.token || alumno.qr_token || alumno.codigo || alumno.id || alumno._id || "";
-    
-    // Determinamos el dominio base
-    let domain = window.location.origin;
-    if (domain.includes("localhost")) {
-      domain = "https://banco-ceesuv-fronted.vercel.app";
-    }
+  // 🔍 Lógica de filtrado en tiempo real
+  const alumnosFiltrados = alumnos.filter((alumno) =>
+    alumno.nombre.toLowerCase().includes(busqueda.toLowerCase())
+  );
 
-    // Limpiamos barras duplicadas y aseguramos https://
-    const baseUrl = domain.replace(/\/+$/, "");
-    return `${baseUrl}/consulta/${token}`;
-  };
+  const DOMINIO_PUBLICO = "https://banco-ceesuv-fronted.vercel.app";
 
-  const listaAlumnos = Array.isArray(alumnos) ? alumnos : [];
-  const alumnosFiltrados = listaAlumnos.filter((alumno) => {
-    const nombre = alumno.nombre || alumno.nombre_completo || alumno.nombreAlumno || "";
-    return nombre.toLowerCase().includes(busqueda.toLowerCase());
-  });
+  // Busca token_qr, token, id o un identificador disponible
+  const tokenFinal = alumnoSeleccionado 
+    ? (alumnoSeleccionado.token_qr || alumnoSeleccionado.token || alumnoSeleccionado.id || alumnoSeleccionado._id)
+    : "";
+
+  const qrTargetUrl = `${DOMINIO_PUBLICO}/consulta/${tokenFinal}`;
+  const qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(qrTargetUrl)}`;
 
   return (
-    <div style={styles.container}>
+    <div style={{ display: "flex", minHeight: "100vh" }}>
+      {/* 1. BARRA LATERAL (SIDEBAR) */}
       <Sidebar />
-      
-      <main style={styles.content}>
-        <div style={styles.header}>
-          <div>
-            <h1 style={styles.title}>👨‍🎓 Gestión de Alumnos</h1>
-            <p style={styles.subtitle}>Listado y control de alumnos registrados</p>
+
+      {/* 2. CONTENIDO PRINCIPAL DE ALUMNOS */}
+      <div style={{ flex: 1, padding: "20px" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px", gap: "15px", flexWrap: "wrap" }}>
+          <h2 style={{ color: "white", margin: 0 }}>👨‍🎓 Gestión de Alumnos</h2>
+          
+          <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
+            {/* 🔍 BUSCADOR DE ALUMNOS */}
+            <input
+              type="text"
+              placeholder="🔍 Buscar alumno por nombre..."
+              value={busqueda}
+              onChange={(e) => setBusqueda(e.target.value)}
+              style={{
+                padding: "9px 15px",
+                borderRadius: "5px",
+                border: "1px solid #ccc",
+                outline: "none",
+                width: "250px",
+                fontSize: "14px"
+              }}
+            />
+
+            <button
+              onClick={() => setModalOpen(true)}
+              style={{ padding: "10px 15px", background: "#17a2b8", color: "white", border: "none", borderRadius: "5px", cursor: "pointer", fontWeight: "bold" }}
+            >
+              ➕ Agregar Alumno
+            </button>
           </div>
         </div>
 
-        <div style={styles.topBar}>
-          <input
-            type="text"
-            placeholder="🔍 Buscar alumno por nombre..."
-            value={busqueda}
-            onChange={(e) => setBusqueda(e.target.value)}
-            style={styles.searchInput}
-          />
-          <button style={styles.btnAdd} onClick={() => setModalAgregar(true)}>
-            + Agregar Alumno
-          </button>
-        </div>
-
-        <div style={styles.tableCard}>
-          <table style={styles.table}>
-            <thead>
-              <tr style={styles.thRow}>
-                <th style={styles.th}>ID</th>
-                <th style={styles.th}>Nombre</th>
-                <th style={styles.th}>Grado</th>
-                <th style={styles.th}>Coins</th>
-                <th style={styles.th}>Acciones</th>
-              </tr>
-            </thead>
-            <tbody>
-              {alumnosFiltrados.length > 0 ? (
-                alumnosFiltrados.map((alumno, index) => (
-                  <tr key={alumno.id || alumno._id || index} style={styles.tr}>
-                    <td style={styles.td}>{alumno.id || alumno._id || index + 1}</td>
-                    <td style={styles.tdBold}>
-                      {alumno.nombre || alumno.nombre_completo || alumno.nombreAlumno || "Sin Nombre"}
-                    </td>
-                    <td style={styles.td}>
-                      {alumno.grado || alumno.grado_estudio || alumno.grupo || "N/A"}
-                    </td>
-                    <td style={styles.tdCoins}>
-                      🪙 {alumno.coins ?? alumno.saldo ?? alumno.ceesuv_coins ?? 0}
-                    </td>
-                    <td style={styles.tdActions}>
-                      <button style={styles.btnQr} onClick={() => handleVerQr(alumno)}>
-                        📱 Código QR
-                      </button>
-                      <button style={styles.btnEdit} onClick={() => handleAbrirEditar(alumno)}>
-                        ✏️ Editar
-                      </button>
-                      <button style={styles.btnDelete} onClick={() => handleEliminar(alumno)}>
-                        🗑️ Eliminar
-                      </button>
-                    </td>
-                  </tr>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan="5" style={{ textAlign: "center", padding: "20px", color: "#6c757d" }}>
-                    No se encontraron alumnos registrados.
+        {/* TABLA DE ALUMNOS */}
+        <table style={{ width: "100%", borderCollapse: "collapse", background: "white", color: "#333", borderRadius: "8px", overflow: "hidden" }}>
+          <thead>
+            <tr style={{ background: "#0B2341", color: "white", textAlign: "left" }}>
+              <th style={{ padding: "12px" }}>ID</th>
+              <th style={{ padding: "12px" }}>Nombre</th>
+              <th style={{ padding: "12px" }}>Grado</th>
+              <th style={{ padding: "12px" }}>Coins</th>
+              <th style={{ padding: "12px", textAlign: "center" }}>Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            {alumnosFiltrados.length > 0 ? (
+              alumnosFiltrados.map((a) => (
+                <tr key={a.id} style={{ borderBottom: "1px solid #eee" }}>
+                  <td style={{ padding: "12px" }}>{a.id}</td>
+                  <td style={{ padding: "12px" }}>{a.nombre}</td>
+                  <td style={{ padding: "12px" }}>{a.grado}</td>
+                  <td style={{ padding: "12px", fontWeight: "bold" }}>🪙 {a.coins}</td>
+                  <td style={{ padding: "12px", textAlign: "center" }}>
+                    <button
+                      onClick={() => abrirModalQR(a)}
+                      style={{ marginRight: "8px", padding: "6px 12px", background: "#D4AF37", color: "#0B2341", border: "none", borderRadius: "4px", fontWeight: "bold", cursor: "pointer" }}
+                    >
+                      📱 Código QR
+                    </button>
+                    <button
+                      onClick={() => handleEditar(a)}
+                      style={{ marginRight: "8px", padding: "6px 12px", background: "#17a2b8", color: "white", border: "none", borderRadius: "4px", cursor: "pointer" }}
+                    >
+                      ✏️ Editar
+                    </button>
+                    <button
+                      onClick={() => handleEliminar(a.id)}
+                      style={{ padding: "6px 12px", background: "#dc3545", color: "white", border: "none", borderRadius: "4px", cursor: "pointer" }}
+                    >
+                      🗑️ Eliminar
+                    </button>
                   </td>
                 </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </main>
+              ))
+            ) : (
+              <tr>
+                <td colSpan="5" style={{ padding: "20px", textAlign: "center", color: "#666" }}>
+                  {busqueda ? `No se encontraron alumnos que coincidan con "${busqueda}"` : "No hay alumnos registrados."}
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
 
-      {/* --- MODAL AGREGAR --- */}
-      {modalAgregar && (
-        <div style={styles.modalOverlay}>
-          <div style={styles.modalCard}>
-            <h2 style={styles.modalTitle}>➕ Registrar Nuevo Alumno</h2>
-            <form onSubmit={handleCrearAlumno} style={styles.form}>
-              <label style={styles.label}>Nombre completo:</label>
-              <input
-                type="text"
-                style={styles.input}
-                value={nuevoAlumno.nombre}
-                onChange={(e) => setNuevoAlumno({ ...nuevoAlumno, nombre: e.target.value })}
-                required
-              />
-              <label style={styles.label}>Grado:</label>
-              <input
-                type="text"
-                placeholder="Ej. 1° Primaria"
-                style={styles.input}
-                value={nuevoAlumno.grado}
-                onChange={(e) => setNuevoAlumno({ ...nuevoAlumno, grado: e.target.value })}
-              />
-              <label style={styles.label}>Coins Iniciales:</label>
-              <input
-                type="number"
-                style={styles.input}
-                value={nuevoAlumno.coins}
-                onChange={(e) => setNuevoAlumno({ ...nuevoAlumno, coins: Number(e.target.value) })}
-              />
-              <div style={styles.modalButtons}>
-                <button type="button" onClick={() => setModalAgregar(false)} style={styles.btnCancel}>Cancelar</button>
-                <button type="submit" style={styles.btnSave}>Guardar Alumno</button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* --- MODAL EDITAR --- */}
-      {modalEditar && (
-        <div style={styles.modalOverlay}>
-          <div style={styles.modalCard}>
-            <h2 style={styles.modalTitle}>✏️ Editar Alumno</h2>
-            <form onSubmit={handleGuardarEdicion} style={styles.form}>
-              <label style={styles.label}>Nombre:</label>
-              <input
-                type="text"
-                style={styles.input}
-                value={alumnoEditar.nombre}
-                onChange={(e) => setAlumnoEditar({ ...alumnoEditar, nombre: e.target.value })}
-              />
-              <label style={styles.label}>Grado:</label>
-              <input
-                type="text"
-                style={styles.input}
-                value={alumnoEditar.grado}
-                onChange={(e) => setAlumnoEditar({ ...alumnoEditar, grado: e.target.value })}
-              />
-              <label style={styles.label}>Coins:</label>
-              <input
-                type="number"
-                style={styles.input}
-                value={alumnoEditar.coins}
-                onChange={(e) => setAlumnoEditar({ ...alumnoEditar, coins: Number(e.target.value) })}
-              />
-              <div style={styles.modalButtons}>
-                <button type="button" onClick={() => setModalEditar(false)} style={styles.btnCancel}>Cancelar</button>
-                <button type="submit" style={styles.btnSave}>Actualizar</button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* --- MODAL QR --- */}
-      {modalQr && alumnoSeleccionado && (() => {
-        const nombreAlumno = alumnoSeleccionado.nombre || alumnoSeleccionado.nombre_completo || "Alumno";
-        const gradoAlumno = alumnoSeleccionado.grado || alumnoSeleccionado.grado_estudio || "N/A";
-        const urlEnlace = obtenerUrlConsulta(alumnoSeleccionado);
-        
-        // Formato SVG de alta definición y codificación estricta de URL para la cámara
-        const qrImgSrc = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&format=svg&data=${encodeURIComponent(urlEnlace)}`;
-
-        return (
-          <div style={styles.modalOverlay}>
-            <div style={{ ...styles.modalCard, textAlign: "center" }}>
-              <h2 style={styles.modalTitle}>📱 Código QR de Alumno</h2>
-              <p style={{ color: "#0B2341", fontWeight: "bold", margin: "10px 0 2px 0", fontSize: "16px" }}>
-                {nombreAlumno}
-              </p>
-              <p style={{ color: "#6c757d", fontSize: "13px", margin: 0 }}>
-                Grado: {gradoAlumno}
-              </p>
-
-              <div style={{ padding: "20px", background: "#ffffff", border: "1px solid #e0e0e0", borderRadius: "8px", margin: "15px 0" }}>
-                <img
-                  src={qrImgSrc}
-                  alt="QR Alumno"
-                  style={{ width: "220px", height: "220px", display: "block", margin: "auto" }}
-                />
-                
-                {/* Texto visible de confirmación */}
-                <div style={{ marginTop: "12px", background: "#f8f9fa", padding: "8px", borderRadius: "6px" }}>
-                  <p style={{ fontSize: "11px", color: "#6c757d", margin: "0 0 4px 0" }}>Enlace codificado en el QR:</p>
-                  <a
-                    href={urlEnlace}
-                    target="_blank"
-                    rel="noreferrer"
-                    style={{ fontSize: "12px", color: "#17a2b8", wordBreak: "break-all", fontWeight: "bold" }}
-                  >
-                    {urlEnlace}
-                  </a>
+        {/* MODAL AGREGAR / EDITAR */}
+        {modalOpen && (
+          <div style={{ position: "fixed", top: 0, left: 0, width: "100%", height: "100%", background: "rgba(0,0,0,0.6)", display: "flex", justifyContent: "center", alignItems: "center", zIndex: 1000 }}>
+            <div style={{ background: "white", color: "#333", padding: "25px", borderRadius: "10px", width: "400px" }}>
+              <h3>{editId ? "Editar Alumno" : "Nuevo Alumno"}</h3>
+              <form onSubmit={handleGuardar}>
+                <div style={{ marginBottom: "15px" }}>
+                  <label>Nombre Completo:</label>
+                  <input type="text" value={nombre} onChange={(e) => setNombre(e.target.value)} required style={{ width: "100%", padding: "8px", marginTop: "5px" }} />
                 </div>
-              </div>
-
-              <div style={{ display: "flex", gap: "10px", justifyContent: "center", marginBottom: "15px" }}>
-                {/* Botón Descargar Imagen */}
-                <button
-                  onClick={async () => {
-                    const response = await fetch(qrImgSrc);
-                    const blob = await response.blob();
-                    const url = window.URL.createObjectURL(blob);
-                    const link = document.createElement("a");
-                    link.href = url;
-                    link.download = `QR_${nombreAlumno.replace(/\s+/g, "_")}.svg`;
-                    link.click();
-                  }}
-                  style={{
-                    backgroundColor: "#17a2b8",
-                    color: "white",
-                    border: "none",
-                    padding: "8px 12px",
-                    borderRadius: "6px",
-                    cursor: "pointer",
-                    fontWeight: "bold",
-                    fontSize: "13px"
-                  }}
-                >
-                  💾 Guardar QR
-                </button>
-
-                {/* Botón Imprimir Credencial */}
-                <button
-                  onClick={() => {
-                    const win = window.open("", "", "width=600,height=600");
-
-                    win.document.write(`
-                      <html>
-                        <head>
-                          <title>Credencial CEESUV - ${nombreAlumno}</title>
-                          <style>
-                            body { font-family: Arial, sans-serif; text-align: center; padding: 20px; }
-                            .card { border: 2px solid #0B2341; padding: 20px; border-radius: 12px; width: 280px; margin: auto; }
-                            h2 { color: #0B2341; margin: 5px 0; }
-                            h3 { color: #d4af37; margin: 0 0 15px 0; font-size: 14px; }
-                            img { width: 180px; height: 180px; }
-                            p { font-size: 14px; color: #333; margin: 5px 0; }
-                            .instruction { font-size: 11px; color: #666; margin-top: 10px; }
-                          </style>
-                        </head>
-                        <body>
-                          <div class="card">
-                            <h2>CEESUV</h2>
-                            <h3>BANCO ESCOLAR</h3>
-                            <img src="${qrImgSrc}" />
-                            <p><strong>${nombreAlumno}</strong></p>
-                            <p>Grado: ${gradoAlumno}</p>
-                            <p class="instruction">Escanear para consultar estado de cuenta</p>
-                          </div>
-                          <script>
-                            window.onload = function() { window.print(); window.close(); }
-                          </script>
-                        </body>
-                      </html>
-                    `);
-                    win.document.close();
-                  }}
-                  style={{
-                    backgroundColor: "#d4af37",
-                    color: "#0B2341",
-                    border: "none",
-                    padding: "8px 12px",
-                    borderRadius: "6px",
-                    cursor: "pointer",
-                    fontWeight: "bold",
-                    fontSize: "13px"
-                  }}
-                >
-                  🖨️ Imprimir Credencial
-                </button>
-              </div>
-
-              <button onClick={() => setModalQr(false)} style={styles.btnCancel}>Cerrar</button>
+                <div style={{ marginBottom: "15px" }}>
+                  <label>Grado / Grupo:</label>
+                  <input type="text" value={grado} onChange={(e) => setGrado(e.target.value)} required style={{ width: "100%", padding: "8px", marginTop: "5px" }} />
+                </div>
+                <div style={{ marginBottom: "15px" }}>
+                  <label>Coins Iniciales:</label>
+                  <input type="number" value={coins} onChange={(e) => setCoins(e.target.value)} required style={{ width: "100%", padding: "8px", marginTop: "5px" }} />
+                </div>
+                <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px" }}>
+                  <button type="button" onClick={cerrarModal} style={{ padding: "8px 15px", background: "#6c757d", color: "white", border: "none", borderRadius: "4px" }}>Cancelar</button>
+                  <button type="submit" style={{ padding: "8px 15px", background: "#0B2341", color: "white", border: "none", borderRadius: "4px" }}>Guardar</button>
+                </div>
+              </form>
             </div>
           </div>
-        );
-      })()}
+        )}
+
+        {/* MODAL CÓDIGO QR */}
+        {modalQROpen && alumnoSeleccionado && (
+          <div style={{ position: "fixed", top: 0, left: 0, width: "100%", height: "100%", background: "rgba(0,0,0,0.7)", display: "flex", justifyContent: "center", alignItems: "center", zIndex: 2000 }}>
+            <div style={{ background: "white", color: "#333", padding: "30px", borderRadius: "15px", textAlign: "center", width: "320px", boxShadow: "0 4px 20px rgba(0,0,0,0.5)" }}>
+              <h3 style={{ margin: "0 0 5px 0", color: "#0B2341" }}>Banco Escolar CEESUV</h3>
+              <p style={{ margin: "0 0 15px 0", color: "#666", fontSize: "14px" }}>Credencial de Consulta</p>
+              
+              <div style={{ padding: "15px", background: "#f8f9fa", borderRadius: "10px", display: "inline-block" }}>
+                <img
+                  src={qrImageUrl}
+                  alt={`QR de ${alumnoSeleccionado.nombre}`}
+                  style={{ width: "180px", height: "180px", display: "block" }}
+                />
+              </div>
+
+              <h4 style={{ margin: "15px 0 2px 0", color: "#0B2341" }}>{alumnoSeleccionado.nombre}</h4>
+              <span style={{ fontSize: "13px", color: "#666", fontWeight: "bold" }}>{alumnoSeleccionado.grado}</span>
+
+              {/* Muestra el enlace directo de prueba */}
+              <div style={{ marginTop: "10px" }}>
+                <a 
+                  href={qrTargetUrl} 
+                  target="_blank" 
+                  rel="noreferrer" 
+                  style={{ fontSize: "11px", color: "#17a2b8", wordBreak: "break-all" }}
+                >
+                  {qrTargetUrl}
+                </a>
+              </div>
+
+              <div style={{ marginTop: "20px", display: "flex", gap: "10px", justifyContent: "center" }}>
+                <button onClick={() => setModalQROpen(false)} style={{ padding: "8px 15px", background: "#6c757d", color: "white", border: "none", borderRadius: "4px", cursor: "pointer" }}>
+                  Cerrar
+                </button>
+                <button onClick={() => window.print()} style={{ padding: "8px 15px", background: "#28a745", color: "white", border: "none", borderRadius: "4px", cursor: "pointer" }}>
+                  🖨️ Imprimir
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
-
-const styles = {
-  container: { display: "flex", minHeight: "100vh", backgroundColor: "#F4F6F9" },
-  content: { flex: 1, padding: "30px" },
-  header: { marginBottom: "20px" },
-  title: { margin: 0, fontSize: "28px", fontWeight: "bold", color: "#0B2341" },
-  subtitle: { margin: "5px 0 0 0", color: "#6c757d", fontSize: "15px" },
-  topBar: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px", gap: "15px" },
-  searchInput: { padding: "10px 15px", borderRadius: "8px", border: "1px solid #ced4da", width: "300px", fontSize: "14px", outline: "none" },
-  btnAdd: { backgroundColor: "#17a2b8", color: "white", border: "none", padding: "10px 18px", borderRadius: "8px", fontWeight: "bold", cursor: "pointer" },
-  tableCard: { backgroundColor: "white", borderRadius: "8px", boxShadow: "0 2px 8px rgba(0,0,0,0.05)", overflow: "hidden" },
-  table: { width: "100%", borderCollapse: "collapse", textAlign: "left" },
-  thRow: { backgroundColor: "#0B2341", color: "white" },
-  th: { padding: "12px 15px", fontSize: "14px", fontWeight: "bold" },
-  tr: { borderBottom: "1px solid #e9ecef" },
-  td: { padding: "12px 15px", color: "#333", fontSize: "14px" },
-  tdBold: { padding: "12px 15px", color: "#0B2341", fontWeight: "600", fontSize: "14px" },
-  tdCoins: { padding: "12px 15px", fontWeight: "bold", color: "#d4af37", fontSize: "14px" },
-  tdActions: { padding: "12px 15px", display: "flex", gap: "8px" },
-  btnQr: { backgroundColor: "#d4af37", color: "#0B2341", border: "none", padding: "6px 10px", borderRadius: "5px", fontWeight: "bold", fontSize: "12px", cursor: "pointer" },
-  btnEdit: { backgroundColor: "#17a2b8", color: "white", border: "none", padding: "6px 10px", borderRadius: "5px", fontSize: "12px", cursor: "pointer" },
-  btnDelete: { backgroundColor: "#dc3545", color: "white", border: "none", padding: "6px 10px", borderRadius: "5px", fontSize: "12px", cursor: "pointer" },
-
-  // Modales
-  modalOverlay: { position: "fixed", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: "rgba(0,0,0,0.5)", display: "flex", justifyContent: "center", alignItems: "center", zIndex: 1000 },
-  modalCard: { backgroundColor: "white", padding: "25px", borderRadius: "10px", width: "400px", maxWidth: "90%", boxShadow: "0 4px 12px rgba(0,0,0,0.15)" },
-  modalTitle: { margin: "0 0 15px 0", color: "#0B2341", fontSize: "20px" },
-  form: { display: "flex", flexDirection: "column", gap: "10px" },
-  label: { fontSize: "14px", color: "#333", fontWeight: "600" },
-  input: { padding: "8px 12px", borderRadius: "6px", border: "1px solid #ccc", fontSize: "14px" },
-  modalButtons: { display: "flex", justifyContent: "flex-end", gap: "10px", marginTop: "15px" },
-  btnCancel: { padding: "8px 14px", backgroundColor: "#6c757d", color: "white", border: "none", borderRadius: "6px", cursor: "pointer" },
-  btnSave: { padding: "8px 14px", backgroundColor: "#0B2341", color: "white", border: "none", borderRadius: "6px", cursor: "pointer", fontWeight: "bold" }
-};
 
 export default Alumnos;
