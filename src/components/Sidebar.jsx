@@ -49,26 +49,42 @@ function Sidebar() {
     >
       <div>
         {/* LOGO / TITULO */}
-        <div style={{ marginBottom: "25px", textAlign: "center" }}>
-          <img 
-  src="/logo-ceesuv.png" 
-  alt="Logo CEESUV" 
-  style={{ 
-    maxWidth: "85px", 
-    maxHeight: "85px", 
-    marginBottom: "10px",
-    objectFit: "contain",
-    display: "block",
-    margin: "0 auto 10px auto",
-    // Filtro para contrastar en fondo oscuro:
-    filter: "brightness(1.1) drop-shadow(0px 0px 8px rgba(212, 175, 55, 0.6))" 
-  }} 
-/>
-          <h2 style={{ margin: 0, color: "#D4AF37", fontSize: "20px", tracking: "1px" }}>CEESUV</h2>
-          <span style={{ fontSize: "11px", color: "#B0C4DE", fontWeight: "600", letterSpacing: "1px" }}>
-            BANCO ESCOLAR
-          </span>
-        </div>
+<div style={{ marginBottom: "25px", textAlign: "center" }}>
+  {/* Círculo contenedor con fondo blanco para máximo contraste */}
+  <div
+    style={{
+      width: "95px",
+      height: "95px",
+      backgroundColor: "#FFFFFF",
+      borderRadius: "50%",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      margin: "0 auto 12px auto",
+      padding: "8px",
+      boxShadow: "0 4px 15px rgba(0, 0, 0, 0.3), 0 0 0 2px #D4AF37", // Anillo dorado elegante en el borde
+      boxSizing: "border-box"
+    }}
+  >
+    <img 
+      src="/logo-ceesuv.png" 
+      alt="Logo CEESUV" 
+      style={{ 
+        width: "100%", 
+        height: "100%", 
+        objectFit: "contain" 
+      }} 
+    />
+  </div>
+
+  <h2 style={{ margin: 0, color: "#D4AF37", fontSize: "20px", letterSpacing: "1px" }}>
+    CEESUV
+  </h2>
+  <span style={{ fontSize: "11px", color: "#B0C4DE", fontWeight: "600", letterSpacing: "1px" }}>
+    BANCO ESCOLAR
+  </span>
+</div>
+        
 
         {/* NAVEGACIÓN */}
         <nav style={{ display: "flex", flexDirection: "column" }}>
