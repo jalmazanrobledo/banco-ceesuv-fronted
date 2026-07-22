@@ -15,9 +15,11 @@ function Sidebar() {
 
   return (
     <aside style={styles.sidebar}>
-      {/* HEADER LOGO */}
+      {/* HEADER LOGO CON FONDO BLANCO */}
       <div style={styles.header}>
-        <img src="/logo-ceesuv.png" alt="Logo CEESUV" style={styles.logo} />
+        <div style={styles.logoContainer}>
+          <img src="/logo-ceesuv.png" alt="Logo CEESUV" style={styles.logo} />
+        </div>
         <div>
           <h2 style={styles.title}>CEESUV</h2>
           <span style={styles.subtitle}>Banco Escolar</span>
@@ -40,8 +42,10 @@ function Sidebar() {
         <Link to="/dashboard" style={styles.link}>🏠 Inicio</Link>
         <Link to="/alumnos" style={styles.link}>👨‍🎓 Alumnos</Link>
         <Link to="/movimientos" style={styles.link}>💰 Movimientos</Link>
+        
+        {/* BOTÓN DE USUARIOS DESTACADO EN DORADO */}
         {esAdmin && (
-          <Link to="/usuarios" style={{ ...styles.link, color: "#f39c12" }}>
+          <Link to="/usuarios" style={styles.linkAdmin}>
             👥 Usuarios
           </Link>
         )}
@@ -75,9 +79,21 @@ const styles = {
     borderBottom: "1px solid rgba(255,255,255,0.1)",
     paddingBottom: "15px",
   },
-  logo: {
-    width: "50px",      /* 👈 Esto evita que el logo se vuelva gigante */
+  /* 👈 CUADRO DE FONDO BLANCO PARA EL LOGO */
+  logoContainer: {
+    width: "50px",
     height: "50px",
+    backgroundColor: "white",
+    borderRadius: "10px",
+    display: "flex",
+    justifyContent: "center",
+    alignItems: "center",
+    padding: "4px",
+    boxShadow: "0 2px 8px rgba(0,0,0,0.3)",
+  },
+  logo: {
+    width: "100%",
+    height: "100%",
     objectFit: "contain",
   },
   title: {
@@ -124,7 +140,17 @@ const styles = {
     fontSize: "15px",
     fontWeight: "500",
     backgroundColor: "rgba(255,255,255,0.05)",
-    transition: "0.2s",
+  },
+  /* 👈 ESTILO DESTACADO DORADO CON LETRAS Y TEXTO EN NEGRO/AZUL */
+  linkAdmin: {
+    color: "#0B2341",
+    textDecoration: "none",
+    padding: "10px 12px",
+    borderRadius: "6px",
+    fontSize: "15px",
+    fontWeight: "bold",
+    backgroundColor: "#D4AF37", // Dorado CEESUV
+    boxShadow: "0 2px 6px rgba(212, 175, 55, 0.4)",
   },
   logoutBtn: {
     marginTop: "auto",
