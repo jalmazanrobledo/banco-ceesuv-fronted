@@ -25,6 +25,9 @@ function Operaciones() {
 
   const [mensaje, setMensaje] = useState(null);
 
+  // 💡 CORRECCIÓN AQUÍ: Definir alumnoActual para usarlo en el cálculo y las tarjetas de saldo
+  const alumnoActual = alumnos.find((a) => a.id === alumnoSeleccionado);
+
   useEffect(() => {
     cargarAlumnos();
   }, []);
@@ -48,7 +51,7 @@ function Operaciones() {
   const seleccionarAlumno = (alumno) => {
     setAlumnoSeleccionado(alumno.id);
     
-    // 💡 CAMBIO AQUÍ: Ahora solo coloca el nombre para que sea fácil de borrar/editar
+    // Solo coloca el nombre para que sea fácil de borrar/editar
     setBusqueda(alumno.nombre); 
     
     setMostrarLista(false);
