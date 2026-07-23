@@ -25,8 +25,8 @@ function Operaciones() {
 
   const [mensaje, setMensaje] = useState(null);
 
-  // 💡 CORRECCIÓN AQUÍ: Definir alumnoActual para usarlo en el cálculo y las tarjetas de saldo
-  const alumnoActual = alumnos.find((a) => a.id === alumnoSeleccionado);
+  // Obtener alumno actual de forma segura
+  const alumnoActual = alumnos?.find((a) => String(a.id) === String(alumnoSeleccionado));
 
   useEffect(() => {
     cargarAlumnos();
@@ -38,35 +38,32 @@ function Operaciones() {
       setAlumnos(data || []);
     } catch (e) {
       console.error("Error al cargar alumnos:", e);
+      setAlumnos([]);
     }
   }
 
-  // Filtrado predictivo de alumnos segun lo escrito
-  const alumnosFiltrados = alumnos.filter((a) => {
-    const textoCompleto = `${a.nombre || ""} ${a.grado || ""} ${a.matricula || ""}`.toLowerCase();
-    return textoCompleto.includes(busqueda.toLowerCase());
+  // Filtrado predictivo
+  const alumnosFiltrados = (alumnos || []).filter((a) => {
+    const textoCompleto = `${a?.nombre || ""} ${a?.grado || ""} ${a?.matricula || ""}`.toLowerCase();
+    return textoCompleto.includes((busqueda || "").toLowerCase());
   });
 
-  // Función al hacer clic en un alumno de la lista filtrada
   const seleccionarAlumno = (alumno) => {
     setAlumnoSeleccionado(alumno.id);
-    
-    // Solo coloca el nombre para que sea fácil de borrar/editar
-    setBusqueda(alumno.nombre); 
-    
+    setBusqueda(alumno.nombre || ""); 
     setMostrarLista(false);
     setMensaje(null);
   };
 
-  // Calcular rendimiento automático según porcentaje
+  // Calcular rendimiento automático seguro
   const calcularRendimiento = () => {
     if (!alumnoActual) return 0;
-    const ahorroActual = alumnoActual.coins_ahorro || 0;
+    const ahorroActual = Number(alumnoActual.coins_ahorro) || 0;
     const pct = parseFloat(porcentajeInteres) || 0;
     return Math.round((ahorroActual * pct) / 100);
   };
 
-  // Enviar Operación Directa (ENTRADA / SALIDA)
+  // Operación Directa
   const handleOperacionDirecta = async (e) => {
     e.preventDefault();
     if (!alumnoSeleccionado || !montoDirecto) {
@@ -78,7 +75,7 @@ function Operaciones() {
       await registrarMovimiento({
         alumno_id: alumnoSeleccionado,
         tipo: tipoDirecto,
-        cantidad: parseInt(montoDirecto),
+        cantidad: parseInt(montoDirecto, 10) || 0,
         motivo: motivoDirecto || (tipoDirecto === "ENTRADA" ? "Abono general" : "Cargo general")
       });
 
@@ -91,7 +88,7 @@ function Operaciones() {
     }
   };
 
-  // Enviar Operaciones de Ahorro / Rendimiento
+  // Operaciones de Ahorro
   const handleOperacionAhorro = async (e) => {
     e.preventDefault();
     if (!alumnoSeleccionado) {
@@ -99,7 +96,7 @@ function Operaciones() {
       return;
     }
 
-    let cantidadFinal = parseInt(montoAhorro);
+    let cantidadFinal = parseInt(montoAhorro, 10) || 0;
     let motivoFinal = motivoAhorro;
 
     if (tipoAhorro === "AHORRO_RENDIMIENTO") {
@@ -153,7 +150,7 @@ function Operaciones() {
           </div>
         )}
 
-        {/* SELECCIÓN DE ALUMNO CON BUSCADOR DINÁMICO */}
+        {/* SELECCIÓN DE ALUMNO */}
         <div
           style={{
             background: "white",
@@ -168,7 +165,6 @@ function Operaciones() {
             🔍 Buscar Alumno por Nombre o Grado:
           </label>
 
-          {/* INPUT DE BÚSQUEDA */}
           <div style={{ position: "relative" }}>
             <input
               type="text"
@@ -192,7 +188,6 @@ function Operaciones() {
               }}
             />
 
-            {/* BOTÓN PARA LIMPIAR BÚSQUEDA */}
             {busqueda && (
               <button
                 type="button"
@@ -218,7 +213,6 @@ function Operaciones() {
             )}
           </div>
 
-          {/* LISTA DESPLEGABLE PREDICTIVA */}
           {mostrarLista && busqueda.length > 0 && (
             <ul
               style={{
@@ -270,7 +264,6 @@ function Operaciones() {
             </ul>
           )}
 
-          {/* TARJETAS DE SALDO EN TIEMPO REAL */}
           {alumnoActual && (
             <div style={{ display: "flex", gap: "15px", marginTop: "15px" }}>
               <div style={{ flex: 1, background: "#E8F0FE", padding: "12px", borderRadius: "8px" }}>
@@ -289,7 +282,7 @@ function Operaciones() {
           )}
         </div>
 
-        {/* PESTAÑAS DE NAVEGACIÓN */}
+        {/* PESTAÑAS */}
         <div style={{ display: "flex", gap: "10px", marginBottom: "20px" }}>
           <button
             onClick={() => setPestana("directa")}
@@ -321,7 +314,7 @@ function Operaciones() {
           </button>
         </div>
 
-        {/* FORMULARIO 1: OPERACIÓN DIRECTA */}
+        {/* FORMULARIO DIRECTO */}
         {pestana === "directa" && (
           <form
             onSubmit={handleOperacionDirecta}
@@ -405,7 +398,7 @@ function Operaciones() {
           </form>
         )}
 
-        {/* FORMULARIO 2: AHORRO Y RENDIMIENTOS */}
+        {/* FORMULARIO AHORRO */}
         {pestana === "ahorro" && (
           <form
             onSubmit={handleOperacionAhorro}
@@ -435,7 +428,6 @@ function Operaciones() {
               </select>
             </div>
 
-            {/* SI ES RENDIMIENTO AUTOMÁTICO */}
             {tipoAhorro === "AHORRO_RENDIMIENTO" ? (
               <div style={{ background: "#FFF8E1", padding: "15px", borderRadius: "8px", marginBottom: "20px" }}>
                 <label style={{ fontWeight: "bold", display: "block", marginBottom: "5px" }}>Porcentaje de Interés (%):</label>
