@@ -8,6 +8,12 @@ function Sidebar() {
   const location = useLocation();
   const navigate = useNavigate();
 
+  // OBTENER DATOS DEL USUARIO LOGUEADO DESDE LOCALSTORAGE
+  // Ajusta las claves ("usuario", "rol", etc.) según como guardes los datos en el Login
+  const usuarioGuardado = JSON.parse(localStorage.getItem("usuario")) || {};
+  const nombreUsuario = usuarioGuardado.nombre || usuarioGuardado.usuario || "Usuario";
+  const rolUsuario = (usuarioGuardado.rol || localStorage.getItem("rol") || "docente").toLowerCase();
+
   // Detectar cambios en el tamaño de la pantalla
   useEffect(() => {
     const handleResize = () => {
@@ -134,7 +140,7 @@ function Sidebar() {
       {/* DESPLIEGUE SIDEBAR */}
       <div className="sidebar-wrapper">
         <div>
-          {/* SI ES MÓVIL MOSTRAR LA FACHADA, SI ES ESCRITORIO MOSTRAR EL LOGO Y TEXTO */}
+          {/* FOTO FACHADA EN MÓVIL / LOGO EN ESCRITORIO */}
           {esMovil ? (
             <div style={{ marginBottom: "15px", width: "100%" }}>
               <img 
@@ -142,7 +148,7 @@ function Sidebar() {
                 alt="Fachada CEESUV" 
                 style={{
                   width: "100%",
-                  height: "130px",
+                  height: "120px",
                   objectFit: "cover",
                   borderRadius: "10px",
                   border: "2px solid #D4AF37",
@@ -152,17 +158,17 @@ function Sidebar() {
               />
             </div>
           ) : (
-            <div style={{ marginBottom: "25px", textAlign: "center" }}>
+            <div style={{ marginBottom: "15px", textAlign: "center" }}>
               <div
                 style={{
-                  width: "90px",
-                  height: "90px",
+                  width: "85px",
+                  height: "85px",
                   backgroundColor: "#FFFFFF",
                   borderRadius: "50%",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  margin: "0 auto 12px auto",
+                  margin: "0 auto 10px auto",
                   padding: "8px",
                   boxShadow: "0 4px 15px rgba(0, 0, 0, 0.4), 0 0 0 2px #D4AF37",
                   boxSizing: "border-box"
@@ -175,7 +181,7 @@ function Sidebar() {
                 />
               </div>
 
-              <h2 style={{ margin: 0, color: "#D4AF37", fontSize: "20px", letterSpacing: "1px" }}>
+              <h2 style={{ margin: 0, color: "#D4AF37", fontSize: "18px", letterSpacing: "1px" }}>
                 CEESUV
               </h2>
               <span style={{ fontSize: "11px", color: "#B0C4DE", fontWeight: "600", letterSpacing: "1px" }}>
@@ -184,6 +190,48 @@ function Sidebar() {
             </div>
           )}
 
+          {/* TARJETA IDENTIFICADORA DE USUARIO CONECTADO */}
+          <div
+            style={{
+              backgroundColor: "rgba(255, 255, 255, 0.07)",
+              borderLeft: "3px solid #D4AF37",
+              borderRadius: "6px",
+              padding: "10px 12px",
+              marginBottom: "18px",
+              display: "flex",
+              alignItems: "center",
+              gap: "10px"
+            }}
+          >
+            <span style={{ fontSize: "20px" }}>👤</span>
+            <div style={{ overflow: "hidden" }}>
+              <div 
+                style={{ 
+                  fontSize: "13px", 
+                  fontWeight: "bold", 
+                  color: "#FFFFFF",
+                  whiteSpace: "nowrap",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis"
+                }}
+              >
+                {nombreUsuario}
+              </div>
+              <div 
+                style={{ 
+                  fontSize: "10px", 
+                  color: "#D4AF37", 
+                  textTransform: "uppercase", 
+                  fontWeight: "bold",
+                  letterSpacing: "0.5px"
+                }}
+              >
+                {rolUsuario}
+              </div>
+            </div>
+          </div>
+
+          {/* NAVEGACIÓN */}
           <nav style={{ display: "flex", flexDirection: "column" }}>
             <Link to="/dashboard" style={{ textDecoration: "none" }} onClick={() => setMenuAbierto(false)}>
               <button style={estylosBoton("/dashboard")}>🏠 Inicio</button>
@@ -197,13 +245,17 @@ function Sidebar() {
             <Link to="/movimientos" style={{ textDecoration: "none" }} onClick={() => setMenuAbierto(false)}>
               <button style={estylosBoton("/movimientos")}>💰 Movimientos</button>
             </Link>
-            <Link to="/usuarios" style={{ textDecoration: "none" }} onClick={() => setMenuAbierto(false)}>
-              <button style={estylosBoton("/usuarios")}>👥 Usuarios</button>
-            </Link>
+
+            {/* CONDICIONAL: SOLO SE MUESTRA SI EL USUARIO ES ADMINISTRADOR */}
+            {(rolUsuario === "admin" || rolUsuario === "administrador") && (
+              <Link to="/usuarios" style={{ textDecoration: "none" }} onClick={() => setMenuAbierto(false)}>
+                <button style={estylosBoton("/usuarios")}>👥 Usuarios</button>
+              </Link>
+            )}
           </nav>
         </div>
 
-        <div style={{ marginTop: "auto", paddingTop: "20px" }}>
+        <div style={{ marginTop: "auto", paddingTop: "15px" }}>
           <button
             onClick={handleCerrarSesion}
             style={{
