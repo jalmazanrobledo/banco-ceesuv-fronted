@@ -9,10 +9,22 @@ function Sidebar() {
   const navigate = useNavigate();
 
   // OBTENER DATOS DEL USUARIO LOGUEADO DESDE LOCALSTORAGE
-  // Ajusta las claves ("usuario", "rol", etc.) según como guardes los datos en el Login
   const usuarioGuardado = JSON.parse(localStorage.getItem("usuario")) || {};
-  const nombreUsuario = usuarioGuardado.nombre || usuarioGuardado.usuario || "Usuario";
-  const rolUsuario = (usuarioGuardado.rol || localStorage.getItem("rol") || "docente").toLowerCase();
+
+  // Busca el nombre en distintas propiedades que suele retornar el backend
+  const nombreUsuario = 
+    usuarioGuardado.nombre_completo || 
+    usuarioGuardado.nombre || 
+    usuarioGuardado.usuario ||
+    usuarioGuardado.nombreUsuario ||
+    localStorage.getItem("nombreUsuario") || 
+    "Martha Mar Martinez";
+
+  const rolUsuario = (
+    usuarioGuardado.rol || 
+    localStorage.getItem("rol") || 
+    "docente"
+  ).toLowerCase();
 
   // Detectar cambios en el tamaño de la pantalla
   useEffect(() => {
@@ -210,9 +222,8 @@ function Sidebar() {
                   fontSize: "13px", 
                   fontWeight: "bold", 
                   color: "#FFFFFF",
-                  whiteSpace: "nowrap",
-                  overflow: "hidden",
-                  textOverflow: "ellipsis"
+                  lineHeight: "1.2",
+                  marginBottom: "2px"
                 }}
               >
                 {nombreUsuario}
