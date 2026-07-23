@@ -11,19 +11,23 @@ function Sidebar() {
   // OBTENER DATOS DEL USUARIO LOGUEADO DESDE LOCALSTORAGE
   const usuarioGuardado = JSON.parse(localStorage.getItem("usuario")) || {};
 
-  // Busca el nombre en distintas propiedades que suele retornar el backend
+  // Busca el nombre dinámicamente en distintas propiedades comunes del backend
   const nombreUsuario = 
     usuarioGuardado.nombre_completo || 
     usuarioGuardado.nombre || 
+    usuarioGuardado.username ||
     usuarioGuardado.usuario ||
     usuarioGuardado.nombreUsuario ||
     localStorage.getItem("nombreUsuario") || 
-    "Martha Mar Martinez";
+    localStorage.getItem("usuario") || 
+    "Usuario";
 
+  // Busca el rol dinámicamente
   const rolUsuario = (
     usuarioGuardado.rol || 
+    usuarioGuardado.role ||
     localStorage.getItem("rol") || 
-    "docente"
+    "usuario"
   ).toLowerCase();
 
   // Detectar cambios en el tamaño de la pantalla
@@ -223,7 +227,10 @@ function Sidebar() {
                   fontWeight: "bold", 
                   color: "#FFFFFF",
                   lineHeight: "1.2",
-                  marginBottom: "2px"
+                  marginBottom: "2px",
+                  whiteSpace: "nowrap",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis"
                 }}
               >
                 {nombreUsuario}
