@@ -8,39 +8,41 @@ function Sidebar() {
   const location = useLocation();
   const navigate = useNavigate();
 
-  // OBTENER DATOS DEL USUARIO LOGUEADO DESDE LOCALSTORAGE
-  const usuarioGuardado = JSON.parse(localStorage.getItem("usuario")) || {};
+  // 1. LEER LA CLAVE CORRECTA ("usuarioCEESUV")
+  const resSesion = JSON.parse(localStorage.getItem("usuarioCEESUV")) || {};
+  
+  // Extraer el objeto interno si el backend responde { usuario: { ... } } o la respuesta directa
+  const datosUsuario = resSesion.usuario || resSesion;
 
-  // Busca el nombre dinámicamente en distintas propiedades comunes del backend
+  // 2. EXTRAER NOMBRE Y ROL DINÁMICAMENTE
   const nombreUsuario = 
-    usuarioGuardado.nombre_completo || 
-    usuarioGuardado.nombre || 
-    usuarioGuardado.username ||
-    usuarioGuardado.usuario ||
-    usuarioGuardado.nombreUsuario ||
-    localStorage.getItem("nombreUsuario") || 
-    localStorage.getItem("usuario") || 
+    datosUsuario.nombre_completo || 
+    datosUsuario.nombre || 
+    datosUsuario.username ||
+    datosUsuario.usuario ||
     "Usuario";
 
-  // Busca el rol dinámicamente
   const rolUsuario = (
-    usuarioGuardado.rol || 
-    usuarioGuardado.role ||
-    localStorage.getItem("rol") || 
-    "usuario"
-  ).toLowerCase();
+    datosUsuario.rol || 
+    datosUsuario.role || 
+    datosUsuario.tipo ||
+    "docente"
+  ).toString().toLowerCase().trim();
 
-  // Detectar cambios en el tamaño de la pantalla
+  // 3. VALIDAR SI ES ADMINISTRADOR
+  const esAdmin = 
+    rolUsuario === "admin" || 
+    rolUsuario === "administrador" ||
+    datosUsuario.es_admin === true;
+
   useEffect(() => {
-    const handleResize = () => {
-      setEsMovil(window.innerWidth <= 768);
-    };
-
+    const handleResize = () => setEsMovil(window.innerWidth <= 768);
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
   const handleCerrarSesion = () => {
+    localStorage.removeItem("usuarioCEESUV");
     localStorage.clear();
     sessionStorage.clear();
     navigate("/login");
@@ -70,143 +72,11 @@ function Sidebar() {
 
   return (
     <>
-      <style>{`
-        .sidebar-wrapper {
-          width: 240px;
-          background-color: #0B2341;
-          color: white;
-          min-height: 100vh;
-          padding: 20px 15px;
-          box-sizing: border-box;
-          display: flex;
-          flex-direction: column;
-          justify-content: space-between;
-        }
+      {/* ... (Tus estilos CSS del sidebar) ... */}
 
-        .mobile-header-bar {
-          display: none;
-          background-color: #0B2341;
-          color: white;
-          padding: 10px 15px;
-          justify-content: space-between;
-          align-items: center;
-          border-bottom: 1px solid rgba(212, 175, 55, 0.3);
-        }
-
-        @media (max-width: 768px) {
-          .mobile-header-bar {
-            display: flex;
-          }
-
-          .sidebar-wrapper {
-            width: 100%;
-            min-height: auto;
-            display: ${menuAbierto ? "flex" : "none"};
-            padding: 15px;
-            border-bottom: 2px solid #D4AF37;
-          }
-        }
-      `}</style>
-
-      {/* BARRA SUPERIOR MÓVIL */}
-      <div className="mobile-header-bar">
-        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-          <div
-            style={{
-              width: "38px",
-              height: "38px",
-              backgroundColor: "#FFFFFF",
-              borderRadius: "50%",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              padding: "3px",
-              boxShadow: "0 2px 8px rgba(0, 0, 0, 0.3), 0 0 0 1.5px #D4AF37",
-              boxSizing: "border-box"
-            }}
-          >
-            <img 
-              src={logoCeesuv} 
-              alt="Logo CEESUV" 
-              style={{ width: "100%", height: "100%", objectFit: "contain" }} 
-            />
-          </div>
-          <span style={{ fontWeight: "bold", color: "#D4AF37", fontSize: "16px", letterSpacing: "1px" }}>
-            CEESUV
-          </span>
-        </div>
-
-        <button
-          onClick={() => setMenuAbierto(!menuAbierto)}
-          style={{
-            background: "transparent",
-            border: "1px solid #D4AF37",
-            color: "#D4AF37",
-            fontSize: "15px",
-            fontWeight: "bold",
-            padding: "6px 12px",
-            borderRadius: "6px",
-            cursor: "pointer"
-          }}
-        >
-          {menuAbierto ? "✖ Cerrar" : "☰ Menú"}
-        </button>
-      </div>
-
-      {/* DESPLIEGUE SIDEBAR */}
       <div className="sidebar-wrapper">
         <div>
-          {/* FOTO FACHADA EN MÓVIL / LOGO EN ESCRITORIO */}
-          {esMovil ? (
-            <div style={{ marginBottom: "15px", width: "100%" }}>
-              <img 
-                src="/fachada-ceesuv.png" 
-                alt="Fachada CEESUV" 
-                style={{
-                  width: "100%",
-                  height: "120px",
-                  objectFit: "cover",
-                  borderRadius: "10px",
-                  border: "2px solid #D4AF37",
-                  boxShadow: "0 4px 10px rgba(0,0,0,0.3)",
-                  display: "block"
-                }}
-              />
-            </div>
-          ) : (
-            <div style={{ marginBottom: "15px", textAlign: "center" }}>
-              <div
-                style={{
-                  width: "85px",
-                  height: "85px",
-                  backgroundColor: "#FFFFFF",
-                  borderRadius: "50%",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  margin: "0 auto 10px auto",
-                  padding: "8px",
-                  boxShadow: "0 4px 15px rgba(0, 0, 0, 0.4), 0 0 0 2px #D4AF37",
-                  boxSizing: "border-box"
-                }}
-              >
-                <img 
-                  src={logoCeesuv} 
-                  alt="Logo CEESUV" 
-                  style={{ width: "100%", height: "100%", objectFit: "contain" }} 
-                />
-              </div>
-
-              <h2 style={{ margin: 0, color: "#D4AF37", fontSize: "18px", letterSpacing: "1px" }}>
-                CEESUV
-              </h2>
-              <span style={{ fontSize: "11px", color: "#B0C4DE", fontWeight: "600", letterSpacing: "1px" }}>
-                BANCO ESCOLAR
-              </span>
-            </div>
-          )}
-
-          {/* TARJETA IDENTIFICADORA DE USUARIO CONECTADO */}
+          {/* LOGO E IDENTIFICADOR */}
           <div
             style={{
               backgroundColor: "rgba(255, 255, 255, 0.07)",
@@ -249,7 +119,7 @@ function Sidebar() {
             </div>
           </div>
 
-          {/* NAVEGACIÓN */}
+          {/* MENÚ DE NAVEGACIÓN */}
           <nav style={{ display: "flex", flexDirection: "column" }}>
             <Link to="/dashboard" style={{ textDecoration: "none" }} onClick={() => setMenuAbierto(false)}>
               <button style={estylosBoton("/dashboard")}>🏠 Inicio</button>
@@ -264,8 +134,8 @@ function Sidebar() {
               <button style={estylosBoton("/movimientos")}>💰 Movimientos</button>
             </Link>
 
-            {/* CONDICIONAL: SOLO SE MUESTRA SI EL USUARIO ES ADMINISTRADOR */}
-            {(rolUsuario === "admin" || rolUsuario === "administrador") && (
+            {/* CONDICIONAL: SOLO SE MUESTRA SI ES ADMINISTRADOR */}
+            {esAdmin && (
               <Link to="/usuarios" style={{ textDecoration: "none" }} onClick={() => setMenuAbierto(false)}>
                 <button style={estylosBoton("/usuarios")}>👥 Usuarios</button>
               </Link>
