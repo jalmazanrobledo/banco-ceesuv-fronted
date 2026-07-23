@@ -1,12 +1,23 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import logoCeesuv from "/logo-ceesuv.png";
-import fachadaCeesuv from "/fachada-ceesuv.jpg"; // Asegúrate de colocar tu imagen de la fachada en la carpeta public
+import fachadaCeesuv from "/fachada-ceesuv.jpg"; // Asegúrate de que el archivo esté en public/fachada-ceesuv.jpg
 
 function Sidebar() {
   const [menuAbierto, setMenuAbierto] = useState(false);
+  const [esMovil, setEsMovil] = useState(window.innerWidth <= 768);
   const location = useLocation();
   const navigate = useNavigate();
+
+  // Detectar cambios en el tamaño de la pantalla
+  useEffect(() => {
+    const handleResize = () => {
+      setEsMovil(window.innerWidth <= 768);
+    };
+
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   const handleCerrarSesion = () => {
     localStorage.clear();
@@ -61,15 +72,6 @@ function Sidebar() {
           border-bottom: 1px solid rgba(212, 175, 55, 0.3);
         }
 
-        /* MOSTRAR/OCULTAR ELEMENTOS SEGÚN PANTALLA */
-        .desktop-logo-header {
-          display: block;
-        }
-
-        .mobile-fachada-header {
-          display: none;
-        }
-
         @media (max-width: 768px) {
           .mobile-header-bar {
             display: flex;
@@ -81,29 +83,6 @@ function Sidebar() {
             display: ${menuAbierto ? "flex" : "none"};
             padding: 15px;
             border-bottom: 2px solid #D4AF37;
-          }
-
-          /* Ocultar logo y texto duplicados en celular */
-          .desktop-logo-header {
-            display: none;
-          }
-
-          /* Mostrar foto de la fachada nítida en celular */
-          .mobile-fachada-header {
-            display: block;
-            width: 100%;
-            margin-bottom: 15px;
-          }
-
-          .fachada-img {
-            width: 100%;
-            height: 130px;
-            object-fit: cover;
-            border-radius: 10px;
-            border: 2px solid #D4AF37;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
-            filter: none !important;
-            opacity: 1 !important;
           }
         }
       `}</style>
@@ -156,46 +135,55 @@ function Sidebar() {
       {/* DESPLIEGUE SIDEBAR */}
       <div className="sidebar-wrapper">
         <div>
-          {/* HEADER DE ESCRITORIO (CÍRCULO CON LOGO Y TEXTO) */}
-          <div className="desktop-logo-header" style={{ marginBottom: "25px", textAlign: "center" }}>
-            <div
-              style={{
-                width: "90px",
-                height: "90px",
-                backgroundColor: "#FFFFFF",
-                borderRadius: "50%",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                margin: "0 auto 12px auto",
-                padding: "8px",
-                boxShadow: "0 4px 15px rgba(0, 0, 0, 0.4), 0 0 0 2px #D4AF37",
-                boxSizing: "border-box"
-              }}
-            >
+          {/* SI ES MÓVIL MOSTRAR LA FACHADA, SI ES ESCRITORIO MOSTRAR EL LOGO Y TEXTO */}
+          {esMovil ? (
+            <div style={{ marginBottom: "15px", width: "100%" }}>
               <img 
-                src={logoCeesuv} 
-                alt="Logo CEESUV" 
-                style={{ width: "100%", height: "100%", objectFit: "contain" }} 
+                src={fachadaCeesuv} 
+                alt="Fachada CEESUV" 
+                style={{
+                  width: "100%",
+                  height: "130px",
+                  objectFit: "cover",
+                  borderRadius: "10px",
+                  border: "2px solid #D4AF37",
+                  boxShadow: "0 4px 10px rgba(0,0,0,0.3)",
+                  display: "block"
+                }}
               />
             </div>
+          ) : (
+            <div style={{ marginBottom: "25px", textAlign: "center" }}>
+              <div
+                style={{
+                  width: "90px",
+                  height: "90px",
+                  backgroundColor: "#FFFFFF",
+                  borderRadius: "50%",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  margin: "0 auto 12px auto",
+                  padding: "8px",
+                  boxShadow: "0 4px 15px rgba(0, 0, 0, 0.4), 0 0 0 2px #D4AF37",
+                  boxSizing: "border-box"
+                }}
+              >
+                <img 
+                  src={logoCeesuv} 
+                  alt="Logo CEESUV" 
+                  style={{ width: "100%", height: "100%", objectFit: "contain" }} 
+                />
+              </div>
 
-            <h2 style={{ margin: 0, color: "#D4AF37", fontSize: "20px", letterSpacing: "1px" }}>
-              CEESUV
-            </h2>
-            <span style={{ fontSize: "11px", color: "#B0C4DE", fontWeight: "600", letterSpacing: "1px" }}>
-              BANCO ESCOLAR
-            </span>
-          </div>
-
-          {/* HEADER DE CELULAR (FOTO FACHADA NÍTIDA) */}
-          <div className="mobile-fachada-header">
-            <img 
-              src={fachadaCeesuv} 
-              alt="Fachada CEESUV" 
-              className="fachada-img"
-            />
-          </div>
+              <h2 style={{ margin: 0, color: "#D4AF37", fontSize: "20px", letterSpacing: "1px" }}>
+                CEESUV
+              </h2>
+              <span style={{ fontSize: "11px", color: "#B0C4DE", fontWeight: "600", letterSpacing: "1px" }}>
+                BANCO ESCOLAR
+              </span>
+            </div>
+          )}
 
           <nav style={{ display: "flex", flexDirection: "column" }}>
             <Link to="/dashboard" style={{ textDecoration: "none" }} onClick={() => setMenuAbierto(false)}>
