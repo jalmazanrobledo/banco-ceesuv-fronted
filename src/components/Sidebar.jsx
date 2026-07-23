@@ -10,48 +10,16 @@ function Sidebar() {
 
   // 1. LEER SESIÓN DESDE LOCALSTORAGE
   const resSesion = JSON.parse(localStorage.getItem("usuarioCEESUV")) || {};
-  
-  // Imprimir en consola F12 para verificar la estructura real de la API
-  console.log("Respuesta almacenada en resSesion:", resSesion);
 
-  // Extraer el objeto interno si el backend responde con { usuario: { ... } } o directamente los datos
-  const datos = resSesion.usuario || resSesion.data || resSesion;
+  // 2. EXTRAER PROPIEDADES DIRECTAS DE LA API
+  const nombreUsuario = resSesion.nombre || resSesion.usuario || "Usuario";
+  const rolRaw = (resSesion.rol || "").toString().trim();
 
-  // 2. BUSCAR EL NOMBRE DE FORMA DINÁMICA
-  const nombreUsuario = 
-    datos.nombre_completo || 
-    datos.nombreCompleto ||
-    datos.nombre || 
-    datos.name ||
-    datos.username ||
-    datos.usuario ||
-    "Usuario";
+  // 3. DETERMINAR SI ES ADMINISTRADOR ('Admin', 'admin', 'Administrador')
+  const esAdmin = rolRaw.toLowerCase() === "admin" || rolRaw.toLowerCase() === "administrador";
 
-  // 3. EXTRAER EL ROL Y EL USUARIO EN MAYÚSCULAS
-  const rolRaw = (
-    datos.rol || 
-    datos.role || 
-    datos.tipo || 
-    datos.tipo_usuario || 
-    ""
-  ).toString().toUpperCase().trim();
-
-  const usuarioUsername = (
-    datos.username || 
-    datos.usuario || 
-    ""
-  ).toString().toUpperCase().trim();
-
-  // 4. DETERMINAR SI ES ADMINISTRADOR
-  // Se considera Admin si su rol es ADMIN/ADMINISTRADOR O si su nombre de usuario es "ADMIN"
-  const esAdmin = 
-    rolRaw.includes("ADMIN") || 
-    usuarioUsername === "ADMIN" || 
-    datos.es_admin === true ||
-    datos.isAdmin === true;
-
-  // Formato para mostrar el rol visualmente en la tarjeta
-  const rolMostrar = esAdmin ? "ADMINISTRADOR" : (rolRaw || "DOCENTE");
+  // Formato para mostrar visualmente en la tarjeta
+  const rolMostrar = esAdmin ? "ADMINISTRADOR" : (rolRaw.toUpperCase() || "DOCENTE");
 
   useEffect(() => {
     const handleResize = () => setEsMovil(window.innerWidth <= 768);
