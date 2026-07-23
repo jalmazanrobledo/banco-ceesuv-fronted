@@ -8,7 +8,6 @@ import {
 } from "../services/api";
 
 function Usuarios() {
-
   const [usuarios, setUsuarios] = useState([]);
 
   const [nuevoUsuario, setNuevoUsuario] = useState({
@@ -19,8 +18,12 @@ function Usuarios() {
   });
 
   async function cargar() {
-    const datos = await obtenerUsuarios();
-    setUsuarios(datos);
+    try {
+      const datos = await obtenerUsuarios();
+      setUsuarios(datos || []);
+    } catch (error) {
+      console.error("Error al cargar usuarios:", error);
+    }
   }
 
   useEffect(() => {
@@ -28,7 +31,6 @@ function Usuarios() {
   }, []);
 
   async function agregarUsuario() {
-
     if (
       !nuevoUsuario.nombre ||
       !nuevoUsuario.usuario ||
@@ -48,11 +50,9 @@ function Usuarios() {
     });
 
     cargar();
-
   }
 
   async function editar(u) {
-
     const nombre = prompt("Nombre:", u.nombre);
     if (nombre === null) return;
 
@@ -72,11 +72,9 @@ function Usuarios() {
     });
 
     cargar();
-
   }
 
   async function cambiarEstado(u) {
-
     const estado =
       u.estado === "Activo"
         ? "Inactivo"
@@ -85,193 +83,251 @@ function Usuarios() {
     await cambiarEstadoUsuario(u.id, estado);
 
     cargar();
-
   }
 
   return (
+    <>
+      <style>{`
+        .usuarios-container {
+          display: flex;
+          min-height: 100vh;
+          background: #F4F7FA;
+          flex-direction: row;
+        }
 
-    <div
-      style={{
-        display: "flex",
-        minHeight: "100vh",
-        background: "#F4F7FA"
-      }}
-    >
+        .usuarios-main {
+          flex: 1;
+          padding: 30px;
+          box-sizing: border-box;
+          width: 100%;
+        }
 
-      <Sidebar />
+        .form-card {
+          background: white;
+          padding: 20px;
+          border-radius: 15px;
+          margin-top: 30px;
+          box-shadow: 0 5px 15px rgba(0,0,0,.15);
+        }
 
-      <div
-        style={{
-          flex: 1,
-          padding: "30px"
-        }}
-      >
+        .form-inputs-grid {
+          display: flex;
+          gap: 10px;
+          flex-wrap: wrap;
+          align-items: center;
+        }
 
-        <h1 style={{ color: "#0B2341" }}>
-          👤 Usuarios
-        </h1>
+        .form-input {
+          padding: 10px;
+          border-radius: 6px;
+          border: 1px solid #ccc;
+          outline: none;
+          box-sizing: border-box;
+          flex: 1;
+          min-width: 150px;
+        }
 
-        <h2 style={{ color: "#666" }}>
-          Administración de usuarios
-        </h2>
+        .btn-submit {
+          padding: 10px 20px;
+          background: #0B2341;
+          color: white;
+          border: none;
+          border-radius: 8px;
+          cursor: pointer;
+          font-weight: bold;
+        }
 
-        <div
-          style={{
-            background: "white",
-            padding: "20px",
-            borderRadius: "15px",
-            marginTop: "30px",
-            boxShadow: "0 5px 15px rgba(0,0,0,.15)"
-          }}
-        >
+        .table-card {
+          margin-top: 30px;
+          background: white;
+          border-radius: 10px;
+          overflow-x: auto; /* Scroll horizontal para móviles */
+          box-shadow: 0 5px 15px rgba(0,0,0,.15);
+        }
 
-          <h3>➕ Nuevo Usuario</h3>
+        /* Ajustes Responsivos Móviles (< 768px) */
+        @media (max-width: 768px) {
+          .usuarios-container {
+            flex-direction: column;
+          }
 
-          <input
-            placeholder="Nombre"
-            value={nuevoUsuario.nombre}
-            onChange={e =>
-              setNuevoUsuario({
-                ...nuevoUsuario,
-                nombre: e.target.value
-              })
-            }
-            style={{ padding: 10, marginRight: 10 }}
-          />
+          .usuarios-main {
+            padding: 15px;
+          }
 
-          <input
-            placeholder="Usuario"
-            value={nuevoUsuario.usuario}
-            onChange={e =>
-              setNuevoUsuario({
-                ...nuevoUsuario,
-                usuario: e.target.value
-              })
-            }
-            style={{ padding: 10, marginRight: 10 }}
-          />
+          .form-inputs-grid {
+            flex-direction: column;
+            align-items: stretch;
+          }
 
-          <input
-            type="password"
-            placeholder="Contraseña"
-            value={nuevoUsuario.password}
-            onChange={e =>
-              setNuevoUsuario({
-                ...nuevoUsuario,
-                password: e.target.value
-              })
-            }
-            style={{ padding: 10, marginRight: 10 }}
-          />
+          .form-input {
+            width: 100%;
+          }
 
-          <select
-            value={nuevoUsuario.rol}
-            onChange={e =>
-              setNuevoUsuario({
-                ...nuevoUsuario,
-                rol: e.target.value
-              })
-            }
-            style={{ padding: 10, marginRight: 10 }}
-          >
+          .btn-submit {
+            width: 100%;
+          }
+        }
+      `}</style>
 
-            <option>Administrador</option>
-            <option>Docente</option>
+      <div className="usuarios-container">
+        <Sidebar />
 
-          </select>
+        <div className="usuarios-main">
+          <h1 style={{ color: "#0B2341", margin: 0 }}>
+            👤 Usuarios
+          </h1>
 
-          <button
-            onClick={agregarUsuario}
-            style={{
-              padding: "10px 20px",
-              background: "#0B2341",
-              color: "white",
-              border: "none",
-              borderRadius: "8px"
-            }}
-          >
-            Guardar
-          </button>
+          <h3 style={{ color: "#666", marginTop: "5px" }}>
+            Administración de usuarios
+          </h3>
 
-        </div>
+          {/* FORMULARIO DE NUEVO USUARIO */}
+          <div className="form-card">
+            <h3 style={{ marginTop: 0, color: "#0B2341" }}>➕ Nuevo Usuario</h3>
 
-        <table
-          style={{
-            width: "100%",
-            marginTop: "30px",
-            background: "white",
-            borderCollapse: "collapse",
-            boxShadow: "0 5px 15px rgba(0,0,0,.15)"
-          }}
-        >
+            <div className="form-inputs-grid">
+              <input
+                placeholder="Nombre"
+                value={nuevoUsuario.nombre}
+                onChange={e =>
+                  setNuevoUsuario({
+                    ...nuevoUsuario,
+                    nombre: e.target.value
+                  })
+                }
+                className="form-input"
+              />
 
-          <thead>
+              <input
+                placeholder="Usuario"
+                value={nuevoUsuario.usuario}
+                onChange={e =>
+                  setNuevoUsuario({
+                    ...nuevoUsuario,
+                    usuario: e.target.value
+                  })
+                }
+                className="form-input"
+              />
 
-            <tr
+              <input
+                type="password"
+                placeholder="Contraseña"
+                value={nuevoUsuario.password}
+                onChange={e =>
+                  setNuevoUsuario({
+                    ...nuevoUsuario,
+                    password: e.target.value
+                  })
+                }
+                className="form-input"
+              />
+
+              <select
+                value={nuevoUsuario.rol}
+                onChange={e =>
+                  setNuevoUsuario({
+                    ...nuevoUsuario,
+                    rol: e.target.value
+                  })
+                }
+                className="form-input"
+              >
+                <option value="Administrador">Administrador</option>
+                <option value="Docente">Docente</option>
+              </select>
+
+              <button onClick={agregarUsuario} className="btn-submit">
+                Guardar
+              </button>
+            </div>
+          </div>
+
+          {/* TABLA DE USUARIOS */}
+          <div className="table-card">
+            <table
               style={{
-                background: "#0B2341",
-                color: "white"
+                width: "100%",
+                borderCollapse: "collapse",
+                color: "#333",
+                minWidth: "600px"
               }}
             >
+              <thead>
+                <tr
+                  style={{
+                    background: "#0B2341",
+                    color: "white",
+                    textAlign: "left"
+                  }}
+                >
+                  <th style={{ padding: "15px" }}>ID</th>
+                  <th style={{ padding: "15px" }}>Nombre</th>
+                  <th style={{ padding: "15px" }}>Usuario</th>
+                  <th style={{ padding: "15px" }}>Rol</th>
+                  <th style={{ padding: "15px" }}>Estado</th>
+                  <th style={{ padding: "15px", textAlign: "center" }}>Acciones</th>
+                </tr>
+              </thead>
 
-              <th>ID</th>
-              <th>Nombre</th>
-              <th>Usuario</th>
-              <th>Rol</th>
-              <th>Estado</th>
-              <th>Acciones</th>
+              <tbody>
+                {usuarios.length > 0 ? (
+                  usuarios.map(u => (
+                    <tr key={u.id} style={{ borderBottom: "1px solid #eee" }}>
+                      <td style={{ padding: "15px" }}>{u.id}</td>
+                      <td style={{ padding: "15px", fontWeight: "bold", color: "#0B2341" }}>{u.nombre}</td>
+                      <td style={{ padding: "15px" }}>{u.usuario}</td>
+                      <td style={{ padding: "15px" }}>{u.rol}</td>
+                      <td style={{ padding: "15px" }}>{u.estado}</td>
+                      <td style={{ padding: "15px", textAlign: "center", whiteSpace: "nowrap" }}>
+                        <button
+                          onClick={() => editar(u)}
+                          style={{
+                            padding: "6px 12px",
+                            background: "#17a2b8",
+                            color: "white",
+                            border: "none",
+                            borderRadius: "6px",
+                            cursor: "pointer",
+                            fontWeight: "bold"
+                          }}
+                        >
+                          ✏️
+                        </button>
 
-            </tr>
-
-          </thead>
-
-          <tbody>
-
-            {usuarios.map(u => (
-
-              <tr key={u.id}>
-
-                <td>{u.id}</td>
-
-                <td>{u.nombre}</td>
-
-                <td>{u.usuario}</td>
-
-                <td>{u.rol}</td>
-
-                <td>{u.estado}</td>
-
-                <td>
-
-                  <button onClick={() => editar(u)}>
-                    ✏️
-                  </button>
-
-                  <button
-                    onClick={() => cambiarEstado(u)}
-                    style={{ marginLeft: 10 }}
-                  >
-                    {u.estado === "Activo"
-                      ? "🔴"
-                      : "🟢"}
-                  </button>
-
-                </td>
-
-              </tr>
-
-            ))}
-
-          </tbody>
-
-        </table>
-
+                        <button
+                          onClick={() => cambiarEstado(u)}
+                          style={{
+                            marginLeft: 10,
+                            padding: "6px 12px",
+                            background: u.estado === "Activo" ? "#dc3545" : "#28a745",
+                            color: "white",
+                            border: "none",
+                            borderRadius: "6px",
+                            cursor: "pointer",
+                            fontWeight: "bold"
+                          }}
+                        >
+                          {u.estado === "Activo" ? "🔴 Inactivar" : "🟢 Activar"}
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan="6" style={{ padding: "20px", textAlign: "center", color: "#777" }}>
+                      No hay usuarios registrados.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
       </div>
-
-    </div>
-
+    </>
   );
-
 }
 
 export default Usuarios;
