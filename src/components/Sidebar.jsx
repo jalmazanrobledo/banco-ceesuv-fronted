@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import logoCeesuv from "/logo-ceesuv.png";
+import fachadaCeesuv from "/fachada-ceesuv.jpg"; // Asegúrate de colocar tu imagen de la fachada en la carpeta public
 
 function Sidebar() {
   const [menuAbierto, setMenuAbierto] = useState(false);
@@ -60,6 +61,15 @@ function Sidebar() {
           border-bottom: 1px solid rgba(212, 175, 55, 0.3);
         }
 
+        /* MOSTRAR/OCULTAR ELEMENTOS SEGÚN PANTALLA */
+        .desktop-logo-header {
+          display: block;
+        }
+
+        .mobile-fachada-header {
+          display: none;
+        }
+
         @media (max-width: 768px) {
           .mobile-header-bar {
             display: flex;
@@ -72,13 +82,35 @@ function Sidebar() {
             padding: 15px;
             border-bottom: 2px solid #D4AF37;
           }
+
+          /* Ocultar logo y texto duplicados en celular */
+          .desktop-logo-header {
+            display: none;
+          }
+
+          /* Mostrar foto de la fachada nítida en celular */
+          .mobile-fachada-header {
+            display: block;
+            width: 100%;
+            margin-bottom: 15px;
+          }
+
+          .fachada-img {
+            width: 100%;
+            height: 130px;
+            object-fit: cover;
+            border-radius: 10px;
+            border: 2px solid #D4AF37;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+            filter: none !important;
+            opacity: 1 !important;
+          }
         }
       `}</style>
 
       {/* BARRA SUPERIOR MÓVIL */}
       <div className="mobile-header-bar">
         <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-          {/* Círculo blanco con borde dorado para el logo en móvil */}
           <div
             style={{
               width: "38px",
@@ -124,7 +156,8 @@ function Sidebar() {
       {/* DESPLIEGUE SIDEBAR */}
       <div className="sidebar-wrapper">
         <div>
-          <div style={{ marginBottom: "25px", textAlign: "center" }}>
+          {/* HEADER DE ESCRITORIO (CÍRCULO CON LOGO Y TEXTO) */}
+          <div className="desktop-logo-header" style={{ marginBottom: "25px", textAlign: "center" }}>
             <div
               style={{
                 width: "90px",
@@ -153,6 +186,15 @@ function Sidebar() {
             <span style={{ fontSize: "11px", color: "#B0C4DE", fontWeight: "600", letterSpacing: "1px" }}>
               BANCO ESCOLAR
             </span>
+          </div>
+
+          {/* HEADER DE CELULAR (FOTO FACHADA NÍTIDA) */}
+          <div className="mobile-fachada-header">
+            <img 
+              src={fachadaCeesuv} 
+              alt="Fachada CEESUV" 
+              className="fachada-img"
+            />
           </div>
 
           <nav style={{ display: "flex", flexDirection: "column" }}>
