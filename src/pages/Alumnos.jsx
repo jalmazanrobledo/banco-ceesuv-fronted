@@ -148,7 +148,7 @@ function Alumnos() {
                 border: "1px solid #E0E0E0",
                 outline: "none",
                 fontSize: "14px",
-                backgroundColor: "#FAFACA"
+                backgroundColor: "#FFFFFF"
               }}
             />
           </div>
