@@ -10,31 +10,49 @@ function Sidebar() {
 
   // 1. LEER SESIÓN DESDE LOCALSTORAGE
   const resSesion = JSON.parse(localStorage.getItem("usuarioCEESUV")) || {};
-  const datosUsuario = resSesion.usuario || resSesion;
+  
+  // Imprimir en consola F12 para verificar la estructura real de la API
+  console.log("Respuesta almacenada en resSesion:", resSesion);
 
-  // 2. EXTRAER NOMBRE Y ROL
+  // Extraer el objeto interno si el backend responde con { usuario: { ... } } o directamente los datos
+  const datos = resSesion.usuario || resSesion.data || resSesion;
+
+  // 2. BUSCAR EL NOMBRE DE FORMA DINÁMICA
   const nombreUsuario = 
-    datosUsuario.nombre_completo || 
-    datosUsuario.nombre || 
-    datosUsuario.username ||
-    datosUsuario.usuario ||
+    datos.nombre_completo || 
+    datos.nombreCompleto ||
+    datos.nombre || 
+    datos.name ||
+    datos.username ||
+    datos.usuario ||
     "Usuario";
 
-  const rolUsuarioRaw = (
-    datosUsuario.rol || 
-    datosUsuario.role || 
-    datosUsuario.tipo ||
-    "DOCENTE"
+  // 3. EXTRAER EL ROL Y EL USUARIO EN MAYÚSCULAS
+  const rolRaw = (
+    datos.rol || 
+    datos.role || 
+    datos.tipo || 
+    datos.tipo_usuario || 
+    ""
   ).toString().toUpperCase().trim();
 
-  // 3. VALIDAR PERMISOS DE ADMINISTRADOR (Cubre 'ADMIN', 'ADMINISTRADOR', etc.)
-  const esAdmin = 
-    rolUsuarioRaw === "ADMIN" || 
-    rolUsuarioRaw === "ADMINISTRADOR" || 
-    rolUsuarioRaw === "ADMINISTRATOR" ||
-    datosUsuario.es_admin === true;
+  const usuarioUsername = (
+    datos.username || 
+    datos.usuario || 
+    ""
+  ).toString().toUpperCase().trim();
 
-  // Detectar cambio de pantalla para responsivo
+  // 4. DETERMINAR SI ES ADMINISTRADOR
+  // Se considera Admin si su rol es ADMIN/ADMINISTRADOR O si su nombre de usuario es "ADMIN"
+  const esAdmin = 
+    rolRaw.includes("ADMIN") || 
+    usuarioUsername === "ADMIN" || 
+    datos.es_admin === true ||
+    datos.isAdmin === true;
+
+  // Formato para mostrar el rol visualmente en la tarjeta
+  const rolMostrar = esAdmin ? "ADMINISTRADOR" : (rolRaw || "DOCENTE");
+
   useEffect(() => {
     const handleResize = () => setEsMovil(window.innerWidth <= 768);
     window.addEventListener("resize", handleResize);
@@ -110,7 +128,7 @@ function Sidebar() {
         }
       `}</style>
 
-      {/* BARRA SUPERIOR PARA MÓVIL/CELULAR */}
+      {/* BARRA SUPERIOR MÓVIL */}
       <div className="mobile-header-bar">
         <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
           <div
@@ -155,10 +173,10 @@ function Sidebar() {
         </button>
       </div>
 
-      {/* CONTENEDOR SIDEBAR (ESCRITORIO Y MÓVIL DESPLEGADO) */}
+      {/* DESPLIEGUE SIDEBAR */}
       <div className="sidebar-wrapper">
         <div>
-          {/* CABECERA CON LOGO EN ESCRITORIO O FACHADA EN MÓVIL */}
+          {/* FOTO FACHADA EN MÓVIL / LOGO EN ESCRITORIO */}
           {esMovil ? (
             <div style={{ marginBottom: "15px", width: "100%" }}>
               <img 
@@ -208,7 +226,7 @@ function Sidebar() {
             </div>
           )}
 
-          {/* TARJETA DEL USUARIO LOGUEADO */}
+          {/* TARJETA IDENTIFICADORA DE USUARIO CONECTADO */}
           <div
             style={{
               backgroundColor: "rgba(255, 255, 255, 0.07)",
@@ -246,12 +264,12 @@ function Sidebar() {
                   letterSpacing: "0.5px"
                 }}
               >
-                {rolUsuarioRaw}
+                {rolMostrar}
               </div>
             </div>
           </div>
 
-          {/* MENÚ DE NAVEGACIÓN */}
+          {/* NAVEGACIÓN */}
           <nav style={{ display: "flex", flexDirection: "column" }}>
             <Link to="/dashboard" style={{ textDecoration: "none" }} onClick={() => setMenuAbierto(false)}>
               <button style={estylosBoton("/dashboard")}>🏠 Inicio</button>
@@ -266,7 +284,7 @@ function Sidebar() {
               <button style={estylosBoton("/movimientos")}>💰 Movimientos</button>
             </Link>
 
-            {/* SI ES ADMIN MUESTRA USUARIOS */}
+            {/* MUESTRA 'USUARIOS' ÚNICAMENTE SI ES ADMINISTRADOR */}
             {esAdmin && (
               <Link to="/usuarios" style={{ textDecoration: "none" }} onClick={() => setMenuAbierto(false)}>
                 <button style={estylosBoton("/usuarios")}>👥 Usuarios</button>
@@ -275,7 +293,7 @@ function Sidebar() {
           </nav>
         </div>
 
-        {/* BOTÓN CERRAR SESIÓN */}
+        {/* CERRAR SESIÓN */}
         <div style={{ marginTop: "auto", paddingTop: "15px" }}>
           <button
             onClick={handleCerrarSesion}
