@@ -44,13 +44,13 @@ function Operaciones() {
     return textoCompleto.includes(busqueda.toLowerCase());
   });
 
-  // Alumno actualmente seleccionado
-  const alumnoActual = alumnos.find((a) => String(a.id) === String(alumnoSeleccionado));
-
   // Función al hacer clic en un alumno de la lista filtrada
   const seleccionarAlumno = (alumno) => {
     setAlumnoSeleccionado(alumno.id);
-    setBusqueda(`${alumno.nombre} ${alumno.grado ? `(${alumno.grado})` : ""}`);
+    
+    // 💡 CAMBIO AQUÍ: Ahora solo coloca el nombre para que sea fácil de borrar/editar
+    setBusqueda(alumno.nombre); 
+    
     setMostrarLista(false);
     setMensaje(null);
   };
