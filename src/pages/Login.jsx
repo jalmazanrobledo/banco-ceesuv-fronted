@@ -88,7 +88,7 @@ function Login() {
             letterSpacing: "0.5px"
           }}
         >
-          Centro de Estudios Elementales y Superiores de Valles
+          CEESUV
         </h3>
         
         <h2
@@ -113,7 +113,7 @@ function Login() {
             lineHeight: "1.4"
           }}
         >
-          "EDUCACIÓN HUMANISTA BASADA EN VALORES"
+          EDUCACIÓN HUMANISTA BASADA EN VALORES
         </p>
 
         {/* MENSAJE DE ERROR */}
