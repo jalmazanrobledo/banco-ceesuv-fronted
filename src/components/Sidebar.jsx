@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import logoCeesuv from "/logo-ceesuv.png";
-import fachadaCeesuv from "/fachada-ceesuv.jpg"; // Asegúrate de que el archivo esté en public/fachada-ceesuv.jpg
 
 function Sidebar() {
   const [menuAbierto, setMenuAbierto] = useState(false);
@@ -139,7 +138,7 @@ function Sidebar() {
           {esMovil ? (
             <div style={{ marginBottom: "15px", width: "100%" }}>
               <img 
-                src={fachadaCeesuv} 
+                src="/fachada-ceesuv.png" 
                 alt="Fachada CEESUV" 
                 style={{
                   width: "100%",
