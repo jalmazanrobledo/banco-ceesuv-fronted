@@ -1,13 +1,12 @@
 import React, { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import logoCeesuv from "/logo-ceesuv.png"; // Importación directa del archivo
+import logoCeesuv from "/logo-ceesuv.png";
 
 function Sidebar() {
   const [menuAbierto, setMenuAbierto] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
 
-  // Función para cerrar sesión de manera segura
   const handleCerrarSesion = () => {
     localStorage.clear();
     sessionStorage.clear();
@@ -55,13 +54,12 @@ function Sidebar() {
           display: none;
           background-color: #0B2341;
           color: white;
-          padding: 12px 20px;
+          padding: 10px 15px;
           justify-content: space-between;
           align-items: center;
           border-bottom: 1px solid rgba(212, 175, 55, 0.3);
         }
 
-        /* Ajuste para dispositivos móviles (< 768px) */
         @media (max-width: 768px) {
           .mobile-header-bar {
             display: flex;
@@ -77,24 +75,44 @@ function Sidebar() {
         }
       `}</style>
 
-      {/* BARRA SUPERIOR MÓVIL (Solo visible en pantallas pequeñas) */}
+      {/* BARRA SUPERIOR MÓVIL */}
       <div className="mobile-header-bar">
         <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-          <img 
-            src={logoCeesuv} 
-            alt="Logo CEESUV" 
-            style={{ width: "30px", height: "30px", objectFit: "contain" }} 
-          />
-          <span style={{ fontWeight: "bold", color: "#D4AF37", fontSize: "16px" }}>CEESUV</span>
+          {/* Círculo blanco con borde dorado para el logo en móvil */}
+          <div
+            style={{
+              width: "38px",
+              height: "38px",
+              backgroundColor: "#FFFFFF",
+              borderRadius: "50%",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              padding: "3px",
+              boxShadow: "0 2px 8px rgba(0, 0, 0, 0.3), 0 0 0 1.5px #D4AF37",
+              boxSizing: "border-box"
+            }}
+          >
+            <img 
+              src={logoCeesuv} 
+              alt="Logo CEESUV" 
+              style={{ width: "100%", height: "100%", objectFit: "contain" }} 
+            />
+          </div>
+          <span style={{ fontWeight: "bold", color: "#D4AF37", fontSize: "16px", letterSpacing: "1px" }}>
+            CEESUV
+          </span>
         </div>
+
         <button
           onClick={() => setMenuAbierto(!menuAbierto)}
           style={{
             background: "transparent",
             border: "1px solid #D4AF37",
             color: "#D4AF37",
-            fontSize: "18px",
-            padding: "4px 10px",
+            fontSize: "15px",
+            fontWeight: "bold",
+            padding: "6px 12px",
             borderRadius: "6px",
             cursor: "pointer"
           }}
@@ -103,12 +121,10 @@ function Sidebar() {
         </button>
       </div>
 
-      {/* CONTENEDOR DEL SIDEBAR */}
+      {/* DESPLIEGUE SIDEBAR */}
       <div className="sidebar-wrapper">
         <div>
-          {/* LOGO / TITULO */}
           <div style={{ marginBottom: "25px", textAlign: "center" }}>
-            {/* Contenedor blanco redondo para contraste perfecto */}
             <div
               style={{
                 width: "90px",
@@ -127,11 +143,7 @@ function Sidebar() {
               <img 
                 src={logoCeesuv} 
                 alt="Logo CEESUV" 
-                style={{ 
-                  width: "100%", 
-                  height: "100%", 
-                  objectFit: "contain" 
-                }} 
+                style={{ width: "100%", height: "100%", objectFit: "contain" }} 
               />
             </div>
 
@@ -143,41 +155,25 @@ function Sidebar() {
             </span>
           </div>
 
-          {/* NAVEGACIÓN */}
           <nav style={{ display: "flex", flexDirection: "column" }}>
             <Link to="/dashboard" style={{ textDecoration: "none" }} onClick={() => setMenuAbierto(false)}>
-              <button style={estylosBoton("/dashboard")}>
-                🏠 Inicio
-              </button>
+              <button style={estylosBoton("/dashboard")}>🏠 Inicio</button>
             </Link>
-
             <Link to="/alumnos" style={{ textDecoration: "none" }} onClick={() => setMenuAbierto(false)}>
-              <button style={estylosBoton("/alumnos")}>
-                👨‍🎓 Alumnos
-              </button>
+              <button style={estylosBoton("/alumnos")}>👨‍🎓 Alumnos</button>
             </Link>
-
             <Link to="/operaciones" style={{ textDecoration: "none" }} onClick={() => setMenuAbierto(false)}>
-              <button style={estylosBoton("/operaciones")}>
-                💳 Operaciones
-              </button>
+              <button style={estylosBoton("/operaciones")}>💳 Operaciones</button>
             </Link>
-
             <Link to="/movimientos" style={{ textDecoration: "none" }} onClick={() => setMenuAbierto(false)}>
-              <button style={estylosBoton("/movimientos")}>
-                💰 Movimientos
-              </button>
+              <button style={estylosBoton("/movimientos")}>💰 Movimientos</button>
             </Link>
-
             <Link to="/usuarios" style={{ textDecoration: "none" }} onClick={() => setMenuAbierto(false)}>
-              <button style={estylosBoton("/usuarios")}>
-                👥 Usuarios
-              </button>
+              <button style={estylosBoton("/usuarios")}>👥 Usuarios</button>
             </Link>
           </nav>
         </div>
 
-        {/* BOTÓN CERRAR SESIÓN */}
         <div style={{ marginTop: "auto", paddingTop: "20px" }}>
           <button
             onClick={handleCerrarSesion}
