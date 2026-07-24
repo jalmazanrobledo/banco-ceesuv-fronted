@@ -10,12 +10,11 @@ function TarjetaDebito({ alumno }) {
   const gradoGrupo = alumno?.grado ? `${alumno.grado} ${alumno.grupo || ''}` : "ALUMNO CEESUV";
 
   // GENERAR NÚMERO DE TARJETA ÚNICO (16 DÍGITOS)
-  // Formato: 4820 (Prefijo CEESUV) + 0000 + ID en 8 dígitos
   const idFormateado = idAlumno.toString().padStart(8, "0");
   const numeroBruto = `48200000${idFormateado}`;
   const numeroTarjeta = numeroBruto.match(/.{1,4}/g).join(" ");
 
-  // GENERAR CVV ÚNICO (Algoritmo simple derivado del ID)
+  // GENERAR CVV ÚNICO
   const cvv = String((idAlumno * 17 + 103) % 900 + 100);
 
   return (
@@ -28,37 +27,38 @@ function TarjetaDebito({ alumno }) {
           transform-style: preserve-3d;
           transition: transform 0.6s cubic-bezier(0.4, 0.2, 0.2, 1);
           cursor: pointer;
-          border-radius: 15px;
-          box-shadow: 0 10px 25px rgba(0, 0, 0, 0.35);
+          border-radius: 16px;
         }
 
         .card-container.is-flipped {
           transform: rotateY(180deg);
         }
 
+        /* ESTILO PLANO Y DIFUMINADO (FLAT GRADIENT) */
         .card-face {
           position: absolute;
           width: 100%;
           height: 100%;
           backface-visibility: hidden;
-          border-radius: 15px;
+          border-radius: 16px;
           padding: 18px 22px;
           box-sizing: border-box;
-          background: linear-gradient(135deg, #0B2341 0%, #163866 50%, #061528 100%);
-          border: 1.5px solid #D4AF37;
+          background: linear-gradient(135deg, #0B2341 0%, #163156 50%, #1C3B66 100%);
+          border: 1px solid rgba(212, 175, 55, 0.35);
           color: white;
           overflow: hidden;
+          box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
         }
 
-        /* Destello dorado/metalizado de fondo */
+        /* Difuminado suave en la esquina superior */
         .card-face::before {
           content: "";
           position: absolute;
-          top: -50%;
-          left: -50%;
-          width: 200%;
-          height: 200%;
-          background: radial-gradient(circle, rgba(212,175,55,0.12) 0%, rgba(255,255,255,0) 60%);
+          top: -40%;
+          right: -40%;
+          width: 180%;
+          height: 180%;
+          background: radial-gradient(circle, rgba(255, 255, 255, 0.06) 0%, rgba(255, 255, 255, 0) 60%);
           pointer-events: none;
         }
 
@@ -67,15 +67,14 @@ function TarjetaDebito({ alumno }) {
           padding: 0;
         }
 
-        /* CHIP EMV CSS */
+        /* CHIP EMV PLANO */
         .chip-emv {
-          width: 42px;
-          height: 32px;
+          width: 40px;
+          height: 30px;
           background: linear-gradient(135deg, #e6c670 0%, #c59b27 100%);
-          border-radius: 6px;
+          border-radius: 5px;
           position: relative;
-          border: 1px solid #8a6810;
-          box-shadow: inset 0 0 2px rgba(0,0,0,0.5);
+          border: 1px solid rgba(0,0,0,0.15);
         }
 
         .chip-emv::after {
@@ -85,8 +84,8 @@ function TarjetaDebito({ alumno }) {
           left: 0;
           width: 100%;
           height: 30%;
-          border-top: 1px solid rgba(0,0,0,0.25);
-          border-bottom: 1px solid rgba(0,0,0,0.25);
+          border-top: 1px solid rgba(0,0,0,0.2);
+          border-bottom: 1px solid rgba(0,0,0,0.2);
         }
       `}</style>
 
@@ -114,7 +113,7 @@ function TarjetaDebito({ alumno }) {
                 BANCO ESCOLAR
               </span>
             </div>
-            <span style={{ fontSize: "12px", fontWeight: "900", fontStyle: "italic", letterSpacing: "1.5px", color: "#D4AF37" }}>
+            <span style={{ fontSize: "11px", fontWeight: "800", fontStyle: "italic", letterSpacing: "1.5px", color: "#D4AF37" }}>
               DEBIT
             </span>
           </div>
@@ -122,20 +121,19 @@ function TarjetaDebito({ alumno }) {
           {/* CHIP Y SÍMBOLO CONTACTLESS */}
           <div style={{ display: "flex", alignItems: "center", gap: "12px", marginTop: "18px" }}>
             <div className="chip-emv"></div>
-            <span style={{ fontSize: "16px", color: "rgba(255,255,255,0.6)", transform: "rotate(90deg)" }}>
+            <span style={{ fontSize: "15px", color: "rgba(255,255,255,0.45)", transform: "rotate(90deg)", fontWeight: "bold" }}>
               (((
             </span>
           </div>
 
-          {/* NÚMERO DE TARJETA DE DÉBITO */}
+          {/* NÚMERO DE TARJETA (ESTILO FLAT) */}
           <div style={{ 
             marginTop: "16px", 
             fontSize: "17px", 
             letterSpacing: "2.5px", 
             fontFamily: "'Courier New', Courier, monospace",
-            fontWeight: "bold",
-            color: "#FFFFFF",
-            textShadow: "1px 1px 2px rgba(0,0,0,0.8)"
+            fontWeight: "600",
+            color: "#FFFFFF"
           }}>
             {numeroTarjeta}
           </div>
@@ -143,7 +141,7 @@ function TarjetaDebito({ alumno }) {
           {/* DATOS DEL TITULAR Y VENCIMIENTO */}
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginTop: "14px" }}>
             <div style={{ maxWidth: "210px" }}>
-              <div style={{ fontSize: "7px", color: "#B0C4DE", textTransform: "uppercase", letterSpacing: "0.5px" }}>
+              <div style={{ fontSize: "7px", color: "rgba(255,255,255,0.6)", textTransform: "uppercase", letterSpacing: "0.5px" }}>
                 TITULAR DE LA CUENTA
               </div>
               <div style={{ 
@@ -162,7 +160,7 @@ function TarjetaDebito({ alumno }) {
             </div>
 
             <div style={{ textAlign: "right" }}>
-              <div style={{ fontSize: "6px", color: "#B0C4DE", letterSpacing: "0.5px" }}>VENCE</div>
+              <div style={{ fontSize: "6px", color: "rgba(255,255,255,0.6)", letterSpacing: "0.5px" }}>VENCE</div>
               <div style={{ fontSize: "11px", fontWeight: "bold", fontFamily: "monospace" }}>07/28</div>
             </div>
           </div>
@@ -171,29 +169,29 @@ function TarjetaDebito({ alumno }) {
         {/* REVERSO DE LA TARJETA */}
         <div className="card-face card-back">
           {/* BANDA MAGNÉTICA */}
-          <div style={{ width: "100%", height: "40px", backgroundColor: "#111", marginTop: "18px" }}></div>
+          <div style={{ width: "100%", height: "38px", backgroundColor: "#0A121E", marginTop: "18px" }}></div>
 
           {/* PANEL DE FIRMA Y CVV */}
           <div style={{ padding: "15px 22px" }}>
-            <div style={{ fontSize: "8px", color: "#aaa", marginBottom: "4px" }}>FIRMA AUTORIZADA / CVV</div>
+            <div style={{ fontSize: "8px", color: "rgba(255,255,255,0.5)", marginBottom: "4px" }}>FIRMA AUTORIZADA / CVV</div>
             <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
               <div style={{ 
                 flex: 1, 
-                height: "28px", 
-                backgroundColor: "#e0e0e0", 
+                height: "26px", 
+                backgroundColor: "#F1F5F9", 
                 borderRadius: "3px",
                 display: "flex",
                 alignItems: "center",
                 paddingLeft: "10px",
                 fontSize: "10px",
-                color: "#555",
+                color: "#475569",
                 fontFamily: "cursive"
               }}>
                 CEESUV COINS
               </div>
               <div style={{ 
                 width: "45px", 
-                height: "28px", 
+                height: "26px", 
                 backgroundColor: "#FFF", 
                 color: "#000", 
                 fontWeight: "bold", 
@@ -208,8 +206,8 @@ function TarjetaDebito({ alumno }) {
               </div>
             </div>
 
-            {/* TEXTO LEGAL Y MARCA DE AGUA */}
-            <div style={{ fontSize: "7px", color: "#88A0C0", marginTop: "18px", lineHeight: "1.3" }}>
+            {/* TEXTO LEGAL */}
+            <div style={{ fontSize: "7px", color: "rgba(255,255,255,0.5)", marginTop: "18px", lineHeight: "1.3" }}>
               Esta tarjeta es propiedad de CEESUV Banco Escolar. Uso exclusivo para transacciones internas de CEESUV Coins dentro del plantel escolar.
             </div>
           </div>
