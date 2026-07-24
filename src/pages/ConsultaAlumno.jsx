@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { consultarPorQR } from "../services/api";
+import TarjetaDebito from "./TarjetaDebito"; // Importamos el componente de la tarjeta
 
 function ConsultaAlumno() {
   const { token } = useParams();
@@ -97,7 +98,7 @@ function ConsultaAlumno() {
     <div
       style={{
         minHeight: "100vh",
-        background: "linear-gradient(180deg, #0B2341 0%, #1A3A60 220px, #F4F7FA 220px)",
+        background: "linear-gradient(180deg, #0B2341 0%, #1A3A60 260px, #F4F7FA 260px)",
         fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif",
         padding: "20px 15px",
         display: "flex",
@@ -109,24 +110,7 @@ function ConsultaAlumno() {
       <div style={{ width: "100%", maxWidth: "480px", marginTop: "10px" }}>
         
         {/* ENCABEZADO INSTITUCIONAL CEESUV */}
-        <div style={{ textAlign: "center", color: "white", marginBottom: "20px" }}>
-          <img
-            src="/logo-ceesuv.png"
-            alt="Logo CEESUV"
-            onError={(e) => {
-              e.target.style.display = 'none';
-            }}
-            style={{
-              width: "80px",
-              height: "80px",
-              borderRadius: "50%",
-              backgroundColor: "white",
-              padding: "5px",
-              boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
-              marginBottom: "10px",
-              objectFit: "contain"
-            }}
-          />
+        <div style={{ textAlign: "center", color: "white", marginBottom: "15px" }}>
           <h2 style={{ margin: 0, fontSize: "22px", fontWeight: "bold", letterSpacing: "0.5px" }}>
             CEESUV
           </h2>
@@ -135,7 +119,14 @@ function ConsultaAlumno() {
           </p>
         </div>
 
-        {/* TARJETA DE SALDOS Y ALUMNO */}
+        {/* TARJETA DE DÉBITO FÍSICA DIGITAL */}
+        <TarjetaDebito alumno={alumno} />
+        
+        <p style={{ textAlign: "center", color: "#888", fontSize: "11px", marginTop: "-5px", marginBottom: "15px" }}>
+          💡 Toca la tarjeta para ver el CVV y reverso
+        </p>
+
+        {/* TARJETA DE SALDOS Y AHORRO */}
         <div
           style={{
             background: "white",
@@ -145,24 +136,6 @@ function ConsultaAlumno() {
             marginBottom: "20px"
           }}
         >
-          {/* INFORMACIÓN DEL ALUMNO */}
-          <div style={{ textAlign: "center", borderBottom: "1px solid #EEE", paddingBottom: "15px", marginBottom: "18px" }}>
-            <h2 style={{ margin: "0 0 6px 0", color: "#0B2341", fontSize: "21px" }}>{alumno.nombre}</h2>
-            <span
-              style={{
-                display: "inline-block",
-                background: "#E8F0FE",
-                color: "#1A73E8",
-                padding: "4px 14px",
-                borderRadius: "20px",
-                fontSize: "13px",
-                fontWeight: "bold"
-              }}
-            >
-              {alumno.grado || "Sin grado asignado"}
-            </span>
-          </div>
-
           {/* TARJETAS DE DISPONIBLE Y AHORRO */}
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
             {/* DISPONIBLE */}
