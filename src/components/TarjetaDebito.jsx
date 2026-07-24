@@ -96,39 +96,49 @@ function TarjetaDebito({ alumno }) {
       >
         {/* FRENTE DE LA TARJETA */}
         <div className="card-face">
-          {/* HEADER: LOGO MÁS GRANDE CON "BANCO ESCOLAR" A UN LADO Y "DEBIT" A LA DERECHA */}
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          {/* HEADER: LOGO Y "BANCO CEESUV" CENTRADOS EN LA TARJETA | "DEBIT" EN LA ESQUINA DERECHA */}
+          <div style={{ position: "relative", display: "flex", justifyContent: "center", alignItems: "center", minHeight: "65px" }}>
             
+            {/* BLOQUE CENTRADO */}
             <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
               <img 
                 src={logoCeesuvHorizontal} 
                 alt="Logo CEESUV" 
                 style={{ 
-                  height: "55px", 
+                  height: "70px", 
                   objectFit: "contain",
                   filter: "brightness(0) invert(1) drop-shadow(0px 2px 4px rgba(0,0,0,0.4))"
                 }} 
               />
               <span style={{ 
-                fontSize: "11px", 
+                fontSize: "12px", 
                 fontWeight: "bold", 
                 letterSpacing: "1px", 
                 color: "#D4AF37",
                 lineHeight: "1.2"
               }}>
-                BANCO<br/>ESCOLAR
+                BANCO<br/>CEESUV
               </span>
             </div>
 
-            <div style={{ textAlign: "right" }}>
-              <span style={{ fontSize: "12px", fontWeight: "800", fontStyle: "italic", letterSpacing: "1.5px", color: "#FFF" }}>
-                DEBIT
-              </span>
-            </div>
+            {/* ETIQUETA DEBIT DE DERECHA */}
+            <span style={{ 
+              position: "absolute",
+              right: "0px",
+              top: "0px",
+              fontSize: "12px", 
+              fontWeight: "800", 
+              fontStyle: "italic", 
+              letterSpacing: "1.5px", 
+              color: "#FFF",
+              opacity: 0.9
+            }}>
+              DEBITO
+            </span>
           </div>
 
           {/* CHIP Y SÍMBOLO CONTACTLESS */}
-          <div style={{ display: "flex", alignItems: "center", gap: "12px", marginTop: "6px" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "12px", marginTop: "2px" }}>
             <div className="chip-emv"></div>
             <span style={{ fontSize: "15px", color: "rgba(255,255,255,0.45)", transform: "rotate(90deg)", fontWeight: "bold" }}>
               (((
@@ -137,7 +147,7 @@ function TarjetaDebito({ alumno }) {
 
           {/* NÚMERO DE TARJETA */}
           <div style={{ 
-            marginTop: "14px", 
+            marginTop: "12px", 
             fontSize: "17px", 
             letterSpacing: "2.5px", 
             fontFamily: "'Courier New', Courier, monospace",
@@ -148,7 +158,7 @@ function TarjetaDebito({ alumno }) {
           </div>
 
           {/* DATOS DEL TITULAR Y VENCIMIENTO */}
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginTop: "12px" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginTop: "10px" }}>
             <div style={{ maxWidth: "210px" }}>
               <div style={{ fontSize: "7px", color: "rgba(255,255,255,0.6)", textTransform: "uppercase", letterSpacing: "0.5px" }}>
                 TITULAR DE LA CUENTA
@@ -217,7 +227,7 @@ function TarjetaDebito({ alumno }) {
 
             {/* TEXTO LEGAL */}
             <div style={{ fontSize: "7px", color: "rgba(255,255,255,0.5)", marginTop: "18px", lineHeight: "1.3" }}>
-              Esta tarjeta es propiedad de CEESUV Banco Escolar. Uso exclusivo para transacciones internas de CEESUV Coins dentro del plantel escolar.
+              Esta tarjeta es propiedad de BANCO CEESUV. Uso exclusivo para transacciones internas de CEESUV Coins dentro del plantel escolar.
             </div>
           </div>
         </div>
