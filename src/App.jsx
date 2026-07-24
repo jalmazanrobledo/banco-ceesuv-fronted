@@ -8,11 +8,11 @@ import Login from "./pages/Login";
 import ConsultaAlumno from "./pages/ConsultaAlumno";
 import Operaciones from "./pages/Operaciones";
 
-// Importamos el nuevo componente del ticker de divisas
+// Importamos el componente del ticker de divisas
 import TickerDivisas from "./components/TickerDivisas";
 
-// Layout principal que muestra el Ticker en la parte superior de la app
-function LayoutBase() {
+// Layout EXCLUSIVO para el panel interno (Admin y Docentes)
+function LayoutPanel() {
   return (
     <>
       <TickerDivisas />
@@ -67,16 +67,21 @@ function App() {
   return (
     <BrowserRouter>
       <Routes>
-        {/* Rutas con el Ticker de Divisas visible en la parte superior */}
-        <Route element={<LayoutBase />}>
+        {/* Redirección inicial */}
+        <Route path="/" element={<RedireccionInicial />} />
+
+        {/* -----------------------------------------------------------
+            RUTAS PÚBLICAS / ALUMNOS (SIN TICKER DE DIVISAS)
+           ----------------------------------------------------------- */}
+        <Route path="/login" element={<Login />} />
+        <Route path="/consulta/:token" element={<ConsultaAlumno />} />
+
+
+        {/* -----------------------------------------------------------
+            RUTAS PRIVADAS / ADMIN Y DOCENTES (CON TICKER DE DIVISAS)
+           ----------------------------------------------------------- */}
+        <Route element={<LayoutPanel />}>
           
-          {/* Redirección dinámica según si hay sesión iniciada */}
-          <Route path="/" element={<RedireccionInicial />} />
-
-          {/* Ruta pública para el Código QR (Padres / Consulta Alumno) */}
-          <Route path="/consulta/:token" element={<ConsultaAlumno />} />
-
-          {/* Rutas protegidas accesibles para Docentes y Administradores */}
           <Route
             path="/dashboard"
             element={
@@ -124,9 +129,6 @@ function App() {
           />
 
         </Route>
-
-        {/* Pantalla de Login (Sin ticker para mantener la interfaz limpia) */}
-        <Route path="/login" element={<Login />} />
 
         {/* Redirección por defecto si la ruta no existe */}
         <Route path="*" element={<Navigate to="/" replace />} />
