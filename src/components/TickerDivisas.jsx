@@ -7,15 +7,26 @@ function TickerDivisas() {
   useEffect(() => {
     async function obtenerTiposCambio() {
       try {
-        // API gratuita de tipos de cambio oficiales
-        const res = await fetch("https://api.frankfurter.app/latest?from=USD&to=MXN,EUR,GBP,CAD");
+        // API gratuita y directa en Pesos Mexicanos (MXN)
+        const res = await fetch("https://open.er-api.com/v6/latest/USD");
         const data = await res.json();
         
         if (data && data.rates) {
-          setTasas(data.rates);
+          // data.rates.MXN nos da el USD/MXN directo
+          // data.rates.EUR nos da USD/EUR para calcular EUR/MXN real
+          // data.rates.CAD nos da USD/CAD para calcular CAD/MXN real
+          const usdMxn = data.rates.MXN;
+          const eurMxn = data.rates.MXN / data.rates.EUR;
+          const cadMxn = data.rates.MXN / data.rates.CAD;
+
+          setTasas({
+            usd: usdMxn.toFixed(2),
+            eur: eurMxn.toFixed(2),
+            cad: cadMxn.toFixed(2)
+          });
         }
       } catch (error) {
-        console.error("Error al obtener divisas:", error);
+        console.error("Error al obtener divisas reales:", error);
       } finally {
         setCargando(false);
       }
@@ -27,15 +38,15 @@ function TickerDivisas() {
   if (cargando) {
     return (
       <div style={{ background: "#081325", color: "#8A9BA8", padding: "6px 16px", fontSize: "11px", textAlign: "center" }}>
-        🌐 Conectando con el mercado de divisas...
+        🌐 Conectando con el mercado de divisas en vivo...
       </div>
     );
   }
 
-  // Precios en Pesos Mexicanos (MXN)
-  const usdMxn = tasas?.MXN ? tasas.MXN.toFixed(2) : "20.15";
-  const eurMxn = tasas?.MXN && tasas?.EUR ? (tasas.MXN / tasas.EUR).toFixed(2) : "21.80";
-  const cadMxn = tasas?.MXN && tasas?.CAD ? (tasas.MXN / tasas.CAD).toFixed(2) : "14.50";
+  // Si la API falla por alguna razón, usamos valores de respaldo actualizados (~17.50 MXN)
+  const usdMxn = tasas?.usd || "17.50";
+  const eurMxn = tasas?.eur || "19.05";
+  const cadMxn = tasas?.cad || "12.80";
 
   return (
     <div
