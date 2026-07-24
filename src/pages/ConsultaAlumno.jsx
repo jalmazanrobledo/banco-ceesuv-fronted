@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { consultarPorQR } from "../services/api";
-import TarjetaDebito from "./TarjetaDebito"; // Importamos el componente de la tarjeta
+import TarjetaDebito from "../components/TarjetaDebito";
 
 function ConsultaAlumno() {
   const { token } = useParams();
