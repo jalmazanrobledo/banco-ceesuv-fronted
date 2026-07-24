@@ -1,5 +1,4 @@
 import React, { useState } from "react";
-// Asegúrate de reemplazar la imagen en tu carpeta public o assets con este nuevo logo
 import logoCeesuvHorizontal from "/ceesuv.png";
 
 function TarjetaDebito({ alumno }) {
@@ -97,22 +96,18 @@ function TarjetaDebito({ alumno }) {
       >
         {/* FRENTE DE LA TARJETA */}
         <div className="card-face">
-          {/* HEADER CON EL NUEVO LOGO HORIZONTAL */}
+          {/* HEADER CON EL LOGO HORIZONTAL INTEGRADO SIN CÁPSULA */}
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             
-            {/* CÁPSULA PARA RESALTAR EL LOGO HORIZONTAL SOBRE EL AZUL */}
-            <div style={{
-              backgroundColor: "#FFFFFF",
-              padding: "3px 8px",
-              borderRadius: "6px",
-              display: "flex",
-              alignItems: "center",
-              boxShadow: "0 2px 6px rgba(0,0,0,0.2)"
-            }}>
+            <div style={{ display: "flex", alignItems: "center" }}>
               <img 
                 src={logoCeesuvHorizontal} 
                 alt="Logo CEESUV" 
-                style={{ height: "24px", objectFit: "contain" }} 
+                style={{ 
+                  height: "40px", 
+                  objectFit: "contain",
+                  filter: "brightness(0) invert(1) drop-shadow(0px 2px 4px rgba(0,0,0,0.4))"
+                }} 
               />
             </div>
 
@@ -127,7 +122,7 @@ function TarjetaDebito({ alumno }) {
           </div>
 
           {/* CHIP Y SÍMBOLO CONTACTLESS */}
-          <div style={{ display: "flex", alignItems: "center", gap: "12px", marginTop: "14px" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "12px", marginTop: "12px" }}>
             <div className="chip-emv"></div>
             <span style={{ fontSize: "15px", color: "rgba(255,255,255,0.45)", transform: "rotate(90deg)", fontWeight: "bold" }}>
               (((
