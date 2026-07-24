@@ -1,5 +1,6 @@
 import React, { useState } from "react";
-import logoCeesuv from "/logo-ceesuv.png";
+// Asegúrate de reemplazar la imagen en tu carpeta public o assets con este nuevo logo
+import logoCeesuvHorizontal from "/ceesuv.png";
 
 function TarjetaDebito({ alumno }) {
   const [volteada, setVolteada] = useState(false);
@@ -41,7 +42,7 @@ function TarjetaDebito({ alumno }) {
           height: 100%;
           backface-visibility: hidden;
           border-radius: 16px;
-          padding: 18px 22px;
+          padding: 16px 20px;
           box-sizing: border-box;
           background: linear-gradient(135deg, #0B2341 0%, #163156 50%, #1C3B66 100%);
           border: 1px solid rgba(212, 175, 55, 0.35);
@@ -50,7 +51,7 @@ function TarjetaDebito({ alumno }) {
           box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
         }
 
-        /* Difuminado suave en la esquina superior */
+        /* Difuminado suave de fondo */
         .card-face::before {
           content: "";
           position: absolute;
@@ -96,39 +97,46 @@ function TarjetaDebito({ alumno }) {
       >
         {/* FRENTE DE LA TARJETA */}
         <div className="card-face">
-          {/* HEADER DE LA TARJETA */}
+          {/* HEADER CON EL NUEVO LOGO HORIZONTAL */}
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-              <div style={{
-                width: "28px",
-                height: "28px",
-                backgroundColor: "#FFF",
-                borderRadius: "50%",
-                padding: "2px",
-                boxSizing: "border-box"
-              }}>
-                <img src={logoCeesuv} alt="Logo CEESUV" style={{ width: "100%", height: "100%", objectFit: "contain" }} />
-              </div>
-              <span style={{ fontSize: "11px", fontWeight: "bold", letterSpacing: "1px", color: "#D4AF37" }}>
+            
+            {/* CÁPSULA PARA RESALTAR EL LOGO HORIZONTAL SOBRE EL AZUL */}
+            <div style={{
+              backgroundColor: "#FFFFFF",
+              padding: "3px 8px",
+              borderRadius: "6px",
+              display: "flex",
+              alignItems: "center",
+              boxShadow: "0 2px 6px rgba(0,0,0,0.2)"
+            }}>
+              <img 
+                src={logoCeesuvHorizontal} 
+                alt="Logo CEESUV" 
+                style={{ height: "24px", objectFit: "contain" }} 
+              />
+            </div>
+
+            <div style={{ textAlign: "right" }}>
+              <span style={{ fontSize: "10px", display: "block", fontWeight: "bold", letterSpacing: "1px", color: "#D4AF37" }}>
                 BANCO ESCOLAR
               </span>
+              <span style={{ fontSize: "11px", fontWeight: "800", fontStyle: "italic", letterSpacing: "1.5px", color: "#FFF" }}>
+                DEBIT
+              </span>
             </div>
-            <span style={{ fontSize: "11px", fontWeight: "800", fontStyle: "italic", letterSpacing: "1.5px", color: "#D4AF37" }}>
-              DEBIT
-            </span>
           </div>
 
           {/* CHIP Y SÍMBOLO CONTACTLESS */}
-          <div style={{ display: "flex", alignItems: "center", gap: "12px", marginTop: "18px" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "12px", marginTop: "14px" }}>
             <div className="chip-emv"></div>
             <span style={{ fontSize: "15px", color: "rgba(255,255,255,0.45)", transform: "rotate(90deg)", fontWeight: "bold" }}>
               (((
             </span>
           </div>
 
-          {/* NÚMERO DE TARJETA (ESTILO FLAT) */}
+          {/* NÚMERO DE TARJETA */}
           <div style={{ 
-            marginTop: "16px", 
+            marginTop: "14px", 
             fontSize: "17px", 
             letterSpacing: "2.5px", 
             fontFamily: "'Courier New', Courier, monospace",
@@ -139,7 +147,7 @@ function TarjetaDebito({ alumno }) {
           </div>
 
           {/* DATOS DEL TITULAR Y VENCIMIENTO */}
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginTop: "14px" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginTop: "12px" }}>
             <div style={{ maxWidth: "210px" }}>
               <div style={{ fontSize: "7px", color: "rgba(255,255,255,0.6)", textTransform: "uppercase", letterSpacing: "0.5px" }}>
                 TITULAR DE LA CUENTA
