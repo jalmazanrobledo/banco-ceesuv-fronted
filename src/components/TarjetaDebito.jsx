@@ -96,33 +96,39 @@ function TarjetaDebito({ alumno }) {
       >
         {/* FRENTE DE LA TARJETA */}
         <div className="card-face">
-          {/* HEADER CON EL LOGO HORIZONTAL INTEGRADO SIN CÁPSULA */}
+          {/* HEADER: LOGO MÁS GRANDE CON "BANCO ESCOLAR" A UN LADO Y "DEBIT" A LA DERECHA */}
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             
-            <div style={{ display: "flex", alignItems: "center" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
               <img 
                 src={logoCeesuvHorizontal} 
                 alt="Logo CEESUV" 
                 style={{ 
-                  height: "40px", 
+                  height: "55px", 
                   objectFit: "contain",
                   filter: "brightness(0) invert(1) drop-shadow(0px 2px 4px rgba(0,0,0,0.4))"
                 }} 
               />
+              <span style={{ 
+                fontSize: "11px", 
+                fontWeight: "bold", 
+                letterSpacing: "1px", 
+                color: "#D4AF37",
+                lineHeight: "1.2"
+              }}>
+                BANCO<br/>ESCOLAR
+              </span>
             </div>
 
             <div style={{ textAlign: "right" }}>
-              <span style={{ fontSize: "10px", display: "block", fontWeight: "bold", letterSpacing: "1px", color: "#D4AF37" }}>
-                BANCO ESCOLAR
-              </span>
-              <span style={{ fontSize: "11px", fontWeight: "800", fontStyle: "italic", letterSpacing: "1.5px", color: "#FFF" }}>
+              <span style={{ fontSize: "12px", fontWeight: "800", fontStyle: "italic", letterSpacing: "1.5px", color: "#FFF" }}>
                 DEBIT
               </span>
             </div>
           </div>
 
           {/* CHIP Y SÍMBOLO CONTACTLESS */}
-          <div style={{ display: "flex", alignItems: "center", gap: "12px", marginTop: "12px" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "12px", marginTop: "6px" }}>
             <div className="chip-emv"></div>
             <span style={{ fontSize: "15px", color: "rgba(255,255,255,0.45)", transform: "rotate(90deg)", fontWeight: "bold" }}>
               (((
