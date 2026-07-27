@@ -16,7 +16,8 @@ export default function StudentDashboard() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const userSession = localStorage.getItem('usuario');
+    // 1. Lectura de sesión segura
+    const userSession = localStorage.getItem('usuario') || localStorage.getItem('usuarioCEESUV');
     if (!userSession) {
       navigate('/login');
       return;
@@ -26,26 +27,60 @@ export default function StudentDashboard() {
       const parsedUser = JSON.parse(userSession);
       setAlumno(parsedUser);
 
-      // Intentamos identificar la clave primaria del usuario (id, _id, username, etc.)
-      const userId = parsedUser.id || parsedUser._id || parsedUser.username;
+      // 2. Extraer movimientos directos de la sesión si ya existen
+      const directMovs = 
+        parsedUser.movimientos || 
+        parsedUser.historial || 
+        parsedUser.transacciones || 
+        parsedUser.history || 
+        [];
 
-      // URL de tu Backend (Ajusta el endpoint según tu API)
-      const API_URL = `https://banco-ceesuv-backend.vercel.app/api/alumnos/${userId}`; // O la URL de tu backend
+      if (Array.isArray(directMovs) && directMovs.length > 0) {
+        setMovimientos(directMovs);
+      }
+
+      // 3. Buscar la clave primaria del usuario evitando que quede como 'undefined'
+      const userId = 
+        parsedUser.id || 
+        parsedUser._id || 
+        parsedUser.matricula || 
+        parsedUser.usuario || 
+        parsedUser.username || 
+        parsedUser.id_alumno || 
+        parsedUser.alumnoId;
+
+      // Si no tenemos un identificador válido para consultar el endpoint, detenemos el fetch
+      if (!userId) {
+        console.warn("No se encontró un ID/Matrícula válida para consultar la API directa.");
+        setLoading(false);
+        return;
+      }
+
+      // 4. Consulta a la API
+      const API_URL = `https://banco-ceesuv-backend.vercel.app/api/alumnos/${userId}`;
 
       fetch(API_URL)
         .then((res) => {
-          if (!res.ok) throw new Error("Error al consultar BD");
+          if (!res.ok) throw new Error(`Error en la BD (${res.status})`);
           return res.json();
         })
         .then((data) => {
-          // Si el backend devuelve un objeto con los datos completos
-          setAlumno(data);
-          setMovimientos(data.movimientos || data.history || data.transacciones || []);
+          setAlumno((prev) => ({ ...prev, ...data }));
+          
+          // Extraer movimientos buscando cualquier alias común de la respuesta
+          const remoteMovs = 
+            data.movimientos || 
+            data.historial || 
+            data.transacciones || 
+            data.history || 
+            (Array.isArray(data) ? data : []);
+
+          if (Array.isArray(remoteMovs) && remoteMovs.length > 0) {
+            setMovimientos(remoteMovs);
+          }
         })
         .catch((err) => {
           console.log("No se pudo conectar al endpoint directo, usando datos locales:", err);
-          // Respaldo por si los datos están directo en la sesión
-          setMovimientos(parsedUser.movimientos || parsedUser.history || []);
         })
         .finally(() => setLoading(false));
 
@@ -57,6 +92,7 @@ export default function StudentDashboard() {
 
   const handleLogout = () => {
     localStorage.removeItem('usuario');
+    localStorage.removeItem('usuarioCEESUV');
     navigate('/login');
   };
 
@@ -68,11 +104,11 @@ export default function StudentDashboard() {
     );
   }
 
-  // Extracción flexible de campos
+  // Extracción flexible de campos para la interfaz
   const nombreMostrar = alumno?.nombre || alumno?.name || alumno?.usuario || 'Estudiante';
   const matriculaMostrar = alumno?.matricula || alumno?.username || alumno?.id || 'N/A';
   
-  // Soporte para distintas claves de saldo/coins en la base de datos
+  // Soporte para distintas claves de saldo/coins
   const coins = alumno?.coins ?? alumno?.saldo ?? alumno?.puntos ?? 0;
   const equivalenteMXN = (Number(coins) * 1.00).toFixed(2);
 
@@ -186,15 +222,23 @@ export default function StudentDashboard() {
                   </tr>
                 </thead>
                 <tbody>
-                  {movimientos.map((mov, idx) => (
-                    <tr key={idx} style={{ borderBottom: '1px solid #334155' }}>
-                      <td style={{ padding: '12px', color: '#cbd5e1' }}>{mov.fecha || mov.createdAt || 'N/A'}</td>
-                      <td style={{ padding: '12px', color: '#cbd5e1' }}>{mov.concepto || mov.descripcion || 'Transacción'}</td>
-                      <td style={{ padding: '12px', textAlign: 'right', fontWeight: 'bold', color: (mov.tipo === 'abono' || mov.monto > 0) ? '#34d399' : '#f87171' }}>
-                        {(mov.tipo === 'abono' || mov.monto > 0) ? '+' : ''}{mov.monto} COINS
-                      </td>
-                    </tr>
-                  ))}
+                  {movimientos.map((mov, idx) => {
+                    const monto = mov.monto ?? mov.coins ?? mov.cantidad ?? mov.amount ?? 0;
+                    const esAbono = mov.tipo === 'abono' || mov.tipo === 'deposit' || monto > 0;
+                    const fechaRaw = mov.fecha || mov.createdAt || mov.date;
+                    const fechaFormateada = fechaRaw ? (typeof fechaRaw === 'string' ? fechaRaw.split('T')[0] : 'Reciente') : 'Reciente';
+                    const conceptoText = mov.concepto || mov.descripcion || mov.motivo || mov.reason || 'Transacción';
+
+                    return (
+                      <tr key={idx} style={{ borderBottom: '1px solid #334155' }}>
+                        <td style={{ padding: '12px', color: '#cbd5e1' }}>{fechaFormateada}</td>
+                        <td style={{ padding: '12px', color: '#cbd5e1' }}>{conceptoText}</td>
+                        <td style={{ padding: '12px', textAlign: 'right', fontWeight: 'bold', color: esAbono ? '#34d399' : '#f87171' }}>
+                          {esAbono ? '+' : ''}{monto} COINS
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             )}
