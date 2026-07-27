@@ -33,22 +33,49 @@ export default function StudentDashboard() {
           return;
         }
 
+        // 1. Consultar datos del alumno
         const param = encodeURIComponent(identifier);
-        const response = await fetch(
+        const resAlumno = await fetch(
           `https://banco-ceesuv-backend.vercel.app/api/alumnos/${param}`
         );
 
-        if (response.ok) {
-          const data = await response.json();
-          const datosAlumno = Array.isArray(data) ? data[0] : (data.alumno || data);
-          const listaMovimientos =
-            data.movimientos || datosAlumno?.movimientos || userObj.movimientos || [];
+        let datosAlumno = userObj;
+        let movsDirectos = [];
 
+        if (resAlumno.ok) {
+          const data = await resAlumno.json();
+          datosAlumno = Array.isArray(data) ? data[0] : (data.alumno || data);
+          movsDirectos =
+            data.movimientos || datosAlumno?.movimientos || userObj.movimientos || [];
           setAlumno(datosAlumno);
-          setMovimientos(listaMovimientos);
         } else {
           setAlumno(userObj);
-          setMovimientos(userObj.movimientos || []);
+        }
+
+        // 2. Consulta de respaldo a /api/movimientos para asegurar que se muestren
+        const resMovs = await fetch(
+          `https://banco-ceesuv-backend.vercel.app/api/movimientos`
+        );
+
+        if (resMovs.ok) {
+          const todosMovimientos = await resMovs.json();
+          const nombreBuscado = (datosAlumno.nombre || userObj.nombre || "").toLowerCase();
+          const idBuscado = String(datosAlumno.id || datosAlumno.alumno_id || userObj.id || "");
+
+          // Filtrar dinámicamente por id o por coincidencia en el nombre del alumno
+          const misMovs = todosMovimientos.filter((m) => {
+            const alumnoMov = (m.alumno || m.nombre || "").toLowerCase();
+            const alumnoIdMov = String(m.alumno_id || m.alumnoId || m.id_alumno || "");
+            return (
+              (idBuscado && alumnoIdMov === idBuscado) ||
+              (nombreBuscado && alumnoMov.includes(nombreBuscado))
+            );
+          });
+
+          // Si el filtro encuentra movimientos los asigna; si no, usa los devueltos por el endpoint del alumno
+          setMovimientos(misMovs.length > 0 ? misMovs : movsDirectos);
+        } else {
+          setMovimientos(movsDirectos);
         }
       } catch (error) {
         console.error("Error al cargar datos del alumno:", error);
