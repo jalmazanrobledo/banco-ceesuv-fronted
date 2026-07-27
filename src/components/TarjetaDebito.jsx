@@ -103,7 +103,7 @@ function TarjetaDebito({ alumno }) {
               src={logoCeesuvHorizontal} 
               alt="Logo CEESUV" 
               style={{ 
-                height: "80px", 
+                height: "60px", 
                 objectFit: "contain",
                 filter: "brightness(0) invert(1) drop-shadow(0px 2px 4px rgba(0,0,0,0.4))"
               }} 
