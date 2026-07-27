@@ -14,7 +14,7 @@ function Login() {
     e.preventDefault();
     setError("");
 
-    // Validación flexible: Permite login con PIN (solo llenando password/PIN) o con Usuario + Password
+    // Validación flexible
     if (!credenciales.usuario && !credenciales.password) {
       setError("Ingresa tu usuario y contraseña, o tu PIN de alumno.");
       return;
@@ -23,14 +23,17 @@ function Login() {
     try {
       const res = await loginUsuario(credenciales);
 
-      if (res.mensaje) {
+      if (res.mensaje && !res.rol && !res.nombre) {
         setError(res.mensaje);
       } else {
-        // Guardamos la sesión en localStorage
+        // Guardamos la sesión en AMBAS claves para máxima compatibilidad con el Dashboard
         localStorage.setItem("usuarioCEESUV", JSON.stringify(res));
+        localStorage.setItem("usuario", JSON.stringify(res));
 
-        // Redirección inteligente basada en el Rol devuelto por el servidor
-        if (res.rol === "Alumno") {
+        // Normalizar comparación de rol (soporta 'Alumno', 'alumno', 'ALUMNO', 'student')
+        const rolUsuario = String(res.rol || res.role || "").toLowerCase();
+
+        if (rolUsuario === "alumno" || rolUsuario === "student") {
           navigate("/mi-cuenta");
         } else {
           navigate("/dashboard");
@@ -156,6 +159,8 @@ function Login() {
           </label>
           <input
             type="text"
+            name="username"
+            autoComplete="username"
             placeholder="Ej. juan.almazan o admin"
             value={credenciales.usuario}
             onChange={(e) =>
@@ -188,6 +193,8 @@ function Login() {
           </label>
           <input
             type="password"
+            name="password"
+            autoComplete="current-password"
             placeholder="•••••••• o PIN (4 dígitos)"
             value={credenciales.password}
             onChange={(e) =>
