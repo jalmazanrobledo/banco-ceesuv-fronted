@@ -7,14 +7,28 @@ const app = express();
 // =====================================
 // Configuración de CORS para Vercel
 // =====================================
+const allowedOrigins = [
+  "https://banco-ceesuv-fronted.vercel.app",
+  "http://localhost:5173",
+  "http://localhost:3000"
+];
+
 app.use(cors({
-  origin: [
-    "https://banco-ceesuv-fronted.vercel.app",
-    "http://localhost:5173",
-    "http://localhost:3000"
-  ],
-  credentials: true
+  origin: function (origin, callback) {
+    // Permitir llamadas sin origen (como Postman o curl) o que coincidan con la lista
+    if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      callback(null, true); // En desarrollo/despliegue flexible permitimos continuar
+    }
+  },
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"]
 }));
+
+// Habilitar respuesta explícita para solicitudes preflight
+app.options("*", cors());
 
 app.use(express.json());
 
@@ -209,20 +223,37 @@ app.get("/consulta/:token", async (req, res) => {
 });
 
 // =====================================
-// Dashboard del Alumno Individual (Para StudentDashboard.jsx)
+// Dashboard del Alumno Individual
+// Soporta tanto ID numérico como Usuario (ej. juan.almazan)
 // =====================================
-app.get("/api/alumno-dashboard/:alumnoId", async (req, res) => {
+app.get(["/api/alumno-dashboard/:alumnoId", "/api/alumnos/:identifier"], async (req, res) => {
   try {
-    const { alumnoId } = req.params;
+    const identifier = req.params.alumnoId || req.params.identifier;
 
-    const alumnoRes = await pool.query(
-      "SELECT id, nombre, grado, coins, COALESCE(coins_ahorro, 0) AS coins_ahorro FROM alumnos WHERE id = $1",
-      [alumnoId]
-    );
+    let alumnoRes;
 
-    if (alumnoRes.rows.length === 0) {
+    // Si es numérico, lo busca directo por ID de alumno
+    if (!isNaN(identifier)) {
+      alumnoRes = await pool.query(
+        "SELECT id, nombre, grado, coins, COALESCE(coins_ahorro, 0) AS coins_ahorro FROM alumnos WHERE id = $1",
+        [parseInt(identifier, 10)]
+      );
+    } else {
+      // Si es un nombre de usuario (ej. juan.almazan), lo busca vía la tabla usuarios
+      alumnoRes = await pool.query(
+        `SELECT a.id, a.nombre, a.grado, a.coins, COALESCE(a.coins_ahorro, 0) AS coins_ahorro 
+         FROM alumnos a
+         JOIN usuarios u ON u.alumno_id = a.id
+         WHERE LOWER(u.usuario) = LOWER($1)`,
+        [identifier]
+      );
+    }
+
+    if (!alumnoRes || alumnoRes.rows.length === 0) {
       return res.status(404).json({ mensaje: "Alumno no encontrado." });
     }
+
+    const alumno = alumnoRes.rows[0];
 
     const movsRes = await pool.query(
       `SELECT id, tipo, cantidad, motivo, fecha 
@@ -230,11 +261,12 @@ app.get("/api/alumno-dashboard/:alumnoId", async (req, res) => {
        WHERE alumno_id = $1 
        ORDER BY fecha DESC 
        LIMIT 15`,
-      [alumnoId]
+      [alumno.id]
     );
 
     res.json({
-      alumno: alumnoRes.rows[0],
+      ...alumno,
+      alumno: alumno,
       movimientos: movsRes.rows
     });
   } catch (error) {
