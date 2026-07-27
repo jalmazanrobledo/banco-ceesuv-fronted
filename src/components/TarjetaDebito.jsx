@@ -96,14 +96,14 @@ function TarjetaDebito({ alumno }) {
         {/* FRENTE DE LA TARJETA */}
         <div className="card-face">
           {/* HEADER: LOGO A LA IZQUIERDA | BANCO CEESUV CENTRADO | DEBITO A LA DERECHA */}
-          <div style={{ position: "relative", display: "flex", justifyContent: "space-between", alignItems: "center", minHeight: "45px" }}>
+          <div style={{ position: "relative", display: "flex", justifyContent: "space-between", alignItems: "center", minHeight: "60px" }}>
             
             {/* Logo en la esquina superior izquierda */}
             <img 
               src={logoCeesuvHorizontal} 
               alt="Logo CEESUV" 
               style={{ 
-                height: "45px", 
+                height: "60px", 
                 objectFit: "contain",
                 filter: "brightness(0) invert(1) drop-shadow(0px 2px 4px rgba(0,0,0,0.4))"
               }} 
