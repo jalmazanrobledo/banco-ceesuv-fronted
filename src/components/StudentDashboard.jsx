@@ -17,8 +17,10 @@ export default function StudentDashboard() {
         }
 
         const userObj = JSON.parse(storedUser);
+        let datosAlumno = userObj;
+        let listaMovimientos = userObj.movimientos || [];
 
-        // Identificador dinámico para cualquier alumno
+        // Identificador dinámico
         const identifier =
           userObj.id ||
           userObj.alumno_id ||
@@ -26,65 +28,79 @@ export default function StudentDashboard() {
           userObj.username ||
           userObj.nombre;
 
-        if (!identifier) {
-          setAlumno(userObj);
-          setMovimientos(userObj.movimientos || []);
-          setCargando(false);
-          return;
-        }
-
-        // 1. Consultar datos del alumno
-        const param = encodeURIComponent(identifier);
-        const resAlumno = await fetch(
-          `https://banco-ceesuv-backend.vercel.app/api/alumnos/${param}`
-        );
-
-        let datosAlumno = userObj;
-        let movsDirectos = [];
-
-        if (resAlumno.ok) {
-          const data = await resAlumno.json();
-          datosAlumno = Array.isArray(data) ? data[0] : (data.alumno || data);
-          movsDirectos =
-            data.movimientos || datosAlumno?.movimientos || userObj.movimientos || [];
-          setAlumno(datosAlumno);
-        } else {
-          setAlumno(userObj);
-        }
-
-        // 2. Consulta de respaldo a /api/movimientos para asegurar que se muestren
-        const resMovs = await fetch(
-          `https://banco-ceesuv-backend.vercel.app/api/movimientos`
-        );
-
-        if (resMovs.ok) {
-          const todosMovimientos = await resMovs.json();
-          const nombreBuscado = (datosAlumno.nombre || userObj.nombre || "").toLowerCase();
-          const idBuscado = String(datosAlumno.id || datosAlumno.alumno_id || userObj.id || "");
-
-          // Filtrar dinámicamente por id o por coincidencia en el nombre del alumno
-          const misMovs = todosMovimientos.filter((m) => {
-            const alumnoMov = (m.alumno || m.nombre || "").toLowerCase();
-            const alumnoIdMov = String(m.alumno_id || m.alumnoId || m.id_alumno || "");
-            return (
-              (idBuscado && alumnoIdMov === idBuscado) ||
-              (nombreBuscado && alumnoMov.includes(nombreBuscado))
+        // 1. Intento de consulta al endpoint individual con manejo de 404 / Fallback
+        if (identifier) {
+          const param = encodeURIComponent(identifier);
+          try {
+            const resAlumno = await fetch(
+              `https://banco-ceesuv-backend.vercel.app/api/alumnos/${param}`
             );
-          });
 
-          // Si el filtro encuentra movimientos los asigna; si no, usa los devueltos por el endpoint del alumno
-          setMovimientos(misMovs.length > 0 ? misMovs : movsDirectos);
-        } else {
-          setMovimientos(movsDirectos);
+            if (resAlumno.ok) {
+              const data = await resAlumno.json();
+              datosAlumno = Array.isArray(data) ? data[0] : (data.alumno || data);
+              listaMovimientos =
+                data.movimientos || datosAlumno?.movimientos || listaMovimientos;
+            } else {
+              // Si da 404 o falla, buscamos en el listado general de alumnos
+              const resTodosAlumnos = await fetch(
+                `https://banco-ceesuv-backend.vercel.app/api/alumnos`
+              );
+              if (resTodosAlumnos.ok) {
+                const todosAlumnos = await resTodosAlumnos.json();
+                const encontrado = todosAlumnos.find(
+                  (a) =>
+                    String(a.id) === String(identifier) ||
+                    String(a.alumno_id) === String(identifier) ||
+                    (a.nombre &&
+                      userObj.nombre &&
+                      a.nombre.toLowerCase() === userObj.nombre.toLowerCase())
+                );
+                if (encontrado) datosAlumno = encontrado;
+              }
+            }
+          } catch (err) {
+            console.warn("Consulta individual omitida o no disponible:", err);
+          }
         }
+
+        setAlumno(datosAlumno);
+
+        // 2. Consulta de respaldo a /api/movimientos
+        try {
+          const resMovs = await fetch(
+            `https://banco-ceesuv-backend.vercel.app/api/movimientos`
+          );
+
+          if (resMovs.ok) {
+            const todosMovimientos = await resMovs.json();
+            const nombreBuscado = (datosAlumno.nombre || userObj.nombre || "").toLowerCase();
+            const idBuscado = String(
+              datosAlumno.id || datosAlumno.alumno_id || userObj.id || ""
+            );
+
+            const misMovs = todosMovimientos.filter((m) => {
+              const alumnoMov = (m.alumno || m.nombre || "").toLowerCase();
+              const alumnoIdMov = String(
+                m.alumno_id || m.alumnoId || m.id_alumno || ""
+              );
+              return (
+                (idBuscado && alumnoIdMov === idBuscado) ||
+                (nombreBuscado && alumnoMov.includes(nombreBuscado))
+              );
+            });
+
+            if (misMovs.length > 0) {
+              listaMovimientos = misMovs;
+            }
+          }
+        } catch (err) {
+          console.warn("Consulta a /api/movimientos no disponible:", err);
+        }
+
+        setMovimientos(listaMovimientos);
       } catch (error) {
-        console.error("Error al cargar datos del alumno:", error);
-        const storedUser = localStorage.getItem("usuario");
-        if (storedUser) {
-          const userObj = JSON.parse(storedUser);
-          setAlumno(userObj);
-          setMovimientos(userObj.movimientos || []);
-        }
+        console.error("Error al procesar datos del alumno:", error);
       } finally {
         setCargando(false);
       }
@@ -114,7 +130,15 @@ export default function StudentDashboard() {
 
   if (cargando) {
     return (
-      <div style={{ minHeight: "100vh", background: "#0c1527", color: "white", padding: "40px", textAlign: "center" }}>
+      <div
+        style={{
+          minHeight: "100vh",
+          background: "#0c1527",
+          color: "white",
+          padding: "40px",
+          textAlign: "center"
+        }}
+      >
         <p>Cargando información del estudiante...</p>
       </div>
     );
