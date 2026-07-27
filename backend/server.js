@@ -13,22 +13,28 @@ const allowedOrigins = [
   "http://localhost:3000"
 ];
 
-app.use(cors({
-  origin: function (origin, callback) {
-    // Permitir llamadas sin origen (como Postman o curl) o que coincidan con la lista
-    if (!origin || allowedOrigins.indexOf(origin) !== -1) {
-      callback(null, true);
-    } else {
-      callback(null, true); // En desarrollo/despliegue flexible permitimos continuar
-    }
-  },
-  credentials: true,
-  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"]
-}));
+app.use(
+  cors({
+    origin: function (origin, callback) {
+      if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+        callback(null, true);
+      } else {
+        callback(null, true);
+      }
+    },
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"]
+  })
+);
 
-// Habilitar respuesta explícita para solicitudes preflight
-app.options("*", cors());
+// Responder explícitamente a solicitudes preflight (OPTIONS)
+app.use((req, res, next) => {
+  if (req.method === "OPTIONS") {
+    return res.sendStatus(200);
+  }
+  next();
+});
 
 app.use(express.json());
 
@@ -46,12 +52,12 @@ const pool = new Pool(
         host: "localhost",
         database: "bancoescolarceesuv",
         password: "2026",
-        port: 5432,
+        port: 5432
       }
 );
 
 // =====================================
-// Función Auxiliar: Generar PIN Único (4 dígitos)
+// Funciones Auxiliares
 // =====================================
 const generarPinUnico = async () => {
   let pin;
@@ -67,14 +73,10 @@ const generarPinUnico = async () => {
   return pin;
 };
 
-// =====================================
-// Función Auxiliar: Crear/Actualizar Usuario Alumno
-// =====================================
 const asegurarUsuarioAlumno = async (alumnoId, nombreCompleto) => {
   const partes = nombreCompleto.trim().split(/\s+/);
   const primerNombre = partes[0] ? partes[0].toLowerCase() : "alumno";
-  
-  // Extrae primer_nombre.primer_apellido dinámicamente
+
   let primerApellido = "";
   if (partes.length >= 3) {
     primerApellido = partes[2].toLowerCase();
@@ -85,14 +87,12 @@ const asegurarUsuarioAlumno = async (alumnoId, nombreCompleto) => {
   const usuarioBase = primerApellido ? `${primerNombre}.${primerApellido}` : primerNombre;
   const nombreMostrado = `${partes[0] || ""} ${partes[1] || ""}`.trim();
 
-  // Verificar si el usuario ya existe para este alumno_id
   const checkUser = await pool.query(
     "SELECT id, pin FROM usuarios WHERE alumno_id = $1",
     [alumnoId]
   );
 
   if (checkUser.rows.length > 0) {
-    // Actualizamos su usuario y nombre por si fueron modificados
     await pool.query(
       "UPDATE usuarios SET nombre = $1, usuario = $2 WHERE alumno_id = $3",
       [nombreMostrado, usuarioBase, alumnoId]
@@ -100,10 +100,8 @@ const asegurarUsuarioAlumno = async (alumnoId, nombreCompleto) => {
     return checkUser.rows[0].pin;
   }
 
-  // Generar un PIN único y nuevo registro
   const pinNuevo = await generarPinUnico();
 
-  // Insertar nuevo usuario con rol 'Alumno'
   await pool.query(
     `INSERT INTO usuarios (nombre, usuario, password, rol, estado, pin, alumno_id)
      VALUES ($1, $2, $3, 'Alumno', 'Activo', $4, $5)`,
@@ -151,7 +149,6 @@ const inicializarBaseDeDatos = async () => {
       );
     `);
 
-    // Columnas defensivas
     await pool.query(`
       ALTER TABLE alumnos ADD COLUMN IF NOT EXISTS coins_ahorro INT DEFAULT 0;
       ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS pin VARCHAR(10) UNIQUE;
@@ -174,16 +171,15 @@ const inicializarBaseDeDatos = async () => {
 inicializarBaseDeDatos();
 
 // =====================================
-// Ruta principal
+// Rutas de la API
 // =====================================
-app.get("/", (req, res) => {
+
+app.get(["/", "/api"], (req, res) => {
   res.send("Servidor Banco Escolar CEESUV funcionando correctamente.");
 });
 
-// =====================================
 // Consulta pública vía Código QR (Padres)
-// =====================================
-app.get("/consulta/:token", async (req, res) => {
+app.get(["/consulta/:token", "/api/consulta/:token"], async (req, res) => {
   try {
     const { token } = req.params;
 
@@ -222,24 +218,18 @@ app.get("/consulta/:token", async (req, res) => {
   }
 });
 
-// =====================================
 // Dashboard del Alumno Individual
-// Soporta tanto ID numérico como Usuario (ej. juan.almazan)
-// =====================================
-app.get(["/api/alumno-dashboard/:alumnoId", "/api/alumnos/:identifier"], async (req, res) => {
+app.get(["/api/alumno-dashboard/:alumnoId", "/api/alumnos/:identifier", "/alumnos/:identifier"], async (req, res) => {
   try {
     const identifier = req.params.alumnoId || req.params.identifier;
-
     let alumnoRes;
 
-    // Si es numérico, lo busca directo por ID de alumno
     if (!isNaN(identifier)) {
       alumnoRes = await pool.query(
         "SELECT id, nombre, grado, coins, COALESCE(coins_ahorro, 0) AS coins_ahorro FROM alumnos WHERE id = $1",
         [parseInt(identifier, 10)]
       );
     } else {
-      // Si es un nombre de usuario (ej. juan.almazan), lo busca vía la tabla usuarios
       alumnoRes = await pool.query(
         `SELECT a.id, a.nombre, a.grado, a.coins, COALESCE(a.coins_ahorro, 0) AS coins_ahorro 
          FROM alumnos a
@@ -275,10 +265,8 @@ app.get(["/api/alumno-dashboard/:alumnoId", "/api/alumnos/:identifier"], async (
   }
 });
 
-// =====================================
-// Obtener todos los alumnos (Incluye su PIN)
-// =====================================
-app.get("/alumnos", async (req, res) => {
+// Obtener todos los alumnos
+app.get(["/alumnos", "/api/alumnos"], async (req, res) => {
   try {
     const resultado = await pool.query(
       `SELECT 
@@ -295,22 +283,16 @@ app.get("/alumnos", async (req, res) => {
     );
 
     res.json(resultado.rows);
-
   } catch (error) {
     console.error(error);
-    res.status(500).json({
-      mensaje: "Error al obtener alumnos."
-    });
+    res.status(500).json({ mensaje: "Error al obtener alumnos." });
   }
 });
 
-// =====================================
-// Agregar alumno (Genera QR y Usuario/PIN)
-// =====================================
-app.post("/alumnos", async (req, res) => {
+// Agregar alumno
+app.post(["/alumnos", "/api/alumnos"], async (req, res) => {
   try {
     const { nombre, grado, coins, coins_ahorro } = req.body;
-
     const tokenGenerado = `ceesuv-${Date.now()}-${Math.floor(Math.random() * 899999 + 100000)}`;
 
     const resultado = await pool.query(
@@ -321,27 +303,17 @@ app.post("/alumnos", async (req, res) => {
     );
 
     const nuevoAlumno = resultado.rows[0];
-
-    // Se genera automáticamente el usuario con PIN para el alumno
     const pin = await asegurarUsuarioAlumno(nuevoAlumno.id, nuevoAlumno.nombre);
 
-    res.json({
-      ...nuevoAlumno,
-      pin
-    });
-
+    res.json({ ...nuevoAlumno, pin });
   } catch (error) {
     console.error(error);
-    res.status(500).json({
-      mensaje: "Error al guardar alumno."
-    });
+    res.status(500).json({ mensaje: "Error al guardar alumno." });
   }
 });
 
-// =====================================
 // Sincronizar/Generar usuarios y PINs para alumnos existentes
-// =====================================
-app.post("/alumnos/generar-usuarios", async (req, res) => {
+app.post(["/alumnos/generar-usuarios", "/api/alumnos/generar-usuarios"], async (req, res) => {
   try {
     const alumnos = await pool.query("SELECT id, nombre FROM alumnos");
     let creados = 0;
@@ -360,10 +332,8 @@ app.post("/alumnos/generar-usuarios", async (req, res) => {
   }
 });
 
-// =====================================
 // Editar alumno
-// =====================================
-app.put("/alumnos/:id", async (req, res) => {
+app.put(["/alumnos/:id", "/api/alumnos/:id"], async (req, res) => {
   try {
     const { id } = req.params;
     const { nombre, grado, coins, coins_ahorro } = req.body;
@@ -381,56 +351,61 @@ app.put("/alumnos/:id", async (req, res) => {
 
     const alumnoEditado = resultado.rows[0];
 
-    // Actualizamos también su usuario si cambió de nombre
     if (alumnoEditado) {
       await asegurarUsuarioAlumno(alumnoEditado.id, alumnoEditado.nombre);
     }
 
     res.json(alumnoEditado);
-
   } catch (error) {
     console.error(error);
-    res.status(500).json({
-      mensaje: "Error al editar alumno."
-    });
+    res.status(500).json({ mensaje: "Error al editar alumno." });
   }
 });
 
-// =====================================
 // Eliminar alumno
-// =====================================
-app.delete("/alumnos/:id", async (req, res) => {
+app.delete(["/alumnos/:id", "/api/alumnos/:id"], async (req, res) => {
   try {
     const { id } = req.params;
 
-    // Eliminar también su usuario asociado
     await pool.query("DELETE FROM usuarios WHERE alumno_id=$1", [id]);
     await pool.query("DELETE FROM alumnos WHERE id=$1", [id]);
 
     res.json({
       mensaje: "Alumno y usuario asociados eliminados correctamente."
     });
-
   } catch (error) {
     console.error(error);
-    res.status(500).json({
-      mensaje: "Error al eliminar alumno."
-    });
+    res.status(500).json({ mensaje: "Error al eliminar alumno." });
   }
 });
 
-// =====================================
 // Movimientos de saldo
-// =====================================
-app.post("/movimientos", async (req, res) => {
+app.get(["/movimientos", "/api/movimientos"], async (req, res) => {
   try {
-    const {
-      alumno_id,
-      tipo,
-      cantidad,
-      motivo,
-      usuario
-    } = req.body;
+    const resultado = await pool.query(`
+      SELECT
+        m.id,
+        a.nombre AS alumno,
+        m.tipo,
+        m.cantidad,
+        m.motivo,
+        m.fecha,
+        m.usuario
+      FROM movimientos m
+      INNER JOIN alumnos a ON m.alumno_id = a.id
+      ORDER BY m.fecha DESC
+    `);
+
+    res.json(resultado.rows);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ mensaje: "Error al obtener movimientos." });
+  }
+});
+
+app.post(["/movimientos", "/api/movimientos"], async (req, res) => {
+  try {
+    const { alumno_id, tipo, cantidad, motivo, usuario } = req.body;
 
     const alumnoQuery = await pool.query(
       "SELECT coins, COALESCE(coins_ahorro, 0) AS coins_ahorro FROM alumnos WHERE id = $1",
@@ -438,9 +413,7 @@ app.post("/movimientos", async (req, res) => {
     );
 
     if (alumnoQuery.rows.length === 0) {
-      return res.status(404).json({
-        mensaje: "Alumno no encontrado."
-      });
+      return res.status(404).json({ mensaje: "Alumno no encontrado." });
     }
 
     let coinsDisponibles = Number(alumnoQuery.rows[0].coins);
@@ -476,16 +449,9 @@ app.post("/movimientos", async (req, res) => {
     );
 
     await pool.query(
-      `INSERT INTO movimientos
-      (alumno_id, tipo, cantidad, motivo, usuario)
-      VALUES ($1, $2, $3, $4, $5)`,
-      [
-        alumno_id,
-        tipo,
-        monto,
-        motivo || 'Movimiento de saldo',
-        usuario || 'Sistema'
-      ]
+      `INSERT INTO movimientos (alumno_id, tipo, cantidad, motivo, usuario)
+       VALUES ($1, $2, $3, $4, $5)`,
+      [alumno_id, tipo, monto, motivo || 'Movimiento de saldo', usuario || 'Sistema']
     );
 
     res.json({
@@ -493,19 +459,14 @@ app.post("/movimientos", async (req, res) => {
       coins: coinsDisponibles,
       coins_ahorro: coinsAhorro
     });
-
   } catch (error) {
     console.error("Error al registrar movimiento:", error);
-    res.status(500).json({
-      mensaje: "Error al registrar movimiento."
-    });
+    res.status(500).json({ mensaje: "Error al registrar movimiento." });
   }
 });
 
-// =====================================
 // Dashboard General
-// =====================================
-app.get("/dashboard", async (req, res) => {
+app.get(["/dashboard", "/api/dashboard"], async (req, res) => {
   try {
     const alumnos = await pool.query("SELECT COUNT(*) AS total FROM alumnos");
     const coins = await pool.query("SELECT COALESCE(SUM(coins),0) AS total FROM alumnos");
@@ -518,77 +479,27 @@ app.get("/dashboard", async (req, res) => {
       coins_ahorro: Number(coinsAhorro.rows[0].total),
       movimientos: Number(movimientos.rows[0].total)
     });
-
   } catch (error) {
     console.error(error);
-    res.status(500).json({
-      mensaje: "Error al obtener estadísticas."
-    });
+    res.status(500).json({ mensaje: "Error al obtener estadísticas." });
   }
 });
 
-// =====================================
-// Obtener movimientos generales
-// =====================================
-app.get("/movimientos", async (req, res) => {
-  try {
-    const resultado = await pool.query(`
-      SELECT
-        m.id,
-        a.nombre AS alumno,
-        m.tipo,
-        m.cantidad,
-        m.motivo,
-        m.fecha,
-        m.usuario
-      FROM movimientos m
-      INNER JOIN alumnos a ON m.alumno_id = a.id
-      ORDER BY m.fecha DESC
-    `);
-
-    res.json(resultado.rows);
-
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({
-      mensaje: "Error al obtener movimientos."
-    });
-  }
-});
-
-// =====================================
-// Obtener usuarios (Incluye PIN y alumno_id)
-// =====================================
-app.get("/usuarios", async (req, res) => {
+// Obtener usuarios
+app.get(["/usuarios", "/api/usuarios"], async (req, res) => {
   try {
     const resultado = await pool.query(
-      `SELECT
-        id,
-        nombre,
-        usuario,
-        rol,
-        estado,
-        pin,
-        alumno_id,
-        fecha_registro
-      FROM usuarios
-      ORDER BY id`
+      `SELECT id, nombre, usuario, rol, estado, pin, alumno_id, fecha_registro FROM usuarios ORDER BY id`
     );
-
     res.json(resultado.rows);
-
   } catch (error) {
     console.error(error);
-    res.status(500).json({
-      mensaje: "Error al obtener usuarios."
-    });
+    res.status(500).json({ mensaje: "Error al obtener usuarios." });
   }
 });
 
-// =====================================
-// Agregar usuario administrativo (Docente/Admin)
-// =====================================
-app.post("/usuarios", async (req, res) => {
+// Agregar usuario administrativo
+app.post(["/usuarios", "/api/usuarios"], async (req, res) => {
   try {
     const { nombre, usuario, password, rol } = req.body;
 
@@ -600,26 +511,29 @@ app.post("/usuarios", async (req, res) => {
     );
 
     res.json(resultado.rows[0]);
-
   } catch (error) {
     console.error(error);
-    res.status(500).json({
-      mensaje: "Error al guardar usuario."
-    });
+    res.status(500).json({ mensaje: "Error al guardar usuario." });
   }
 });
 
-// =====================================
-// Login de usuario (Soporta contraseña y PIN)
-// =====================================
-app.post("/login", async (req, res) => {
+// Login
+app.post(["/login", "/api/login"], async (req, res) => {
   try {
-    const payload = (req.body && typeof req.body.usuario === 'object' && req.body.usuario !== null)
-      ? req.body.usuario 
-      : req.body;
+    const payload =
+      req.body && typeof req.body.usuario === "object" && req.body.usuario !== null
+        ? req.body.usuario
+        : req.body;
 
-    const uRaw = payload.usuario || (typeof req.body.usuario === 'string' ? req.body.usuario : "");
-    const pRaw = payload.password || payload.contrasena || payload.pass || payload.pin || req.body.password || req.body.pin || "";
+    const uRaw = payload.usuario || (typeof req.body.usuario === "string" ? req.body.usuario : "");
+    const pRaw =
+      payload.password ||
+      payload.contrasena ||
+      payload.pass ||
+      payload.pin ||
+      req.body.password ||
+      req.body.pin ||
+      "";
 
     const userClean = String(uRaw).trim();
     const passClean = String(pRaw).trim();
@@ -628,7 +542,6 @@ app.post("/login", async (req, res) => {
       return res.status(400).json({ mensaje: "Credenciales requeridas." });
     }
 
-    // 1. Intento de login por PIN de 4 dígitos (Alumnos)
     if (passClean.length === 4 && !isNaN(passClean)) {
       const resPin = await pool.query(
         `SELECT u.id AS usuario_id, u.nombre, u.usuario, u.rol, u.estado, u.alumno_id, a.grado, a.coins, COALESCE(a.coins_ahorro,0) as coins_ahorro
@@ -646,7 +559,6 @@ app.post("/login", async (req, res) => {
       }
     }
 
-    // 2. Intento de login por Usuario / Password (Administradores/Maestros)
     const resultado = await pool.query(
       `SELECT id, nombre, usuario, password, rol, estado, alumno_id 
        FROM usuarios 
@@ -655,22 +567,17 @@ app.post("/login", async (req, res) => {
     );
 
     if (resultado.rows.length === 0 || resultado.rows[0].password !== passClean) {
-      return res.status(401).json({
-        mensaje: "Usuario, contraseña o PIN incorrecto."
-      });
+      return res.status(401).json({ mensaje: "Usuario, contraseña o PIN incorrecto." });
     }
 
     const usuarioEncontrado = resultado.rows[0];
 
     if (usuarioEncontrado.estado && usuarioEncontrado.estado.toLowerCase() !== "activo") {
-      return res.status(403).json({
-        mensaje: "El usuario se encuentra inactivo."
-      });
+      return res.status(403).json({ mensaje: "El usuario se encuentra inactivo." });
     }
 
     delete usuarioEncontrado.password;
     res.json(usuarioEncontrado);
-
   } catch (error) {
     console.error("Error al intentar iniciar sesión:", error);
     res.status(500).json({
@@ -680,10 +587,8 @@ app.post("/login", async (req, res) => {
   }
 });
 
-// =====================================
 // RESETEO DE BASE DE DATOS
-// =====================================
-app.get('/reset-db-directo', async (req, res) => {
+app.get(['/reset-db-directo', '/api/reset-db-directo'], async (req, res) => {
   try {
     await pool.query(`
       DROP TABLE IF EXISTS movimientos CASCADE;
@@ -731,12 +636,14 @@ app.get('/reset-db-directo', async (req, res) => {
   }
 });
 
-// Puerto asignado por el servidor
-const PORT = process.env.PORT || 5000;
+// =====================================
+// Exportación para Vercel Serverless
+// =====================================
+if (process.env.NODE_ENV !== "production") {
+  const PORT = process.env.PORT || 5000;
+  app.listen(PORT, () => {
+    console.log(`Servidor local corriendo en puerto ${PORT}`);
+  });
+}
 
-app.listen(PORT, () => {
-  console.log("====================================");
-  console.log(" Banco Escolar CEESUV");
-  console.log(` Servidor iniciado en puerto: ${PORT}`);
-  console.log("====================================");
-});
+module.exports = app;
