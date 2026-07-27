@@ -1,9 +1,11 @@
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { 
   FaCoins, 
   FaMoneyBillWave, 
   FaHistory, 
   FaSignOutAlt, 
-  FaUserGraduate, // <-- Cambiado de FaUserGraduation a FaUserGraduate
+  FaUserGraduate, 
   FaGraduationCap 
 } from 'react-icons/fa';
 
@@ -14,13 +16,15 @@ export default function StudentDashboard() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Cargar datos guardados en el login
     const userSession = localStorage.getItem('usuario');
     if (userSession) {
-      const parsedUser = JSON.parse(userSession);
-      setAlumno(parsedUser);
-      // Si tienes endpoint de movimientos del alumno, se cargarían aquí
-      setMovimientos(parsedUser.movimientos || []);
+      try {
+        const parsedUser = JSON.parse(userSession);
+        setAlumno(parsedUser);
+        setMovimientos(parsedUser.movimientos || []);
+      } catch (e) {
+        console.error("Error al leer sesión de usuario", e);
+      }
     }
     setLoading(false);
   }, []);
@@ -32,38 +36,50 @@ export default function StudentDashboard() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-900 flex items-center justify-center text-white">
+      <div style={{ minHeight: '100vh', backgroundColor: '#0f172a', color: '#ffffff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         Cargando panel de alumno...
       </div>
     );
   }
 
-  // Conversión de coins a MXN (ajusta según tu equivalencia)
   const coins = alumno?.coins || 0;
-  const equivalenteMXN = (coins * 1.00).toFixed(2); // Ejemplo 1 coin = $1 MXN
+  const equivalenteMXN = (coins * 1.00).toFixed(2);
 
   return (
-    <div className="min-h-screen bg-slate-900 text-slate-100 flex flex-col">
-      {/* Navbar Superior Institucional */}
-      <header className="bg-slate-800 border-b border-slate-700 px-6 py-4 flex flex-wrap justify-between items-center shadow-md">
-        <div className="flex items-center gap-3">
-          <div className="bg-indigo-600 p-2 rounded-lg text-white">
-            <FaGraduationCap className="text-2xl" />
+    <div style={{ minHeight: '100vh', backgroundColor: '#0f172a', color: '#f8fafc', fontFamily: 'system-ui, sans-serif' }}>
+      
+      {/* Navbar Superior */}
+      <header style={{ backgroundColor: '#1e293b', borderBottom: '1px solid #334155', padding: '16px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <div style={{ backgroundColor: '#4f46e5', padding: '10px', borderRadius: '8px', color: '#fff', display: 'flex' }}>
+            <FaGraduationCap size={24} />
           </div>
           <div>
-            <h1 className="font-bold text-lg leading-tight text-white">CEESUV</h1>
-            <p className="text-xs text-indigo-400 font-medium">Portal del Estudiante</p>
+            <h1 style={{ margin: 0, fontSize: '18px', fontWeight: 'bold', color: '#ffffff' }}>CEESUV</h1>
+            <p style={{ margin: 0, fontSize: '12px', color: '#818cf8', fontWeight: '500' }}>Portal del Estudiante</p>
           </div>
         </div>
 
-        <div className="flex items-center gap-4 mt-2 sm:mt-0">
-          <div className="text-right hidden sm:block">
-            <p className="text-sm font-semibold text-slate-200">{alumno?.nombre || 'Alumno'}</p>
-            <p className="text-xs text-slate-400">Matrícula: {alumno?.username || 'N/A'}</p>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+          <div style={{ textAlign: 'right' }}>
+            <p style={{ margin: 0, fontSize: '14px', fontWeight: '600', color: '#f1f5f9' }}>{alumno?.nombre || 'Alumno'}</p>
+            <p style={{ margin: 0, fontSize: '12px', color: '#94a3b8' }}>Matrícula: {alumno?.username || 'N/A'}</p>
           </div>
           <button
             onClick={handleLogout}
-            className="flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white text-sm px-4 py-2 rounded-lg transition-colors font-medium shadow"
+            style={{
+              backgroundColor: '#dc2626',
+              color: '#ffffff',
+              border: 'none',
+              padding: '8px 16px',
+              borderRadius: '8px',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              fontWeight: '600',
+              fontSize: '14px'
+            }}
           >
             <FaSignOutAlt />
             <span>Cerrar Sesión</span>
@@ -72,90 +88,84 @@ export default function StudentDashboard() {
       </header>
 
       {/* Contenido Principal */}
-      <main className="flex-1 max-w-7xl w-full mx-auto p-6 space-y-6">
+      <main style={{ maxWidth: '1200px', margin: '0 auto', padding: '24px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
         
-        {/* Banner de Bienvenida */}
-<div className="bg-gradient-to-r from-indigo-900 via-slate-800 to-slate-800 border border-slate-700 rounded-xl p-6 shadow-lg flex items-center justify-between">
-  <div>
-    <h2 className="text-2xl font-bold text-white flex items-center gap-2">
-      <FaUserGraduate className="text-indigo-400" /> {/* <-- Usar FaUserGraduate aquí */}
-      ¡Hola, {alumno?.nombre || 'Estudiante'}!
-    </h2>
-    <p className="text-slate-400 text-sm mt-1">
-      Consulta tu saldo acumulado de CEES Coins y el historial de tus actividades escolares.
-    </p>
-  </div>
-</div>
-
-        {/* Tarjetas Estadísticas de Saldo */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Card Coins */}
-          <div className="bg-slate-800 border border-slate-700 rounded-xl p-6 shadow-md flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-slate-400">Saldo en Coins</p>
-              <h3 className="text-3xl font-bold text-amber-400 mt-2 flex items-baseline gap-1">
-                {coins} <span className="text-sm font-normal text-slate-400">COINS</span>
-              </h3>
-            </div>
-            <div className="p-4 bg-amber-500/10 text-amber-400 rounded-xl border border-amber-500/20">
-              <FaCoins className="text-3xl" />
-            </div>
-          </div>
-
-          {/* Card Equivalente MXN */}
-          <div className="bg-slate-800 border border-slate-700 rounded-xl p-6 shadow-md flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-slate-400">Valor Estimado</p>
-              <h3 className="text-3xl font-bold text-emerald-400 mt-2">
-                ${equivalenteMXN} <span className="text-sm font-normal text-slate-400">MXN</span>
-              </h3>
-            </div>
-            <div className="p-4 bg-emerald-500/10 text-emerald-400 rounded-xl border border-emerald-500/20">
-              <FaMoneyBillWave className="text-3xl" />
-            </div>
-          </div>
+        {/* Banner Saludo */}
+        <div style={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: '12px', padding: '24px' }}>
+          <h2 style={{ margin: 0, fontSize: '22px', color: '#ffffff', display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <FaUserGraduate color="#818cf8" />
+            ¡Bienvenido, {alumno?.nombre || 'Estudiante'}!
+          </h2>
+          <p style={{ margin: '8px 0 0 0', color: '#94a3b8', fontSize: '14px' }}>
+            Aquí puedes consultar tu saldo acumulado de Coins y tus movimientos recientes en el sistema escolar.
+          </p>
         </div>
 
-        {/* Tabla / Lista de Últimos Movimientos */}
-        <div className="bg-slate-800 border border-slate-700 rounded-xl shadow-md overflow-hidden">
-          <div className="p-5 border-b border-slate-700 flex items-center gap-2">
-            <FaHistory className="text-indigo-400" />
-            <h3 className="font-semibold text-lg text-white">Mis Últimos Movimientos</h3>
+        {/* Tarjetas Estadísticas */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '20px' }}>
+          
+          {/* Card Coins */}
+          <div style={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: '12px', padding: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div>
+              <p style={{ margin: 0, fontSize: '14px', color: '#94a3b8', fontWeight: '500' }}>Saldo Disponible</p>
+              <h3 style={{ margin: '8px 0 0 0', fontSize: '32px', color: '#fbbf24', fontWeight: 'bold' }}>
+                {coins} <span style={{ fontSize: '14px', color: '#94a3b8', fontWeight: 'normal' }}>COINS</span>
+              </h3>
+            </div>
+            <div style={{ backgroundColor: 'rgba(251, 191, 36, 0.1)', padding: '16px', borderRadius: '12px', color: '#fbbf24' }}>
+              <FaCoins size={32} />
+            </div>
           </div>
 
-          <div className="p-6">
+          {/* Card MXN */}
+          <div style={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: '12px', padding: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div>
+              <p style={{ margin: 0, fontSize: '14px', color: '#94a3b8', fontWeight: '500' }}>Equivalente Estimado</p>
+              <h3 style={{ margin: '8px 0 0 0', fontSize: '32px', color: '#34d399', fontWeight: 'bold' }}>
+                ${equivalenteMXN} <span style={{ fontSize: '14px', color: '#94a3b8', fontWeight: 'normal' }}>MXN</span>
+              </h3>
+            </div>
+            <div style={{ backgroundColor: 'rgba(52, 211, 153, 0.1)', padding: '16px', borderRadius: '12px', color: '#34d399' }}>
+              <FaMoneyBillWave size={32} />
+            </div>
+          </div>
+
+        </div>
+
+        {/* Tabla de Movimientos */}
+        <div style={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: '12px', overflow: 'hidden' }}>
+          <div style={{ padding: '16px 20px', borderBottom: '1px solid #334155', display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <FaHistory color="#818cf8" />
+            <h3 style={{ margin: 0, fontSize: '16px', color: '#ffffff', fontWeight: '600' }}>Mis Últimos Movimientos</h3>
+          </div>
+
+          <div style={{ padding: '20px' }}>
             {movimientos.length === 0 ? (
-              <div className="text-center py-8 text-slate-400">
-                <p className="text-base font-medium">Aún no tienes movimientos registrados.</p>
-                <p className="text-xs text-slate-500 mt-1">
-                  Tus abonos y canjes de coins aparecerán reflejados aquí.
-                </p>
+              <div style={{ textAlign: 'center', padding: '32px 0', color: '#94a3b8' }}>
+                <p style={{ margin: 0, fontSize: '15px', fontWeight: '500' }}>Aún no tienes movimientos registrados.</p>
+                <p style={{ margin: '4px 0 0 0', fontSize: '13px', color: '#64748b' }}>Tus abonos y canjes de coins aparecerán reflejados en esta sección.</p>
               </div>
             ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse text-sm text-slate-300">
-                  <thead>
-                    <tr className="border-b border-slate-700 text-slate-400 bg-slate-800/50">
-                      <th className="py-3 px-4">Fecha</th>
-                      <th className="py-3 px-4">Concepto / Motivo</th>
-                      <th className="py-3 px-4 text-right">Monto</th>
+              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '14px' }}>
+                <thead>
+                  <tr style={{ borderBottom: '1px solid #334155', color: '#94a3b8' }}>
+                    <th style={{ padding: '12px' }}>Fecha</th>
+                    <th style={{ padding: '12px' }}>Concepto</th>
+                    <th style={{ padding: '12px', textAlign: 'right' }}>Monto</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {movimientos.map((mov, idx) => (
+                    <tr key={idx} style={{ borderBottom: '1px solid #334155' }}>
+                      <td style={{ padding: '12px', color: '#cbd5e1' }}>{mov.fecha || 'N/A'}</td>
+                      <td style={{ padding: '12px', color: '#cbd5e1' }}>{mov.concepto || 'Transacción'}</td>
+                      <td style={{ padding: '12px', textAlign: 'right', fontWeight: 'bold', color: mov.tipo === 'abono' ? '#34d399' : '#f87171' }}>
+                        {mov.tipo === 'abono' ? '+' : '-'}{mov.monto} COINS
+                      </td>
                     </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-700">
-                    {movimientos.map((mov, index) => (
-                      <tr key={index} className="hover:bg-slate-700/30 transition-colors">
-                        <td className="py-3 px-4">{mov.fecha || 'N/A'}</td>
-                        <td className="py-3 px-4">{mov.concepto || 'Transacción'}</td>
-                        <td className={`py-3 px-4 text-right font-bold ${
-                          mov.tipo === 'abono' ? 'text-emerald-400' : 'text-red-400'
-                        }`}>
-                          {mov.tipo === 'abono' ? '+' : '-'}{mov.monto} COINS
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                  ))}
+                </tbody>
+              </table>
             )}
           </div>
         </div>
