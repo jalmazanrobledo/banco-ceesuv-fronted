@@ -19,7 +19,7 @@ app.use(
       if (!origin || allowedOrigins.indexOf(origin) !== -1) {
         callback(null, true);
       } else {
-        callback(null, true);
+        callback(new Error("Bloqueado por la política de CORS"));
       }
     },
     credentials: true,
@@ -55,6 +55,10 @@ const pool = new Pool(
         port: 5432
       }
 );
+
+pool.on('error', (err) => {
+  console.error('❌ Error inesperado en el cliente inactivo de PostgreSQL', err);
+});
 
 // =====================================
 // Funciones Auxiliares
