@@ -14,8 +14,9 @@ function Login() {
     e.preventDefault();
     setError("");
 
-    if (!credenciales.usuario || !credenciales.password) {
-      setError("Ingresa tu usuario y contraseña.");
+    // Validación flexible: Permite login con PIN (solo llenando password/PIN) o con Usuario + Password
+    if (!credenciales.usuario && !credenciales.password) {
+      setError("Ingresa tu usuario y contraseña, o tu PIN de alumno.");
       return;
     }
 
@@ -27,7 +28,13 @@ function Login() {
       } else {
         // Guardamos la sesión en localStorage
         localStorage.setItem("usuarioCEESUV", JSON.stringify(res));
-        navigate("/dashboard");
+
+        // Redirección inteligente basada en el Rol devuelto por el servidor
+        if (res.rol === "Alumno") {
+          navigate("/mi-cuenta");
+        } else {
+          navigate("/dashboard");
+        }
       }
     } catch (err) {
       setError(err.message || "Error al conectar con el servidor.");
@@ -72,7 +79,6 @@ function Login() {
               display: "block"
             }}
             onError={(e) => {
-              // Si no encuentra la imagen /logo.png, muestra este respaldo gráfico
               e.target.style.display = "none";
             }}
           />
@@ -146,11 +152,11 @@ function Login() {
               marginBottom: "6px"
             }}
           >
-            Usuario:
+            Usuario (Opcional si usas PIN):
           </label>
           <input
             type="text"
-            placeholder="Ej. admin"
+            placeholder="Ej. juan.almazan o admin"
             value={credenciales.usuario}
             onChange={(e) =>
               setCredenciales({ ...credenciales, usuario: e.target.value })
@@ -178,11 +184,11 @@ function Login() {
               marginBottom: "6px"
             }}
           >
-            Contraseña:
+            Contraseña / PIN de Alumno:
           </label>
           <input
             type="password"
-            placeholder="••••••••"
+            placeholder="•••••••• o PIN (4 dígitos)"
             value={credenciales.password}
             onChange={(e) =>
               setCredenciales({ ...credenciales, password: e.target.value })

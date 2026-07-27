@@ -7,6 +7,7 @@ import Usuarios from "./pages/Usuarios";
 import Login from "./pages/Login";
 import ConsultaAlumno from "./pages/ConsultaAlumno";
 import Operaciones from "./pages/Operaciones";
+import StudentDashboard from "./components/StudentDashboard";
 
 // Importamos el componente del ticker de divisas
 import TickerDivisas from "./components/TickerDivisas";
@@ -21,18 +22,36 @@ function LayoutPanel() {
   );
 }
 
-// 1. Protege rutas que requieren estar logueado (Cualquier rol)
+// 1. Protege rutas que requieren estar logueado (Admin o Docente)
 function RutaProtegida({ children }) {
   const usuarioGuardado = localStorage.getItem("usuarioCEESUV");
+  const usuario = usuarioGuardado ? JSON.parse(usuarioGuardado) : null;
 
-  if (!usuarioGuardado) {
+  if (!usuario) {
+    return <Navigate to="/login" replace />;
+  }
+
+  // Si un alumno intenta entrar al panel administrativo, lo mandamos a su dashboard
+  if (usuario.rol === 'Alumno') {
+    return <Navigate to="/mi-cuenta" replace />;
+  }
+
+  return children;
+}
+
+// 2. Protege la ruta del Alumno (/mi-cuenta)
+function RutaAlumno({ children }) {
+  const usuarioGuardado = localStorage.getItem("usuarioCEESUV");
+  const usuario = usuarioGuardado ? JSON.parse(usuarioGuardado) : null;
+
+  if (!usuario) {
     return <Navigate to="/login" replace />;
   }
 
   return children;
 }
 
-// 2. Protege rutas EXCLUSIVAS de Administrador
+// 3. Protege rutas EXCLUSIVAS de Administrador
 function RutaAdmin({ children }) {
   const usuarioGuardado = localStorage.getItem("usuarioCEESUV");
   const usuario = usuarioGuardado ? JSON.parse(usuarioGuardado) : null;
@@ -52,15 +71,41 @@ function RutaAdmin({ children }) {
   return children;
 }
 
-// 3. Redirección inteligente para la raíz "/"
+// 4. Redirección inteligente para la raíz "/"
 function RedireccionInicial() {
   const usuarioGuardado = localStorage.getItem("usuarioCEESUV");
   
   if (usuarioGuardado) {
+    const usuario = JSON.parse(usuarioGuardado);
+    if (usuario.rol === 'Alumno') {
+      return <Navigate to="/mi-cuenta" replace />;
+    }
     return <Navigate to="/dashboard" replace />;
   }
   
   return <Navigate to="/login" replace />;
+}
+
+// Componente Wrapper para la sesión del Alumno
+function PortalAlumno() {
+  const usuarioGuardado = localStorage.getItem("usuarioCEESUV");
+  const usuario = usuarioGuardado ? JSON.parse(usuarioGuardado) : null;
+
+  const handleLogout = () => {
+    localStorage.removeItem("usuarioCEESUV");
+    window.location.href = "/login";
+  };
+
+  return (
+    <StudentDashboard 
+      alumno={{
+        id: usuario?.alumno_id || usuario?.id,
+        nombre: usuario?.nombre,
+        grado: usuario?.grado
+      }} 
+      onLogout={handleLogout} 
+    />
+  );
 }
 
 function App() {
@@ -76,6 +121,15 @@ function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/consulta/:token" element={<ConsultaAlumno />} />
 
+        {/* Vista del Dashboard del Alumno */}
+        <Route
+          path="/mi-cuenta"
+          element={
+            <RutaAlumno>
+              <PortalAlumno />
+            </RutaAlumno>
+          }
+        />
 
         {/* -----------------------------------------------------------
             RUTAS PRIVADAS / ADMIN Y DOCENTES (CON TICKER DE DIVISAS)

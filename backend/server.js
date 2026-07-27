@@ -57,11 +57,19 @@ const generarPinUnico = async () => {
 // Función Auxiliar: Crear/Actualizar Usuario Alumno
 // =====================================
 const asegurarUsuarioAlumno = async (alumnoId, nombreCompleto) => {
-  // Extraer Primer Nombre + Primer Apellido
   const partes = nombreCompleto.trim().split(/\s+/);
-  const primerNombre = partes[0] || "Alumno";
-  const primerApellido = partes.length > 1 ? partes[1] : "";
-  const nombreMostrado = `${primerNombre} ${primerApellido}`.trim();
+  const primerNombre = partes[0] ? partes[0].toLowerCase() : "alumno";
+  
+  // Extrae primer_nombre.primer_apellido dinámicamente
+  let primerApellido = "";
+  if (partes.length >= 3) {
+    primerApellido = partes[2].toLowerCase();
+  } else if (partes.length === 2) {
+    primerApellido = partes[1].toLowerCase();
+  }
+
+  const usuarioBase = primerApellido ? `${primerNombre}.${primerApellido}` : primerNombre;
+  const nombreMostrado = `${partes[0] || ""} ${partes[1] || ""}`.trim();
 
   // Verificar si el usuario ya existe para este alumno_id
   const checkUser = await pool.query(
@@ -70,17 +78,16 @@ const asegurarUsuarioAlumno = async (alumnoId, nombreCompleto) => {
   );
 
   if (checkUser.rows.length > 0) {
-    // Si ya existe, actualizamos su nombre por si cambió
+    // Actualizamos su usuario y nombre por si fueron modificados
     await pool.query(
-      "UPDATE usuarios SET nombre = $1 WHERE alumno_id = $2",
-      [nombreMostrado, alumnoId]
+      "UPDATE usuarios SET nombre = $1, usuario = $2 WHERE alumno_id = $3",
+      [nombreMostrado, usuarioBase, alumnoId]
     );
     return checkUser.rows[0].pin;
   }
 
-  // Generar un PIN único y nombre de usuario base
+  // Generar un PIN único y nuevo registro
   const pinNuevo = await generarPinUnico();
-  const usuarioBase = `${primerNombre.toLowerCase()}${alumnoId}`;
 
   // Insertar nuevo usuario con rol 'Alumno'
   await pool.query(
@@ -202,6 +209,41 @@ app.get("/consulta/:token", async (req, res) => {
 });
 
 // =====================================
+// Dashboard del Alumno Individual (Para StudentDashboard.jsx)
+// =====================================
+app.get("/api/alumno-dashboard/:alumnoId", async (req, res) => {
+  try {
+    const { alumnoId } = req.params;
+
+    const alumnoRes = await pool.query(
+      "SELECT id, nombre, grado, coins, COALESCE(coins_ahorro, 0) AS coins_ahorro FROM alumnos WHERE id = $1",
+      [alumnoId]
+    );
+
+    if (alumnoRes.rows.length === 0) {
+      return res.status(404).json({ mensaje: "Alumno no encontrado." });
+    }
+
+    const movsRes = await pool.query(
+      `SELECT id, tipo, cantidad, motivo, fecha 
+       FROM movimientos 
+       WHERE alumno_id = $1 
+       ORDER BY fecha DESC 
+       LIMIT 15`,
+      [alumnoId]
+    );
+
+    res.json({
+      alumno: alumnoRes.rows[0],
+      movimientos: movsRes.rows
+    });
+  } catch (error) {
+    console.error("Error al obtener dashboard del alumno:", error);
+    res.status(500).json({ mensaje: "Error al obtener datos del alumno." });
+  }
+});
+
+// =====================================
 // Obtener todos los alumnos (Incluye su PIN)
 // =====================================
 app.get("/alumnos", async (req, res) => {
@@ -307,7 +349,7 @@ app.put("/alumnos/:id", async (req, res) => {
 
     const alumnoEditado = resultado.rows[0];
 
-    // Actualizamos también su nombre en la tabla usuarios si fue cambiado
+    // Actualizamos también su usuario si cambió de nombre
     if (alumnoEditado) {
       await asegurarUsuarioAlumno(alumnoEditado.id, alumnoEditado.nombre);
     }
@@ -329,7 +371,7 @@ app.delete("/alumnos/:id", async (req, res) => {
   try {
     const { id } = req.params;
 
-    // Eliminar también su usuario
+    // Eliminar también su usuario asociado
     await pool.query("DELETE FROM usuarios WHERE alumno_id=$1", [id]);
     await pool.query("DELETE FROM alumnos WHERE id=$1", [id]);
 
@@ -346,7 +388,7 @@ app.delete("/alumnos/:id", async (req, res) => {
 });
 
 // =====================================
-// Movimientos de saldo (Conserva lógica original)
+// Movimientos de saldo
 // =====================================
 app.post("/movimientos", async (req, res) => {
   try {
@@ -429,7 +471,7 @@ app.post("/movimientos", async (req, res) => {
 });
 
 // =====================================
-// Dashboard
+// Dashboard General
 // =====================================
 app.get("/dashboard", async (req, res) => {
   try {
@@ -454,7 +496,7 @@ app.get("/dashboard", async (req, res) => {
 });
 
 // =====================================
-// Obtener movimientos
+// Obtener movimientos generales
 // =====================================
 app.get("/movimientos", async (req, res) => {
   try {
@@ -512,7 +554,7 @@ app.get("/usuarios", async (req, res) => {
 });
 
 // =====================================
-// Agregar usuario administrativo
+// Agregar usuario administrativo (Docente/Admin)
 // =====================================
 app.post("/usuarios", async (req, res) => {
   try {
@@ -554,10 +596,10 @@ app.post("/login", async (req, res) => {
       return res.status(400).json({ mensaje: "Credenciales requeridas." });
     }
 
-    // 1. Intento de login por PIN (Alumnos)
+    // 1. Intento de login por PIN de 4 dígitos (Alumnos)
     if (passClean.length === 4 && !isNaN(passClean)) {
       const resPin = await pool.query(
-        `SELECT u.id, u.nombre, u.usuario, u.rol, u.estado, u.alumno_id, a.grado, a.coins, COALESCE(a.coins_ahorro,0) as coins_ahorro
+        `SELECT u.id AS usuario_id, u.nombre, u.usuario, u.rol, u.estado, u.alumno_id, a.grado, a.coins, COALESCE(a.coins_ahorro,0) as coins_ahorro
          FROM usuarios u
          JOIN alumnos a ON u.alumno_id = a.id
          WHERE u.pin = $1 AND u.estado = 'Activo'`,
@@ -572,7 +614,7 @@ app.post("/login", async (req, res) => {
       }
     }
 
-    // 2. Intento de login tradicional por Usuario / Password (Administradores/Maestros)
+    // 2. Intento de login por Usuario / Password (Administradores/Maestros)
     const resultado = await pool.query(
       `SELECT id, nombre, usuario, password, rol, estado, alumno_id 
        FROM usuarios 
@@ -607,7 +649,7 @@ app.post("/login", async (req, res) => {
 });
 
 // =====================================
-// ENDPOINT DE RESETEO/RESTRUCTURACIÓN DE DB
+// RESETEO DE BASE DE DATOS
 // =====================================
 app.get('/reset-db-directo', async (req, res) => {
   try {
@@ -657,7 +699,7 @@ app.get('/reset-db-directo', async (req, res) => {
   }
 });
 
-// Puerto dinámico asignado por Render
+// Puerto asignado por el servidor
 const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, () => {
