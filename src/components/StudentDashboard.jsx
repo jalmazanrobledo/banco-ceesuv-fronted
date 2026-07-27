@@ -10,9 +10,7 @@ export default function StudentDashboard() {
   useEffect(() => {
     const cargarDatosEstudiante = async () => {
       try {
-        // 1. Obtener la sesión activa del alumno desde localStorage
         const storedUser = localStorage.getItem("usuario");
-
         if (!storedUser) {
           navigate("/login");
           return;
@@ -20,7 +18,7 @@ export default function StudentDashboard() {
 
         const userObj = JSON.parse(storedUser);
 
-        // 2. Extraer dinámicamente cualquier identificador posible que devuelva el login
+        // Identificador dinámico para cualquier alumno
         const identifier =
           userObj.id ||
           userObj.alumno_id ||
@@ -29,14 +27,12 @@ export default function StudentDashboard() {
           userObj.nombre;
 
         if (!identifier) {
-          // Si no hay un ID o usuario claro, usamos los datos almacenados directamente en login
           setAlumno(userObj);
           setMovimientos(userObj.movimientos || []);
           setCargando(false);
           return;
         }
 
-        // 3. Consultar al backend codificando la variable para evitar errores con espacios o tildes
         const param = encodeURIComponent(identifier);
         const response = await fetch(
           `https://banco-ceesuv-backend.vercel.app/api/alumnos/${param}`
@@ -44,8 +40,6 @@ export default function StudentDashboard() {
 
         if (response.ok) {
           const data = await response.json();
-
-          // Normalizar respuesta del backend
           const datosAlumno = Array.isArray(data) ? data[0] : (data.alumno || data);
           const listaMovimientos =
             data.movimientos || datosAlumno?.movimientos || userObj.movimientos || [];
@@ -53,13 +47,11 @@ export default function StudentDashboard() {
           setAlumno(datosAlumno);
           setMovimientos(listaMovimientos);
         } else {
-          // Si la llamada a la API falla, usamos la información guardada en la sesión actual
           setAlumno(userObj);
           setMovimientos(userObj.movimientos || []);
         }
       } catch (error) {
         console.error("Error al cargar datos del alumno:", error);
-        // Respaldo dinámico en caso de error de red
         const storedUser = localStorage.getItem("usuario");
         if (storedUser) {
           const userObj = JSON.parse(storedUser);
@@ -84,7 +76,7 @@ export default function StudentDashboard() {
     if (tipo === "SALIDA") return "#EF4444";
     if (tipo === "AHORRO_DEPOSITO") return "#3B82F6";
     if (tipo === "AHORRO_RETIRO") return "#F59E0B";
-    return "#9CA3AF";
+    return "#333";
   };
 
   const obtenerSignoMonto = (tipo, cantidad) => {
@@ -95,131 +87,257 @@ export default function StudentDashboard() {
 
   if (cargando) {
     return (
-      <div className="min-h-screen bg-slate-900 text-white flex items-center justify-center">
-        <p className="text-lg">Cargando información del estudiante...</p>
+      <div style={{ minHeight: "100vh", background: "#0c1527", color: "white", padding: "40px", textAlign: "center" }}>
+        <p>Cargando información del estudiante...</p>
       </div>
     );
   }
 
-  // Variables dinámicas según el alumno logueado
   const nombreAlumno = alumno?.nombre || alumno?.usuario || "Estudiante";
   const coinsTotales = Number(alumno?.coins ?? 0);
   const matricula = alumno?.matricula || alumno?.id || "N/A";
 
   return (
-    <div className="min-h-screen bg-slate-900 text-white font-sans">
-      {/* Encabezado */}
-      <header className="bg-slate-800 border-b border-slate-700 px-6 py-4 flex flex-col md:flex-row justify-between items-center gap-4">
-        <div className="flex items-center gap-3">
-          <div className="bg-blue-600 p-2 rounded-lg text-white font-bold text-xl">
-            🎓
-          </div>
-          <div>
-            <h1 className="text-xl font-bold text-blue-400">CEESUV</h1>
-            <p className="text-xs text-slate-400">Portal del Estudiante</p>
-          </div>
-        </div>
+    <>
+      <style>{`
+        body {
+          margin: 0;
+          background-color: #0c1527;
+          font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+          color: white;
+        }
 
-        <div className="flex items-center gap-4">
-          <div className="text-right hidden sm:block">
-            <p className="text-sm font-semibold">{nombreAlumno}</p>
-            <p className="text-xs text-slate-400">Matrícula: {matricula}</p>
-          </div>
-          <button
-            onClick={handleLogout}
-            className="bg-red-600 hover:bg-red-700 text-white text-sm font-bold px-4 py-2 rounded-lg transition"
-          >
-            🚪 Cerrar Sesión
-          </button>
-        </div>
-      </header>
+        .portal-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 15px 40px;
+          background-color: #0f1c32;
+          border-bottom: 1px solid #1a2a47;
+        }
 
-      {/* Contenido Principal */}
-      <main className="max-w-6xl mx-auto p-6 space-y-6">
-        {/* Banner de Bienvenida Dinámico */}
-        <div className="bg-slate-800 border border-slate-700 p-6 rounded-2xl shadow-xl">
-          <h2 className="text-2xl font-bold text-white flex items-center gap-2">
-            🎓 ¡Bienvenido, {nombreAlumno}!
-          </h2>
-          <p className="text-sm text-slate-400 mt-1">
-            Aquí puedes consultar tu saldo acumulado de Coins y tus movimientos recientes en el sistema escolar.
-          </p>
-        </div>
+        .portal-brand {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+        }
 
-        {/* Tarjetas de Saldo Dinámicas */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="bg-slate-800 border border-slate-700 p-6 rounded-2xl flex justify-between items-center shadow-lg">
+        .brand-icon {
+          background-color: #2563eb;
+          padding: 8px 12px;
+          border-radius: 8px;
+          font-size: 20px;
+        }
+
+        .brand-title {
+          font-size: 18px;
+          font-weight: bold;
+          color: #60a5fa;
+          margin: 0;
+        }
+
+        .brand-sub {
+          font-size: 12px;
+          color: #94a3b8;
+          margin: 0;
+        }
+
+        .user-info-bar {
+          display: flex;
+          align-items: center;
+          gap: 20px;
+        }
+
+        .btn-logout {
+          background-color: #ef4444;
+          color: white;
+          border: none;
+          padding: 8px 16px;
+          border-radius: 8px;
+          font-weight: bold;
+          cursor: pointer;
+          transition: 0.2s;
+        }
+
+        .btn-logout:hover {
+          background-color: #dc2626;
+        }
+
+        .portal-container {
+          max-width: 1100px;
+          margin: 30px auto;
+          padding: 0 20px;
+        }
+
+        .card-dark {
+          background-color: #132238;
+          border: 1px solid #1e3250;
+          border-radius: 16px;
+          padding: 24px;
+          margin-bottom: 24px;
+          box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        }
+
+        .grid-cards {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+          gap: 20px;
+          margin-bottom: 24px;
+        }
+
+        .card-stat {
+          background-color: #132238;
+          border: 1px solid #1e3250;
+          border-radius: 16px;
+          padding: 20px;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        }
+
+        .stat-title {
+          color: #94a3b8;
+          font-size: 14px;
+          margin: 0 0 6px 0;
+        }
+
+        .stat-value {
+          font-size: 28px;
+          font-weight: 800;
+          margin: 0;
+        }
+
+        .badge-icon {
+          background: rgba(255,255,255,0.05);
+          padding: 12px;
+          border-radius: 12px;
+          font-size: 24px;
+        }
+
+        .tabla-movs {
+          width: 100%;
+          border-collapse: collapse;
+          margin-top: 15px;
+          text-align: left;
+        }
+
+        .tabla-movs th {
+          padding: 12px;
+          color: #94a3b8;
+          border-bottom: 1px solid #1e3250;
+          font-size: 14px;
+        }
+
+        .tabla-movs td {
+          padding: 14px 12px;
+          border-bottom: 1px solid #1e3250;
+          font-size: 14px;
+        }
+      `}</style>
+
+      <div>
+        {/* Navbar */}
+        <header className="portal-header">
+          <div className="portal-brand">
+            <div className="brand-icon">🎓</div>
             <div>
-              <p className="text-sm text-slate-400 font-medium">Saldo Disponible</p>
-              <p className="text-3xl font-extrabold text-amber-400 mt-1">
-                {coinsTotales} <span className="text-sm text-slate-300">COINS</span>
+              <p className="brand-title">CEESUV</p>
+              <p className="brand-sub">Portal del Estudiante</p>
+            </div>
+          </div>
+
+          <div className="user-info-bar">
+            <div style={{ textAlign: "right" }}>
+              <p style={{ margin: 0, fontWeight: "bold", fontSize: "14px" }}>
+                {nombreAlumno}
+              </p>
+              <p style={{ margin: 0, color: "#94a3b8", fontSize: "12px" }}>
+                Matrícula: {matricula}
               </p>
             </div>
-            <div className="bg-amber-500/10 p-4 rounded-xl text-2xl">🪙</div>
+            <button onClick={handleLogout} className="btn-logout">
+              🚪 Cerrar Sesión
+            </button>
+          </div>
+        </header>
+
+        {/* Body */}
+        <main className="portal-container">
+          <div className="card-dark">
+            <h2 style={{ margin: 0, fontSize: "22px" }}>
+              🎓 ¡Bienvenido, {nombreAlumno}!
+            </h2>
+            <p style={{ margin: "8px 0 0 0", color: "#94a3b8", fontSize: "14px" }}>
+              Aquí puedes consultar tu saldo acumulado de Coins y tus movimientos recientes en el sistema escolar.
+            </p>
           </div>
 
-          <div className="bg-slate-800 border border-slate-700 p-6 rounded-2xl flex justify-between items-center shadow-lg">
-            <div>
-              <p className="text-sm text-slate-400 font-medium">Equivalente Estimado</p>
-              <p className="text-3xl font-extrabold text-emerald-400 mt-1">
-                ${coinsTotales.toFixed(2)} <span className="text-sm text-slate-300">MXN</span>
-              </p>
+          <div className="grid-cards">
+            <div className="card-stat">
+              <div>
+                <p className="stat-title">Saldo Disponible</p>
+                <p className="stat-value" style={{ color: "#f59e0b" }}>
+                  {coinsTotales} <span style={{ fontSize: "14px", color: "#94a3b8" }}>COINS</span>
+                </p>
+              </div>
+              <div className="badge-icon">🪙</div>
             </div>
-            <div className="bg-emerald-500/10 p-4 rounded-xl text-2xl">💵</div>
+
+            <div className="card-stat">
+              <div>
+                <p className="stat-title">Equivalente Estimado</p>
+                <p className="stat-value" style={{ color: "#10b981" }}>
+                  ${coinsTotales.toFixed(2)} <span style={{ fontSize: "14px", color: "#94a3b8" }}>MXN</span>
+                </p>
+              </div>
+              <div className="badge-icon">💵</div>
+            </div>
           </div>
-        </div>
 
-        {/* Tabla Dinámica de Movimientos */}
-        <div className="bg-slate-800 border border-slate-700 rounded-2xl p-6 shadow-xl">
-          <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
-            🕒 Mis Últimos Movimientos
-          </h3>
+          <div className="card-dark">
+            <h3 style={{ margin: 0, fontSize: "18px" }}>🕒 Mis Últimos Movimientos</h3>
 
-          <div className="overflow-x-auto">
             {movimientos && movimientos.length > 0 ? (
-              <table className="w-full text-left border-collapse">
-                <thead>
-                  <tr className="border-b border-slate-700 text-slate-400 text-sm">
-                    <th className="p-3">Fecha</th>
-                    <th className="p-3">Tipo</th>
-                    <th className="p-3">Coins</th>
-                    <th className="p-3">Motivo</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-700/50 text-sm">
-                  {movimientos.map((m, idx) => (
-                    <tr key={m.id || idx} className="hover:bg-slate-700/30 transition">
-                      <td className="p-3 text-slate-300">
-                        {m.fecha ? new Date(m.fecha).toLocaleString() : "N/A"}
-                      </td>
-                      <td
-                        className="p-3 font-bold"
-                        style={{ color: obtenerColorTipo(m.tipo) }}
-                      >
-                        {m.tipo}
-                      </td>
-                      <td
-                        className="p-3 font-bold"
-                        style={{ color: obtenerColorTipo(m.tipo) }}
-                      >
-                        🪙 {obtenerSignoMonto(m.tipo, m.cantidad)}
-                      </td>
-                      <td className="p-3 text-slate-300">{m.motivo || "-"}</td>
+              <div style={{ overflowX: "auto" }}>
+                <table className="tabla-movs">
+                  <thead>
+                    <tr>
+                      <th>Fecha</th>
+                      <th>Tipo</th>
+                      <th>Coins</th>
+                      <th>Motivo</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {movimientos.map((m, idx) => (
+                      <tr key={m.id || idx}>
+                        <td style={{ color: "#cbd5e1" }}>
+                          {m.fecha ? new Date(m.fecha).toLocaleString() : "N/A"}
+                        </td>
+                        <td style={{ color: obtenerColorTipo(m.tipo), fontWeight: "bold" }}>
+                          {m.tipo}
+                        </td>
+                        <td style={{ color: obtenerColorTipo(m.tipo), fontWeight: "bold" }}>
+                          🪙 {obtenerSignoMonto(m.tipo, m.cantidad)}
+                        </td>
+                        <td style={{ color: "#cbd5e1" }}>{m.motivo || "-"}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             ) : (
-              <div className="text-center py-10 text-slate-400">
-                <p className="text-base">Aún no tienes movimientos registrados.</p>
-                <p className="text-xs text-slate-500 mt-1">
+              <div style={{ textAlign: "center", padding: "30px 0", color: "#94a3b8" }}>
+                <p style={{ margin: 0, fontSize: "15px" }}>Aún no tienes movimientos registrados.</p>
+                <p style={{ margin: "5px 0 0 0", fontSize: "12px", color: "#64748b" }}>
                   Tus abonos y canjes de coins aparecerán reflejados en esta sección.
                 </p>
               </div>
             )}
           </div>
-        </div>
-      </main>
-    </div>
+        </main>
+      </div>
+    </>
   );
 }
