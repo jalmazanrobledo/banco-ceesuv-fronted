@@ -641,13 +641,11 @@ app.get(['/reset-db-directo', '/api/reset-db-directo'], async (req, res) => {
 });
 
 // =====================================
-// Exportación para Vercel Serverless
+// Inicialización del Servidor
 // =====================================
-if (process.env.NODE_ENV !== "production") {
-  const PORT = process.env.PORT || 5000;
-  app.listen(PORT, () => {
-    console.log(`Servidor local corriendo en puerto ${PORT}`);
-  });
-}
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, () => {
+  console.log(`Servidor corriendo en el puerto ${PORT}`);
+});
 
 module.exports = app;
