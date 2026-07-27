@@ -7,7 +7,6 @@ function TarjetaDebito({ alumno }) {
   // Extraer datos del alumno con valores por defecto
   const nombre = (alumno?.nombre || "NOMBRE DEL ALUMNO").toUpperCase();
   const idAlumno = alumno?.id || alumno?.id_alumno || 1;
-  const gradoGrupo = alumno?.grado ? `${alumno.grado} ${alumno.grupo || ''}` : "ALUMNO CEESUV";
 
   // GENERAR NÚMERO DE TARJETA ÚNICO (16 DÍGITOS)
   const idFormateado = idAlumno.toString().padStart(8, "0");
@@ -96,36 +95,37 @@ function TarjetaDebito({ alumno }) {
       >
         {/* FRENTE DE LA TARJETA */}
         <div className="card-face">
-          {/* HEADER: LOGO Y "BANCO CEESUV" CENTRADOS EN LA TARJETA | "DEBIT" EN LA ESQUINA DERECHA */}
-          <div style={{ position: "relative", display: "flex", justifyContent: "center", alignItems: "center", minHeight: "65px" }}>
+          {/* HEADER: LOGO A LA IZQUIERDA | BANCO CEESUV CENTRADO | DEBITO A LA DERECHA */}
+          <div style={{ position: "relative", display: "flex", justifyContent: "space-between", alignItems: "center", minHeight: "45px" }}>
             
-            {/* BLOQUE CENTRADO */}
-            <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-              <img 
-                src={logoCeesuvHorizontal} 
-                alt="Logo CEESUV" 
-                style={{ 
-                  height: "70px", 
-                  objectFit: "contain",
-                  filter: "brightness(0) invert(1) drop-shadow(0px 2px 4px rgba(0,0,0,0.4))"
-                }} 
-              />
-              <span style={{ 
-                fontSize: "12px", 
-                fontWeight: "bold", 
-                letterSpacing: "1px", 
-                color: "#D4AF37",
-                lineHeight: "1.2"
-              }}>
-                BANCO<br/>CEESUV
-              </span>
-            </div>
+            {/* Logo en la esquina superior izquierda */}
+            <img 
+              src={logoCeesuvHorizontal} 
+              alt="Logo CEESUV" 
+              style={{ 
+                height: "45px", 
+                objectFit: "contain",
+                filter: "brightness(0) invert(1) drop-shadow(0px 2px 4px rgba(0,0,0,0.4))"
+              }} 
+            />
 
-            {/* ETIQUETA DEBIT DE DERECHA */}
+            {/* Texto BANCO CEESUV perfectamente centrado */}
             <span style={{ 
               position: "absolute",
-              right: "0px",
-              top: "0px",
+              left: "50%",
+              transform: "translateX(-50%)",
+              fontSize: "12px", 
+              fontWeight: "bold", 
+              letterSpacing: "1px", 
+              color: "#D4AF37",
+              lineHeight: "1.2",
+              textAlign: "center"
+            }}>
+              BANCO<br/>CEESUV
+            </span>
+
+            {/* Texto DEBITO en la esquina superior derecha */}
+            <span style={{ 
               fontSize: "12px", 
               fontWeight: "800", 
               fontStyle: "italic", 
@@ -138,7 +138,7 @@ function TarjetaDebito({ alumno }) {
           </div>
 
           {/* CHIP Y SÍMBOLO CONTACTLESS */}
-          <div style={{ display: "flex", alignItems: "center", gap: "12px", marginTop: "2px" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "12px", marginTop: "10px" }}>
             <div className="chip-emv"></div>
             <span style={{ fontSize: "15px", color: "rgba(255,255,255,0.45)", transform: "rotate(90deg)", fontWeight: "bold" }}>
               (((
@@ -147,7 +147,7 @@ function TarjetaDebito({ alumno }) {
 
           {/* NÚMERO DE TARJETA */}
           <div style={{ 
-            marginTop: "12px", 
+            marginTop: "14px", 
             fontSize: "17px", 
             letterSpacing: "2.5px", 
             fontFamily: "'Courier New', Courier, monospace",
@@ -158,13 +158,13 @@ function TarjetaDebito({ alumno }) {
           </div>
 
           {/* DATOS DEL TITULAR Y VENCIMIENTO */}
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginTop: "10px" }}>
-            <div style={{ maxWidth: "210px" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginTop: "14px" }}>
+            <div style={{ maxWidth: "220px" }}>
               <div style={{ fontSize: "7px", color: "rgba(255,255,255,0.6)", textTransform: "uppercase", letterSpacing: "0.5px" }}>
                 TITULAR DE LA CUENTA
               </div>
               <div style={{ 
-                fontSize: "12px", 
+                fontSize: "13px", 
                 fontWeight: "bold", 
                 letterSpacing: "0.8px",
                 whiteSpace: "nowrap",
@@ -172,9 +172,6 @@ function TarjetaDebito({ alumno }) {
                 textOverflow: "ellipsis"
               }}>
                 {nombre}
-              </div>
-              <div style={{ fontSize: "9px", color: "#D4AF37", fontWeight: "600" }}>
-                {gradoGrupo}
               </div>
             </div>
 
