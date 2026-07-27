@@ -1,250 +1,193 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { 
-  FaCoins, 
-  FaMoneyBillWave, 
-  FaHistory, 
-  FaSignOutAlt, 
-  FaUserGraduate, 
-  FaGraduationCap 
-} from 'react-icons/fa';
+import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 export default function StudentDashboard() {
   const navigate = useNavigate();
   const [alumno, setAlumno] = useState(null);
   const [movimientos, setMovimientos] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [cargando, setCargando] = useState(true);
 
   useEffect(() => {
-    // 1. Lectura de sesión segura
-    const userSession = localStorage.getItem('usuario') || localStorage.getItem('usuarioCEESUV');
-    if (!userSession) {
-      navigate('/login');
-      return;
-    }
+    const cargarDatosEstudiante = async () => {
+      try {
+        const storedUser = localStorage.getItem("usuario");
+        if (!storedUser) {
+          navigate("/login");
+          return;
+        }
 
-    try {
-      const parsedUser = JSON.parse(userSession);
-      setAlumno(parsedUser);
+        const userObj = JSON.parse(storedUser);
+        // Usamos el identificador disponible (alumno_id, usuario o id)
+        const identifier = userObj.alumno_id || userObj.usuario || userObj.id;
 
-      // 2. Extraer movimientos directos de la sesión si ya existen
-      const directMovs = 
-        parsedUser.movimientos || 
-        parsedUser.historial || 
-        parsedUser.transacciones || 
-        parsedUser.history || 
-        [];
+        if (!identifier) {
+          setCargando(false);
+          return;
+        }
 
-      if (Array.isArray(directMovs) && directMovs.length > 0) {
-        setMovimientos(directMovs);
+        const response = await fetch(
+          `https://banco-ceesuv-backend.vercel.app/api/alumnos/${identifier}`
+        );
+
+        if (response.ok) {
+          const data = await response.json();
+          setAlumno(data.alumno || data);
+          setMovimientos(data.movimientos || []);
+        } else {
+          console.error("Error al obtener datos del estudiante");
+        }
+      } catch (error) {
+        console.error("Error de red al cargar dashboard:", error);
+      } finally {
+        setCargando(false);
       }
+    };
 
-      // 3. Buscar la clave primaria del usuario evitando que quede como 'undefined'
-      const userId = 
-        parsedUser.id || 
-        parsedUser._id || 
-        parsedUser.matricula || 
-        parsedUser.usuario || 
-        parsedUser.username || 
-        parsedUser.id_alumno || 
-        parsedUser.alumnoId;
-
-      // Si no tenemos un identificador válido para consultar el endpoint, detenemos el fetch
-      if (!userId) {
-        console.warn("No se encontró un ID/Matrícula válida para consultar la API directa.");
-        setLoading(false);
-        return;
-      }
-
-      // 4. Consulta a la API
-      const API_URL = `https://banco-ceesuv-backend.vercel.app/api/alumnos/${userId}`;
-
-      fetch(API_URL)
-        .then((res) => {
-          if (!res.ok) throw new Error(`Error en la BD (${res.status})`);
-          return res.json();
-        })
-        .then((data) => {
-          setAlumno((prev) => ({ ...prev, ...data }));
-          
-          // Extraer movimientos buscando cualquier alias común de la respuesta
-          const remoteMovs = 
-            data.movimientos || 
-            data.historial || 
-            data.transacciones || 
-            data.history || 
-            (Array.isArray(data) ? data : []);
-
-          if (Array.isArray(remoteMovs) && remoteMovs.length > 0) {
-            setMovimientos(remoteMovs);
-          }
-        })
-        .catch((err) => {
-          console.log("No se pudo conectar al endpoint directo, usando datos locales:", err);
-        })
-        .finally(() => setLoading(false));
-
-    } catch (e) {
-      console.error("Error al procesar la sesión:", e);
-      setLoading(false);
-    }
+    cargarDatosEstudiante();
   }, [navigate]);
 
   const handleLogout = () => {
-    localStorage.removeItem('usuario');
-    localStorage.removeItem('usuarioCEESUV');
-    navigate('/login');
+    localStorage.removeItem("usuario");
+    localStorage.removeItem("rol");
+    navigate("/login");
   };
 
-  if (loading) {
+  // Mismas funciones de formato que usas en Movimientos.jsx
+  const obtenerColorTipo = (tipo) => {
+    if (tipo === "ENTRADA" || tipo === "AHORRO_RENDIMIENTO") return "#10B981"; // Verde
+    if (tipo === "SALIDA") return "#EF4444"; // Rojo
+    if (tipo === "AHORRO_DEPOSITO") return "#3B82F6"; // Azul
+    if (tipo === "AHORRO_RETIRO") return "#F59E0B"; // Dorado/Naranja
+    return "#9CA3AF";
+  };
+
+  const obtenerSignoMonto = (tipo, cantidad) => {
+    if (tipo === "ENTRADA" || tipo === "AHORRO_RENDIMIENTO") return `+${cantidad}`;
+    if (tipo === "SALIDA") return `-${cantidad}`;
+    return `${cantidad}`;
+  };
+
+  if (cargando) {
     return (
-      <div style={{ minHeight: '100vh', backgroundColor: '#0f172a', color: '#ffffff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        Cargando datos del estudiante...
+      <div className="min-h-screen bg-slate-900 text-white flex items-center justify-center">
+        <p className="text-lg">Cargando información del estudiante...</p>
       </div>
     );
   }
 
-  // Extracción flexible de campos para la interfaz
-  const nombreMostrar = alumno?.nombre || alumno?.name || alumno?.usuario || 'Estudiante';
-  const matriculaMostrar = alumno?.matricula || alumno?.username || alumno?.id || 'N/A';
-  
-  // Soporte para distintas claves de saldo/coins
-  const coins = alumno?.coins ?? alumno?.saldo ?? alumno?.puntos ?? 0;
-  const equivalenteMXN = (Number(coins) * 1.00).toFixed(2);
-
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: '#0f172a', color: '#f8fafc', fontFamily: 'system-ui, sans-serif' }}>
-      
-      {/* Navbar Superior */}
-      <header style={{ backgroundColor: '#1e293b', borderBottom: '1px solid #334155', padding: '16px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <div style={{ backgroundColor: '#4f46e5', padding: '10px', borderRadius: '8px', color: '#fff', display: 'flex' }}>
-            <FaGraduationCap size={24} />
+    <div className="min-h-screen bg-slate-900 text-white font-sans">
+      {/* Header Institucional */}
+      <header className="bg-slate-800 border-b border-slate-700 px-6 py-4 flex flex-col md:flex-row justify-between items-center gap-4">
+        <div className="flex items-center gap-3">
+          <div className="bg-blue-600 p-2 rounded-lg text-white font-bold text-xl">
+            🎓
           </div>
           <div>
-            <h1 style={{ margin: 0, fontSize: '18px', fontWeight: 'bold', color: '#ffffff' }}>CEESUV</h1>
-            <p style={{ margin: 0, fontSize: '12px', color: '#818cf8', fontWeight: '500' }}>Portal del Estudiante</p>
+            <h1 className="text-xl font-bold text-blue-400">CEESUV</h1>
+            <p className="text-xs text-slate-400">Portal del Estudiante</p>
           </div>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-          <div style={{ textAlign: 'right' }}>
-            <p style={{ margin: 0, fontSize: '14px', fontWeight: '600', color: '#f1f5f9' }}>{nombreMostrar}</p>
-            <p style={{ margin: 0, fontSize: '12px', color: '#94a3b8' }}>Matrícula: {matriculaMostrar}</p>
+        <div className="flex items-center gap-4">
+          <div className="text-right hidden sm:block">
+            <p className="text-sm font-semibold">{alumno?.nombre || "Estudiante"}</p>
+            <p className="text-xs text-slate-400">Matrícula: {alumno?.id ? `N/A` : "N/A"}</p>
           </div>
           <button
             onClick={handleLogout}
-            style={{
-              backgroundColor: '#dc2626',
-              color: '#ffffff',
-              border: 'none',
-              padding: '8px 16px',
-              borderRadius: '8px',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              fontWeight: '600',
-              fontSize: '14px'
-            }}
+            className="bg-red-600 hover:bg-red-700 text-white text-sm font-bold px-4 py-2 rounded-lg transition"
           >
-            <FaSignOutAlt />
-            <span>Cerrar Sesión</span>
+            🚪 Cerrar Sesión
           </button>
         </div>
       </header>
 
       {/* Contenido Principal */}
-      <main style={{ maxWidth: '1200px', margin: '0 auto', padding: '24px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
-        
-        {/* Banner Saludo */}
-        <div style={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: '12px', padding: '24px' }}>
-          <h2 style={{ margin: 0, fontSize: '22px', color: '#ffffff', display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <FaUserGraduate color="#818cf8" />
-            ¡Bienvenido, {nombreMostrar}!
+      <main className="max-w-6xl mx-auto p-6 space-y-6">
+        {/* Banner de Bienvenida */}
+        <div className="bg-slate-800 border border-slate-700 p-6 rounded-2xl shadow-xl">
+          <h2 className="text-2xl font-bold text-white flex items-center gap-2">
+            🎓 ¡Bienvenido, {alumno?.nombre || "Estudiante"}!
           </h2>
-          <p style={{ margin: '8px 0 0 0', color: '#94a3b8', fontSize: '14px' }}>
+          <p className="text-sm text-slate-400 mt-1">
             Aquí puedes consultar tu saldo acumulado de Coins y tus movimientos recientes en el sistema escolar.
           </p>
         </div>
 
-        {/* Tarjetas Estadísticas */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '20px' }}>
-          
-          {/* Card Coins */}
-          <div style={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: '12px', padding: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        {/* Tarjetas de Saldo */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="bg-slate-800 border border-slate-700 p-6 rounded-2xl flex justify-between items-center shadow-lg">
             <div>
-              <p style={{ margin: 0, fontSize: '14px', color: '#94a3b8', fontWeight: '500' }}>Saldo Disponible</p>
-              <h3 style={{ margin: '8px 0 0 0', fontSize: '32px', color: '#fbbf24', fontWeight: 'bold' }}>
-                {coins} <span style={{ fontSize: '14px', color: '#94a3b8', fontWeight: 'normal' }}>COINS</span>
-              </h3>
+              <p className="text-sm text-slate-400 font-medium">Saldo Disponible</p>
+              <p className="text-3xl font-extrabold text-amber-400 mt-1">
+                {alumno?.coins ?? 0} <span className="text-sm text-slate-300">COINS</span>
+              </p>
             </div>
-            <div style={{ backgroundColor: 'rgba(251, 191, 36, 0.1)', padding: '16px', borderRadius: '12px', color: '#fbbf24' }}>
-              <FaCoins size={32} />
-            </div>
+            <div className="bg-amber-500/10 p-4 rounded-xl text-2xl">🪙</div>
           </div>
 
-          {/* Card MXN */}
-          <div style={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: '12px', padding: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div className="bg-slate-800 border border-slate-700 p-6 rounded-2xl flex justify-between items-center shadow-lg">
             <div>
-              <p style={{ margin: 0, fontSize: '14px', color: '#94a3b8', fontWeight: '500' }}>Equivalente Estimado</p>
-              <h3 style={{ margin: '8px 0 0 0', fontSize: '32px', color: '#34d399', fontWeight: 'bold' }}>
-                ${equivalenteMXN} <span style={{ fontSize: '14px', color: '#94a3b8', fontWeight: 'normal' }}>MXN</span>
-              </h3>
+              <p className="text-sm text-slate-400 font-medium">Equivalente Estimado</p>
+              <p className="text-3xl font-extrabold text-emerald-400 mt-1">
+                ${(alumno?.coins ?? 0).toFixed(2)} <span className="text-sm text-slate-300">MXN</span>
+              </p>
             </div>
-            <div style={{ backgroundColor: 'rgba(52, 211, 153, 0.1)', padding: '16px', borderRadius: '12px', color: '#34d399' }}>
-              <FaMoneyBillWave size={32} />
-            </div>
+            <div className="bg-emerald-500/10 p-4 rounded-xl text-2xl">💵</div>
           </div>
-
         </div>
 
-        {/* Tabla de Movimientos */}
-        <div style={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: '12px', overflow: 'hidden' }}>
-          <div style={{ padding: '16px 20px', borderBottom: '1px solid #334155', display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <FaHistory color="#818cf8" />
-            <h3 style={{ margin: 0, fontSize: '16px', color: '#ffffff', fontWeight: '600' }}>Mis Últimos Movimientos</h3>
-          </div>
+        {/* Historial de Movimientos */}
+        <div className="bg-slate-800 border border-slate-700 rounded-2xl p-6 shadow-xl">
+          <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
+            🕒 Mis Últimos Movimientos
+          </h3>
 
-          <div style={{ padding: '20px' }}>
-            {movimientos.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '32px 0', color: '#94a3b8' }}>
-                <p style={{ margin: 0, fontSize: '15px', fontWeight: '500' }}>Aún no tienes movimientos registrados.</p>
-                <p style={{ margin: '4px 0 0 0', fontSize: '13px', color: '#64748b' }}>Tus abonos y canjes de coins aparecerán reflejados en esta sección.</p>
-              </div>
-            ) : (
-              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '14px' }}>
+          <div className="overflow-x-auto">
+            {movimientos && movimientos.length > 0 ? (
+              <table className="w-full text-left border-collapse">
                 <thead>
-                  <tr style={{ borderBottom: '1px solid #334155', color: '#94a3b8' }}>
-                    <th style={{ padding: '12px' }}>Fecha</th>
-                    <th style={{ padding: '12px' }}>Concepto</th>
-                    <th style={{ padding: '12px', textAlign: 'right' }}>Monto</th>
+                  <tr className="border-b border-slate-700 text-slate-400 text-sm">
+                    <th className="p-3">Fecha</th>
+                    <th className="p-3">Tipo</th>
+                    <th className="p-3">Coins</th>
+                    <th className="p-3">Motivo</th>
                   </tr>
                 </thead>
-                <tbody>
-                  {movimientos.map((mov, idx) => {
-                    const monto = mov.monto ?? mov.coins ?? mov.cantidad ?? mov.amount ?? 0;
-                    const esAbono = mov.tipo === 'abono' || mov.tipo === 'deposit' || monto > 0;
-                    const fechaRaw = mov.fecha || mov.createdAt || mov.date;
-                    const fechaFormateada = fechaRaw ? (typeof fechaRaw === 'string' ? fechaRaw.split('T')[0] : 'Reciente') : 'Reciente';
-                    const conceptoText = mov.concepto || mov.descripcion || mov.motivo || mov.reason || 'Transacción';
-
-                    return (
-                      <tr key={idx} style={{ borderBottom: '1px solid #334155' }}>
-                        <td style={{ padding: '12px', color: '#cbd5e1' }}>{fechaFormateada}</td>
-                        <td style={{ padding: '12px', color: '#cbd5e1' }}>{conceptoText}</td>
-                        <td style={{ padding: '12px', textAlign: 'right', fontWeight: 'bold', color: esAbono ? '#34d399' : '#f87171' }}>
-                          {esAbono ? '+' : ''}{monto} COINS
-                        </td>
-                      </tr>
-                    );
-                  })}
+                <tbody className="divide-y divide-slate-700/50 text-sm">
+                  {movimientos.map((m, idx) => (
+                    <tr key={m.id || idx} className="hover:bg-slate-700/30 transition">
+                      <td className="p-3 text-slate-300">
+                        {m.fecha ? new Date(m.fecha).toLocaleString() : "N/A"}
+                      </td>
+                      <td
+                        className="p-3 font-bold"
+                        style={{ color: obtenerColorTipo(m.tipo) }}
+                      >
+                        {m.tipo}
+                      </td>
+                      <td
+                        className="p-3 font-bold"
+                        style={{ color: obtenerColorTipo(m.tipo) }}
+                      >
+                        🪙 {obtenerSignoMonto(m.tipo, m.cantidad)}
+                      </td>
+                      <td className="p-3 text-slate-300">{m.motivo || "-"}</td>
+                    </tr>
+                  ))}
                 </tbody>
               </table>
+            ) : (
+              <div className="text-center py-10 text-slate-400">
+                <p className="text-base">Aún no tienes movimientos registrados.</p>
+                <p className="text-xs text-slate-500 mt-1">
+                  Tus abonos y canjes de coins aparecerán reflejados en esta sección.
+                </p>
+              </div>
             )}
           </div>
         </div>
-
       </main>
     </div>
   );
