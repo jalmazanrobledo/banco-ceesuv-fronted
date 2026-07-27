@@ -17,20 +17,43 @@ export default function StudentDashboard() {
 
   useEffect(() => {
     const userSession = localStorage.getItem('usuario');
-    if (userSession) {
-      try {
-        const parsedUser = JSON.parse(userSession);
-        setAlumno(parsedUser);
-        
-        // Mapeo flexible para obtener la lista de movimientos
-        const misMovimientos = parsedUser.movimientos || parsedUser.history || parsedUser.transacciones || [];
-        setMovimientos(misMovimientos);
-      } catch (e) {
-        console.error("Error al leer sesión de usuario", e);
-      }
+    if (!userSession) {
+      navigate('/login');
+      return;
     }
-    setLoading(false);
-  }, []);
+
+    try {
+      const parsedUser = JSON.parse(userSession);
+      setAlumno(parsedUser);
+
+      // Intentamos identificar la clave primaria del usuario (id, _id, username, etc.)
+      const userId = parsedUser.id || parsedUser._id || parsedUser.username;
+
+      // URL de tu Backend (Ajusta el endpoint según tu API)
+      const API_URL = `https://banco-ceesuv-backend.vercel.app/api/alumnos/${userId}`; // O la URL de tu backend
+
+      fetch(API_URL)
+        .then((res) => {
+          if (!res.ok) throw new Error("Error al consultar BD");
+          return res.json();
+        })
+        .then((data) => {
+          // Si el backend devuelve un objeto con los datos completos
+          setAlumno(data);
+          setMovimientos(data.movimientos || data.history || data.transacciones || []);
+        })
+        .catch((err) => {
+          console.log("No se pudo conectar al endpoint directo, usando datos locales:", err);
+          // Respaldo por si los datos están directo en la sesión
+          setMovimientos(parsedUser.movimientos || parsedUser.history || []);
+        })
+        .finally(() => setLoading(false));
+
+    } catch (e) {
+      console.error("Error al procesar la sesión:", e);
+      setLoading(false);
+    }
+  }, [navigate]);
 
   const handleLogout = () => {
     localStorage.removeItem('usuario');
@@ -40,13 +63,13 @@ export default function StudentDashboard() {
   if (loading) {
     return (
       <div style={{ minHeight: '100vh', backgroundColor: '#0f172a', color: '#ffffff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        Cargando panel de alumno...
+        Cargando datos del estudiante...
       </div>
     );
   }
 
-  // Mapeo flexible de propiedades del objeto de sesión
-  const nombreMostrar = alumno?.nombre || alumno?.name || alumno?.usuario || 'Juan Pablo Almazan';
+  // Extracción flexible de campos
+  const nombreMostrar = alumno?.nombre || alumno?.name || alumno?.usuario || 'Estudiante';
   const matriculaMostrar = alumno?.matricula || alumno?.username || alumno?.id || 'N/A';
   
   // Soporte para distintas claves de saldo/coins en la base de datos
