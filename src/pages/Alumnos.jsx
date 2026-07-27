@@ -98,9 +98,9 @@ function Alumnos() {
     }
   };
 
-  // Función para compartir por WhatsApp
+  // Función para compartir por WhatsApp con PIN incluido
   const compartirWhatsApp = () => {
-    const mensaje = `Hola, este es el código QR de consulta de *${alumnoSeleccionado.nombre}* para consultar su saldo de CEESUV Coins en el siguiente enlace:\n${qrTargetUrl}`;
+    const mensaje = `Hola, este es el acceso de *${alumnoSeleccionado.nombre}* para la plataforma del Banco Escolar CEESUV:\n\n🔑 *PIN de Acceso:* ${alumnoSeleccionado.pin || 'Sin PIN'}\n📲 *Consulta QR:* ${qrTargetUrl}`;
     window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(mensaje)}`, "_blank");
   };
 
@@ -144,7 +144,20 @@ function Alumnos() {
           background: white;
           border-radius: 12px;
           box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-          overflow-x: auto; /* Evita desbordamiento en celular */
+          overflow-x: auto;
+        }
+
+        .pin-badge {
+          background-color: #0B2341;
+          color: #FFD700;
+          padding: 6px 12px;
+          border-radius: 8px;
+          font-weight: bold;
+          font-family: monospace;
+          font-size: 15px;
+          letter-spacing: 1.5px;
+          display: inline-block;
+          border: 1px solid #D4AF37;
         }
 
         .modal-box {
@@ -170,7 +183,6 @@ function Alumnos() {
           box-sizing: border-box;
         }
 
-        /* Ajustes Responsivos Móviles */
         @media (max-width: 768px) {
           .alumnos-container {
             flex-direction: column;
@@ -210,7 +222,7 @@ function Alumnos() {
               👨‍🎓 Gestión de Alumnos
             </h1>
             <p style={{ color: "#666", margin: "5px 0 0 0", fontSize: "15px" }}>
-              Administración de estudiantes y generación de credenciales QR
+              Administración de estudiantes, PINs de acceso y credenciales QR
             </p>
           </div>
 
@@ -256,15 +268,16 @@ function Alumnos() {
             </button>
           </div>
 
-          {/* TABLA CON RESPONSIVIDAD */}
+          {/* TABLA CON PIN DE ACCESO */}
           <div className="table-card">
-            <table style={{ width: "100%", borderCollapse: "collapse", color: "#333", minWidth: "600px" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", color: "#333", minWidth: "700px" }}>
               <thead>
                 <tr style={{ background: "#0B2341", color: "white", textAlign: "left" }}>
                   <th style={{ padding: "15px 20px" }}>ID</th>
                   <th style={{ padding: "15px 20px" }}>Nombre</th>
                   <th style={{ padding: "15px 20px" }}>Grado</th>
                   <th style={{ padding: "15px 20px" }}>Coins</th>
+                  <th style={{ padding: "15px 20px", textAlign: "center" }}>PIN de Acceso</th>
                   <th style={{ padding: "15px 20px", textAlign: "center" }}>Acciones</th>
                 </tr>
               </thead>
@@ -276,6 +289,11 @@ function Alumnos() {
                       <td style={{ padding: "15px 20px", fontWeight: "bold", color: "#0B2341" }}>{a.nombre}</td>
                       <td style={{ padding: "15px 20px", color: "#555" }}>{a.grado}</td>
                       <td style={{ padding: "15px 20px", fontWeight: "bold", color: "#D4AF37" }}>🪙 {a.coins}</td>
+                      <td style={{ padding: "15px 20px", textAlign: "center" }}>
+                        <span className="pin-badge">
+                          🔑 {a.pin || "N/A"}
+                        </span>
+                      </td>
                       <td style={{ padding: "15px 20px", textAlign: "center", whiteSpace: "nowrap" }}>
                         <button
                           onClick={() => abrirModalQR(a)}
@@ -300,7 +318,7 @@ function Alumnos() {
                   ))
                 ) : (
                   <tr>
-                    <td colSpan="5" style={{ padding: "30px", textAlign: "center", color: "#888" }}>
+                    <td colSpan="6" style={{ padding: "30px", textAlign: "center", color: "#888" }}>
                       {busqueda ? `No se encontraron alumnos que coincidan con "${busqueda}"` : "No hay alumnos registrados."}
                     </td>
                   </tr>
@@ -336,33 +354,30 @@ function Alumnos() {
             </div>
           )}
 
-          {/* MODAL CÓDIGO QR MEJORADO */}
+          {/* MODAL CÓDIGO QR MEJORADO CON PIN */}
           {modalQROpen && alumnoSeleccionado && (
             <div style={{ position: "fixed", top: 0, left: 0, width: "100%", height: "100%", background: "rgba(0,0,0,0.6)", display: "flex", justifyContent: "center", alignItems: "center", zIndex: 2000 }}>
               <div className="modal-qr-box">
                 <h3 style={{ margin: "0 0 4px 0", color: "#0B2341", fontSize: "20px" }}>Banco Escolar CEESUV</h3>
-                <p style={{ margin: "0 0 15px 0", color: "#666", fontSize: "13px" }}>Credencial de Consulta</p>
+                <p style={{ margin: "0 0 15px 0", color: "#666", fontSize: "13px" }}>Credencial de Acceso y Consulta</p>
                 
                 <div style={{ padding: "15px", background: "#F8F9FA", borderRadius: "12px", border: "1px solid #E9ECEF", display: "inline-block" }}>
                   <img
                     src={qrImageUrl}
                     alt={`QR de ${alumnoSeleccionado.nombre}`}
-                    style={{ width: "200px", height: "200px", display: "block" }}
+                    style={{ width: "180px", height: "180px", display: "block" }}
                   />
                 </div>
 
-                <h4 style={{ margin: "15px 0 2px 0", color: "#0B2341", fontSize: "18px" }}>{alumnoSeleccionado.nombre}</h4>
-                <p style={{ fontSize: "14px", color: "#666", fontWeight: "bold", margin: "0 0 10px 0" }}>{alumnoSeleccionado.grado}</p>
+                <h4 style={{ margin: "12px 0 2px 0", color: "#0B2341", fontSize: "18px" }}>{alumnoSeleccionado.nombre}</h4>
+                <p style={{ fontSize: "13px", color: "#666", fontWeight: "bold", margin: "0 0 10px 0" }}>{alumnoSeleccionado.grado}</p>
 
-                <div style={{ marginBottom: "15px" }}>
-                  <a 
-                    href={qrTargetUrl} 
-                    target="_blank" 
-                    rel="noreferrer" 
-                    style={{ fontSize: "11px", color: "#17a2b8", wordBreak: "break-all" }}
-                  >
-                    {qrTargetUrl}
-                  </a>
+                {/* VISUALIZACIÓN DESTACADA DEL PIN */}
+                <div style={{ background: "#0B2341", padding: "8px 15px", borderRadius: "8px", margin: "10px 0 15px 0" }}>
+                  <span style={{ color: "#AAA", fontSize: "11px", display: "block", textTransform: "uppercase" }}>PIN de Inicio de Sesión</span>
+                  <span style={{ color: "#FFD700", fontSize: "20px", fontWeight: "bold", fontFamily: "monospace", letterSpacing: "3px" }}>
+                    {alumnoSeleccionado.pin || "----"}
+                  </span>
                 </div>
 
                 <div style={{ display: "flex", flexDirection: "column", gap: "8px", marginBottom: "15px" }}>

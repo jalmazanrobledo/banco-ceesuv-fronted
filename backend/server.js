@@ -37,6 +37,62 @@ const pool = new Pool(
 );
 
 // =====================================
+// Función Auxiliar: Generar PIN Único (4 dígitos)
+// =====================================
+const generarPinUnico = async () => {
+  let pin;
+  let existe = true;
+
+  while (existe) {
+    pin = Math.floor(1000 + Math.random() * 9000).toString();
+    const res = await pool.query("SELECT id FROM usuarios WHERE pin = $1", [pin]);
+    if (res.rowCount === 0) {
+      existe = false;
+    }
+  }
+  return pin;
+};
+
+// =====================================
+// Función Auxiliar: Crear/Actualizar Usuario Alumno
+// =====================================
+const asegurarUsuarioAlumno = async (alumnoId, nombreCompleto) => {
+  // Extraer Primer Nombre + Primer Apellido
+  const partes = nombreCompleto.trim().split(/\s+/);
+  const primerNombre = partes[0] || "Alumno";
+  const primerApellido = partes.length > 1 ? partes[1] : "";
+  const nombreMostrado = `${primerNombre} ${primerApellido}`.trim();
+
+  // Verificar si el usuario ya existe para este alumno_id
+  const checkUser = await pool.query(
+    "SELECT id, pin FROM usuarios WHERE alumno_id = $1",
+    [alumnoId]
+  );
+
+  if (checkUser.rows.length > 0) {
+    // Si ya existe, actualizamos su nombre por si cambió
+    await pool.query(
+      "UPDATE usuarios SET nombre = $1 WHERE alumno_id = $2",
+      [nombreMostrado, alumnoId]
+    );
+    return checkUser.rows[0].pin;
+  }
+
+  // Generar un PIN único y nombre de usuario base
+  const pinNuevo = await generarPinUnico();
+  const usuarioBase = `${primerNombre.toLowerCase()}${alumnoId}`;
+
+  // Insertar nuevo usuario con rol 'Alumno'
+  await pool.query(
+    `INSERT INTO usuarios (nombre, usuario, password, rol, estado, pin, alumno_id)
+     VALUES ($1, $2, $3, 'Alumno', 'Activo', $4, $5)`,
+    [nombreMostrado, usuarioBase, pinNuevo, pinNuevo, alumnoId]
+  );
+
+  return pinNuevo;
+};
+
+// =====================================
 // Inicialización automática de Tablas
 // =====================================
 const inicializarBaseDeDatos = async () => {
@@ -49,6 +105,8 @@ const inicializarBaseDeDatos = async () => {
         password VARCHAR(100) NOT NULL,
         rol VARCHAR(20) NOT NULL DEFAULT 'Admin',
         estado VARCHAR(20) NOT NULL DEFAULT 'Activo',
+        pin VARCHAR(10) UNIQUE,
+        alumno_id INT UNIQUE,
         fecha_registro TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
 
@@ -72,9 +130,11 @@ const inicializarBaseDeDatos = async () => {
       );
     `);
 
-    // Asegurar que la columna coins_ahorro exista en bases ya creadas
+    // Columnas defensivas
     await pool.query(`
       ALTER TABLE alumnos ADD COLUMN IF NOT EXISTS coins_ahorro INT DEFAULT 0;
+      ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS pin VARCHAR(10) UNIQUE;
+      ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS alumno_id INT UNIQUE;
     `);
 
     await pool.query(`
@@ -142,12 +202,22 @@ app.get("/consulta/:token", async (req, res) => {
 });
 
 // =====================================
-// Obtener todos los alumnos
+// Obtener todos los alumnos (Incluye su PIN)
 // =====================================
 app.get("/alumnos", async (req, res) => {
   try {
     const resultado = await pool.query(
-      "SELECT id, nombre, grado, coins, COALESCE(coins_ahorro, 0) AS coins_ahorro, token_qr FROM alumnos ORDER BY id"
+      `SELECT 
+        a.id, 
+        a.nombre, 
+        a.grado, 
+        a.coins, 
+        COALESCE(a.coins_ahorro, 0) AS coins_ahorro, 
+        a.token_qr,
+        u.pin
+       FROM alumnos a
+       LEFT JOIN usuarios u ON a.id = u.alumno_id
+       ORDER BY a.id`
     );
 
     res.json(resultado.rows);
@@ -161,7 +231,7 @@ app.get("/alumnos", async (req, res) => {
 });
 
 // =====================================
-// Agregar alumno (Genera token_qr único)
+// Agregar alumno (Genera QR y Usuario/PIN)
 // =====================================
 app.post("/alumnos", async (req, res) => {
   try {
@@ -170,20 +240,49 @@ app.post("/alumnos", async (req, res) => {
     const tokenGenerado = `ceesuv-${Date.now()}-${Math.floor(Math.random() * 899999 + 100000)}`;
 
     const resultado = await pool.query(
-      `INSERT INTO alumnos
-      (nombre, grado, coins, coins_ahorro, token_qr)
-      VALUES ($1, $2, $3, $4, $5)
-      RETURNING *`,
+      `INSERT INTO alumnos (nombre, grado, coins, coins_ahorro, token_qr)
+       VALUES ($1, $2, $3, $4, $5)
+       RETURNING *`,
       [nombre, grado, coins || 0, coins_ahorro || 0, tokenGenerado]
     );
 
-    res.json(resultado.rows[0]);
+    const nuevoAlumno = resultado.rows[0];
+
+    // Se genera automáticamente el usuario con PIN para el alumno
+    const pin = await asegurarUsuarioAlumno(nuevoAlumno.id, nuevoAlumno.nombre);
+
+    res.json({
+      ...nuevoAlumno,
+      pin
+    });
 
   } catch (error) {
     console.error(error);
     res.status(500).json({
       mensaje: "Error al guardar alumno."
     });
+  }
+});
+
+// =====================================
+// Sincronizar/Generar usuarios y PINs para alumnos existentes
+// =====================================
+app.post("/alumnos/generar-usuarios", async (req, res) => {
+  try {
+    const alumnos = await pool.query("SELECT id, nombre FROM alumnos");
+    let creados = 0;
+
+    for (const alum of alumnos.rows) {
+      await asegurarUsuarioAlumno(alum.id, alum.nombre);
+      creados++;
+    }
+
+    res.json({
+      mensaje: `Sincronización completada. ${creados} usuarios/PINs actualizados.`
+    });
+  } catch (error) {
+    console.error("Error al sincronizar usuarios de alumnos:", error);
+    res.status(500).json({ mensaje: "Error al generar usuarios para alumnos." });
   }
 });
 
@@ -206,7 +305,14 @@ app.put("/alumnos/:id", async (req, res) => {
       [nombre, grado, coins, coins_ahorro || 0, id]
     );
 
-    res.json(resultado.rows[0]);
+    const alumnoEditado = resultado.rows[0];
+
+    // Actualizamos también su nombre en la tabla usuarios si fue cambiado
+    if (alumnoEditado) {
+      await asegurarUsuarioAlumno(alumnoEditado.id, alumnoEditado.nombre);
+    }
+
+    res.json(alumnoEditado);
 
   } catch (error) {
     console.error(error);
@@ -223,13 +329,12 @@ app.delete("/alumnos/:id", async (req, res) => {
   try {
     const { id } = req.params;
 
-    await pool.query(
-      "DELETE FROM alumnos WHERE id=$1",
-      [id]
-    );
+    // Eliminar también su usuario
+    await pool.query("DELETE FROM usuarios WHERE alumno_id=$1", [id]);
+    await pool.query("DELETE FROM alumnos WHERE id=$1", [id]);
 
     res.json({
-      mensaje: "Alumno eliminado correctamente."
+      mensaje: "Alumno y usuario asociados eliminados correctamente."
     });
 
   } catch (error) {
@@ -241,7 +346,7 @@ app.delete("/alumnos/:id", async (req, res) => {
 });
 
 // =====================================
-// Agregar o descontar CEESUV Coins / Operaciones de Ahorro
+// Movimientos de saldo (Conserva lógica original)
 // =====================================
 app.post("/movimientos", async (req, res) => {
   try {
@@ -291,13 +396,11 @@ app.post("/movimientos", async (req, res) => {
       coinsAhorro += monto;
     }
 
-    // Actualizamos saldos en la tabla alumnos
     await pool.query(
       "UPDATE alumnos SET coins = $1, coins_ahorro = $2 WHERE id = $3",
       [coinsDisponibles, coinsAhorro, alumno_id]
     );
 
-    // Registramos en la tabla movimientos
     await pool.query(
       `INSERT INTO movimientos
       (alumno_id, tipo, cantidad, motivo, usuario)
@@ -330,21 +433,10 @@ app.post("/movimientos", async (req, res) => {
 // =====================================
 app.get("/dashboard", async (req, res) => {
   try {
-    const alumnos = await pool.query(
-      "SELECT COUNT(*) AS total FROM alumnos"
-    );
-
-    const coins = await pool.query(
-      "SELECT COALESCE(SUM(coins),0) AS total FROM alumnos"
-    );
-
-    const coinsAhorro = await pool.query(
-      "SELECT COALESCE(SUM(coins_ahorro),0) AS total FROM alumnos"
-    );
-
-    const movimientos = await pool.query(
-      "SELECT COUNT(*) AS total FROM movimientos"
-    );
+    const alumnos = await pool.query("SELECT COUNT(*) AS total FROM alumnos");
+    const coins = await pool.query("SELECT COALESCE(SUM(coins),0) AS total FROM alumnos");
+    const coinsAhorro = await pool.query("SELECT COALESCE(SUM(coins_ahorro),0) AS total FROM alumnos");
+    const movimientos = await pool.query("SELECT COUNT(*) AS total FROM movimientos");
 
     res.json({
       alumnos: Number(alumnos.rows[0].total),
@@ -376,8 +468,7 @@ app.get("/movimientos", async (req, res) => {
         m.fecha,
         m.usuario
       FROM movimientos m
-      INNER JOIN alumnos a
-        ON m.alumno_id = a.id
+      INNER JOIN alumnos a ON m.alumno_id = a.id
       ORDER BY m.fecha DESC
     `);
 
@@ -392,7 +483,7 @@ app.get("/movimientos", async (req, res) => {
 });
 
 // =====================================
-// Obtener usuarios
+// Obtener usuarios (Incluye PIN y alumno_id)
 // =====================================
 app.get("/usuarios", async (req, res) => {
   try {
@@ -403,6 +494,8 @@ app.get("/usuarios", async (req, res) => {
         usuario,
         rol,
         estado,
+        pin,
+        alumno_id,
         fecha_registro
       FROM usuarios
       ORDER BY id`
@@ -419,22 +512,16 @@ app.get("/usuarios", async (req, res) => {
 });
 
 // =====================================
-// Agregar usuario
+// Agregar usuario administrativo
 // =====================================
 app.post("/usuarios", async (req, res) => {
   try {
-    const {
-      nombre,
-      usuario,
-      password,
-      rol
-    } = req.body;
+    const { nombre, usuario, password, rol } = req.body;
 
     const resultado = await pool.query(
-      `INSERT INTO usuarios
-      (nombre, usuario, password, rol)
-      VALUES ($1,$2,$3,$4)
-      RETURNING id,nombre,usuario,rol,estado`,
+      `INSERT INTO usuarios (nombre, usuario, password, rol)
+       VALUES ($1, $2, $3, $4)
+       RETURNING id, nombre, usuario, rol, estado`,
       [nombre, usuario, password, rol]
     );
 
@@ -449,65 +536,7 @@ app.post("/usuarios", async (req, res) => {
 });
 
 // =====================================
-// Editar usuario
-// =====================================
-app.put("/usuarios/:id", async (req, res) => {
-  try {
-    const { id } = req.params;
-    const {
-      nombre,
-      usuario,
-      rol
-    } = req.body;
-
-    const resultado = await pool.query(
-      `UPDATE usuarios
-       SET nombre=$1,
-           usuario=$2,
-           rol=$3
-       WHERE id=$4
-       RETURNING id,nombre,usuario,rol,estado`,
-      [nombre, usuario, rol, id]
-    );
-
-    res.json(resultado.rows[0]);
-
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({
-      mensaje: "Error al editar usuario."
-    });
-  }
-});
-
-// =====================================
-// Cambiar estado del usuario
-// =====================================
-app.put("/usuarios/:id/estado", async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { estado } = req.body;
-
-    const resultado = await pool.query(
-      `UPDATE usuarios
-       SET estado=$1
-       WHERE id=$2
-       RETURNING id,nombre,usuario,rol,estado`,
-      [estado, id]
-    );
-
-    res.json(resultado.rows[0]);
-
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({
-      mensaje: "Error al cambiar el estado."
-    });
-  }
-});
-
-// =====================================
-// Login de usuario
+// Login de usuario (Soporta contraseña y PIN)
 // =====================================
 app.post("/login", async (req, res) => {
   try {
@@ -516,35 +545,48 @@ app.post("/login", async (req, res) => {
       : req.body;
 
     const uRaw = payload.usuario || (typeof req.body.usuario === 'string' ? req.body.usuario : "");
-    const pRaw = payload.password || payload.contrasena || payload.pass || req.body.password || req.body.contrasena || "";
+    const pRaw = payload.password || payload.contrasena || payload.pass || payload.pin || req.body.password || req.body.pin || "";
 
     const userClean = String(uRaw).trim();
     const passClean = String(pRaw).trim();
 
-    if (!userClean || !passClean) {
-      return res.status(400).json({ mensaje: "Usuario y contraseña requeridos." });
+    if (!passClean && !userClean) {
+      return res.status(400).json({ mensaje: "Credenciales requeridas." });
     }
 
+    // 1. Intento de login por PIN (Alumnos)
+    if (passClean.length === 4 && !isNaN(passClean)) {
+      const resPin = await pool.query(
+        `SELECT u.id, u.nombre, u.usuario, u.rol, u.estado, u.alumno_id, a.grado, a.coins, COALESCE(a.coins_ahorro,0) as coins_ahorro
+         FROM usuarios u
+         JOIN alumnos a ON u.alumno_id = a.id
+         WHERE u.pin = $1 AND u.estado = 'Activo'`,
+        [passClean]
+      );
+
+      if (resPin.rows.length > 0) {
+        return res.json({
+          ...resPin.rows[0],
+          loginTipo: "PIN"
+        });
+      }
+    }
+
+    // 2. Intento de login tradicional por Usuario / Password (Administradores/Maestros)
     const resultado = await pool.query(
-      `SELECT id, nombre, usuario, password, rol, estado 
+      `SELECT id, nombre, usuario, password, rol, estado, alumno_id 
        FROM usuarios 
        WHERE LOWER(usuario) = LOWER($1)`,
       [userClean]
     );
 
-    if (resultado.rows.length === 0) {
+    if (resultado.rows.length === 0 || resultado.rows[0].password !== passClean) {
       return res.status(401).json({
-        mensaje: "Usuario o contraseña incorrectos."
+        mensaje: "Usuario, contraseña o PIN incorrecto."
       });
     }
 
     const usuarioEncontrado = resultado.rows[0];
-
-    if (usuarioEncontrado.password !== passClean) {
-      return res.status(401).json({
-        mensaje: "Usuario o contraseña incorrectos."
-      });
-    }
 
     if (usuarioEncontrado.estado && usuarioEncontrado.estado.toLowerCase() !== "activo") {
       return res.status(403).json({
@@ -553,7 +595,6 @@ app.post("/login", async (req, res) => {
     }
 
     delete usuarioEncontrado.password;
-
     res.json(usuarioEncontrado);
 
   } catch (error) {
@@ -582,6 +623,8 @@ app.get('/reset-db-directo', async (req, res) => {
           password VARCHAR(100) NOT NULL,
           rol VARCHAR(20) NOT NULL DEFAULT 'Admin',
           estado VARCHAR(20) NOT NULL DEFAULT 'Activo',
+          pin VARCHAR(10) UNIQUE,
+          alumno_id INT UNIQUE,
           fecha_registro TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
 
