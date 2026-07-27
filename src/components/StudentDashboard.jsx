@@ -1,11 +1,9 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { 
   FaCoins, 
   FaMoneyBillWave, 
   FaHistory, 
   FaSignOutAlt, 
-  FaUserGraduation, 
+  FaUserGraduate, // <-- Cambiado de FaUserGraduation a FaUserGraduate
   FaGraduationCap 
 } from 'react-icons/fa';
 
@@ -77,17 +75,17 @@ export default function StudentDashboard() {
       <main className="flex-1 max-w-7xl w-full mx-auto p-6 space-y-6">
         
         {/* Banner de Bienvenida */}
-        <div className="bg-gradient-to-r from-indigo-900 via-slate-800 to-slate-800 border border-slate-700 rounded-xl p-6 shadow-lg flex items-center justify-between">
-          <div>
-            <h2 className="text-2xl font-bold text-white flex items-center gap-2">
-              <FaUserGraduation className="text-indigo-400" />
-              ¡Hola, {alumno?.nombre || 'Estudiante'}!
-            </h2>
-            <p className="text-slate-400 text-sm mt-1">
-              Consulta tu saldo acumulado de CEES Coins y el historial de tus actividades escolares.
-            </p>
-          </div>
-        </div>
+<div className="bg-gradient-to-r from-indigo-900 via-slate-800 to-slate-800 border border-slate-700 rounded-xl p-6 shadow-lg flex items-center justify-between">
+  <div>
+    <h2 className="text-2xl font-bold text-white flex items-center gap-2">
+      <FaUserGraduate className="text-indigo-400" /> {/* <-- Usar FaUserGraduate aquí */}
+      ¡Hola, {alumno?.nombre || 'Estudiante'}!
+    </h2>
+    <p className="text-slate-400 text-sm mt-1">
+      Consulta tu saldo acumulado de CEES Coins y el historial de tus actividades escolares.
+    </p>
+  </div>
+</div>
 
         {/* Tarjetas Estadísticas de Saldo */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
