@@ -21,7 +21,10 @@ export default function StudentDashboard() {
       try {
         const parsedUser = JSON.parse(userSession);
         setAlumno(parsedUser);
-        setMovimientos(parsedUser.movimientos || []);
+        
+        // Mapeo flexible para obtener la lista de movimientos
+        const misMovimientos = parsedUser.movimientos || parsedUser.history || parsedUser.transacciones || [];
+        setMovimientos(misMovimientos);
       } catch (e) {
         console.error("Error al leer sesión de usuario", e);
       }
@@ -42,8 +45,13 @@ export default function StudentDashboard() {
     );
   }
 
-  const coins = alumno?.coins || 0;
-  const equivalenteMXN = (coins * 1.00).toFixed(2);
+  // Mapeo flexible de propiedades del objeto de sesión
+  const nombreMostrar = alumno?.nombre || alumno?.name || alumno?.usuario || 'Juan Pablo Almazan';
+  const matriculaMostrar = alumno?.matricula || alumno?.username || alumno?.id || 'N/A';
+  
+  // Soporte para distintas claves de saldo/coins en la base de datos
+  const coins = alumno?.coins ?? alumno?.saldo ?? alumno?.puntos ?? 0;
+  const equivalenteMXN = (Number(coins) * 1.00).toFixed(2);
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#0f172a', color: '#f8fafc', fontFamily: 'system-ui, sans-serif' }}>
@@ -62,8 +70,8 @@ export default function StudentDashboard() {
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
           <div style={{ textAlign: 'right' }}>
-            <p style={{ margin: 0, fontSize: '14px', fontWeight: '600', color: '#f1f5f9' }}>{alumno?.nombre || 'Alumno'}</p>
-            <p style={{ margin: 0, fontSize: '12px', color: '#94a3b8' }}>Matrícula: {alumno?.username || 'N/A'}</p>
+            <p style={{ margin: 0, fontSize: '14px', fontWeight: '600', color: '#f1f5f9' }}>{nombreMostrar}</p>
+            <p style={{ margin: 0, fontSize: '12px', color: '#94a3b8' }}>Matrícula: {matriculaMostrar}</p>
           </div>
           <button
             onClick={handleLogout}
@@ -94,7 +102,7 @@ export default function StudentDashboard() {
         <div style={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: '12px', padding: '24px' }}>
           <h2 style={{ margin: 0, fontSize: '22px', color: '#ffffff', display: 'flex', alignItems: 'center', gap: '10px' }}>
             <FaUserGraduate color="#818cf8" />
-            ¡Bienvenido, {alumno?.nombre || 'Estudiante'}!
+            ¡Bienvenido, {nombreMostrar}!
           </h2>
           <p style={{ margin: '8px 0 0 0', color: '#94a3b8', fontSize: '14px' }}>
             Aquí puedes consultar tu saldo acumulado de Coins y tus movimientos recientes en el sistema escolar.
@@ -157,10 +165,10 @@ export default function StudentDashboard() {
                 <tbody>
                   {movimientos.map((mov, idx) => (
                     <tr key={idx} style={{ borderBottom: '1px solid #334155' }}>
-                      <td style={{ padding: '12px', color: '#cbd5e1' }}>{mov.fecha || 'N/A'}</td>
-                      <td style={{ padding: '12px', color: '#cbd5e1' }}>{mov.concepto || 'Transacción'}</td>
-                      <td style={{ padding: '12px', textAlign: 'right', fontWeight: 'bold', color: mov.tipo === 'abono' ? '#34d399' : '#f87171' }}>
-                        {mov.tipo === 'abono' ? '+' : '-'}{mov.monto} COINS
+                      <td style={{ padding: '12px', color: '#cbd5e1' }}>{mov.fecha || mov.createdAt || 'N/A'}</td>
+                      <td style={{ padding: '12px', color: '#cbd5e1' }}>{mov.concepto || mov.descripcion || 'Transacción'}</td>
+                      <td style={{ padding: '12px', textAlign: 'right', fontWeight: 'bold', color: (mov.tipo === 'abono' || mov.monto > 0) ? '#34d399' : '#f87171' }}>
+                        {(mov.tipo === 'abono' || mov.monto > 0) ? '+' : ''}{mov.monto} COINS
                       </td>
                     </tr>
                   ))}
