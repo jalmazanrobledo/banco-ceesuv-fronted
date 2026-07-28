@@ -703,11 +703,8 @@ app.post(["/api/compras", "/compras"], async (req, res) => {
 // =====================================
 const PORT = process.env.PORT || 5000;
 
-// Solo ejecutamos app.listen si estamos en desarrollo local (fuera de Vercel)
-if (process.env.NODE_ENV !== "production") {
-  app.listen(PORT, () => {
-    console.log(`Servidor corriendo en el puerto ${PORT}`);
-  });
-}
+app.listen(PORT, () => {
+  console.log(`Servidor corriendo en el puerto ${PORT}`);
+});
 
 module.exports = app;
