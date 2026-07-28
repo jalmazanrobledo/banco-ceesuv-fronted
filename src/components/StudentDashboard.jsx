@@ -121,7 +121,6 @@ export default function StudentDashboard() {
       return;
     }
 
-    // Tomamos explícitamente el alumno_id o el id real de la tabla alumnos
     const alumnoId = alumno?.alumno_id || alumno?.id;
     
     if (!alumnoId) {
@@ -145,14 +144,21 @@ export default function StudentDashboard() {
         })
       });
 
-      const data = await response.json();
-
+      // Validamos si la respuesta del servidor fue exitosa independientemente del formato del body
       if (response.ok) {
         setMensajeAccion({ tipo: "success", texto: "¡Operación realizada con éxito!" });
         setMontoAhorro("");
         await cargarDatosEstudiante();
       } else {
-        setMensajeAccion({ tipo: "error", texto: data.mensaje || "Error al procesar la operación." });
+        // Intentamos leer el mensaje de error si viene en JSON, si no, mostramos un texto genérico
+        let mensajeError = "Error al procesar la operación.";
+        try {
+          const data = await response.json();
+          if (data && data.mensaje) mensajeError = data.mensaje;
+        } catch (e) {
+          // El servidor respondió con texto plano o vacío pero con error
+        }
+        setMensajeAccion({ tipo: "error", texto: mensajeError });
       }
     } catch (error) {
       console.error("Error de red:", error);
