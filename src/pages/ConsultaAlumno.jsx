@@ -34,23 +34,41 @@ function ConsultaAlumno() {
   // VISTA DE CARGA
   if (cargando) {
     return (
-      <div
-        style={{
-          minHeight: "100vh",
-          display: "flex",
-          flexDirection: "column",
-          justifyContent: "center",
-          alignItems: "center",
-          background: "#0B2341",
-          color: "white",
-          fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif",
-          padding: "20px"
-        }}
-      >
-        <div style={{ fontSize: "40px", marginBottom: "15px" }}>⏳</div>
-        <h2 style={{ margin: 0, fontSize: "20px", fontWeight: "600" }}>Cargando información...</h2>
-        <p style={{ color: "#D4AF37", fontSize: "14px", marginTop: "5px" }}>Banco Escolar CEESUV</p>
-      </div>
+      <>
+        <style>{`
+          @keyframes girar {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+          }
+          .loader-icon {
+            display: inline-block;
+            animation: girar 2s linear infinite;
+            font-size: 40px;
+            margin-bottom: 15px;
+          }
+        `}</style>
+        <div
+          style={{
+            minHeight: "100vh",
+            background: "#0c1527",
+            color: "white",
+            display: "flex",
+            flexDirection: "column",
+            justifyContent: "center",
+            alignItems: "center",
+            padding: "40px",
+            textAlign: "center",
+            fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif"
+          }}
+        >
+          <div>
+            <span className="loader-icon">⏳</span>
+            <p style={{ margin: 0, fontSize: "16px", fontWeight: "500", color: "#94a3b8" }}>
+              Cargando información del estudiante...
+            </p>
+          </div>
+        </div>
+      </>
     );
   }
 
