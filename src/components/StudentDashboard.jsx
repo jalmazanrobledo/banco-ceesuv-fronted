@@ -176,7 +176,6 @@ export default function StudentDashboard() {
     }
   };
 
-  // Función para procesar la compra en la tienda
   const handleComprar = async (producto) => {
     const alumnoId = alumno?.alumno_id || alumno?.id;
 
@@ -268,15 +267,18 @@ export default function StudentDashboard() {
           background-color: #0c1527;
           font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
           color: white;
+          -webkit-text-size-adjust: 100%;
         }
 
         .portal-header {
           display: flex;
           justify-content: space-between;
           align-items: center;
-          padding: 15px 40px;
+          padding: 15px 20px;
           background-color: #0f1c32;
           border-bottom: 1px solid #1a2a47;
+          flex-wrap: wrap;
+          gap: 15px;
         }
 
         .portal-brand {
@@ -308,17 +310,18 @@ export default function StudentDashboard() {
         .user-info-bar {
           display: flex;
           align-items: center;
-          gap: 20px;
+          gap: 15px;
         }
 
         .btn-logout {
           background-color: #ef4444;
           color: white;
           border: none;
-          padding: 8px 16px;
+          padding: 8px 14px;
           border-radius: 8px;
           font-weight: bold;
           cursor: pointer;
+          font-size: 13px;
           transition: 0.2s;
         }
 
@@ -328,30 +331,30 @@ export default function StudentDashboard() {
 
         .portal-container {
           max-width: 1100px;
-          margin: 30px auto;
-          padding: 0 20px;
+          margin: 20px auto;
+          padding: 0 15px;
         }
 
         .card-dark {
           background-color: #132238;
           border: 1px solid #1e3250;
           border-radius: 16px;
-          padding: 24px;
-          margin-bottom: 24px;
+          padding: 20px;
+          margin-bottom: 20px;
           box-shadow: 0 4px 12px rgba(0,0,0,0.2);
         }
 
         .grid-cards {
           display: grid;
           grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-          gap: 20px;
-          margin-bottom: 24px;
+          gap: 15px;
+          margin-bottom: 20px;
         }
 
         .grid-tienda {
           display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-          gap: 15px;
+          grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+          gap: 12px;
           margin-top: 15px;
         }
 
@@ -359,7 +362,7 @@ export default function StudentDashboard() {
           background: #0c1527;
           border: 1px solid #1e3250;
           border-radius: 12px;
-          padding: 16px;
+          padding: 14px;
           text-align: center;
           display: flex;
           flex-direction: column;
@@ -370,7 +373,7 @@ export default function StudentDashboard() {
           background-color: #132238;
           border: 1px solid #1e3250;
           border-radius: 16px;
-          padding: 20px;
+          padding: 18px;
           display: flex;
           justify-content: space-between;
           align-items: center;
@@ -379,21 +382,21 @@ export default function StudentDashboard() {
 
         .stat-title {
           color: #94a3b8;
-          font-size: 14px;
-          margin: 0 0 6px 0;
+          font-size: 13px;
+          margin: 0 0 4px 0;
         }
 
         .stat-value {
-          font-size: 24px;
+          font-size: 22px;
           font-weight: 800;
           margin: 0;
         }
 
         .badge-icon {
           background: rgba(255,255,255,0.05);
-          padding: 12px;
-          border-radius: 12px;
-          font-size: 22px;
+          padding: 10px;
+          border-radius: 10px;
+          font-size: 20px;
         }
 
         .tabla-movs {
@@ -401,19 +404,20 @@ export default function StudentDashboard() {
           border-collapse: collapse;
           margin-top: 15px;
           text-align: left;
+          min-width: 500px;
         }
 
         .tabla-movs th {
-          padding: 12px;
+          padding: 10px;
           color: #94a3b8;
           border-bottom: 1px solid #1e3250;
-          font-size: 14px;
+          font-size: 13px;
         }
 
         .tabla-movs td {
-          padding: 14px 12px;
+          padding: 12px 10px;
           border-bottom: 1px solid #1e3250;
-          font-size: 14px;
+          font-size: 13px;
         }
 
         .input-ahorro {
@@ -424,8 +428,13 @@ export default function StudentDashboard() {
           border-radius: 8px;
           font-size: 14px;
           width: 100%;
-          max-width: 200px;
-          margin-right: 10px;
+          max-width: 100%;
+        }
+
+        .ahorro-acciones {
+          display: flex;
+          flex-direction: column;
+          gap: 10px;
         }
 
         .btn-accion {
@@ -435,6 +444,7 @@ export default function StudentDashboard() {
           border: none;
           cursor: pointer;
           font-size: 14px;
+          width: 100%;
           transition: 0.2s;
         }
 
@@ -458,6 +468,46 @@ export default function StudentDashboard() {
           padding: 8px;
         }
         .btn-comprar:hover { background-color: #059669; }
+
+        /* Estilos específicos para pantallas de PC o tablets grandes */
+        @media (min-width: 768px) {
+          .portal-header {
+            padding: 15px 40px;
+          }
+          .portal-container {
+            margin: 30px auto;
+            padding: 0 20px;
+          }
+          .card-dark {
+            padding: 24px;
+            margin-bottom: 24px;
+          }
+          .card-stat {
+            padding: 20px;
+          }
+          .stat-title {
+            font-size: 14px;
+          }
+          .stat-value {
+            font-size: 24px;
+          }
+          .input-ahorro {
+            max-width: 200px;
+            width: auto;
+            margin-right: 10px;
+          }
+          .ahorro-acciones {
+            flex-direction: row;
+            align-items: center;
+          }
+          .btn-accion:not(.btn-comprar) {
+            width: auto;
+          }
+          .tabla-movs th, .tabla-movs td {
+            padding: 14px 12px;
+            font-size: 14px;
+          }
+        }
       `}</style>
 
       <div>
@@ -577,7 +627,7 @@ export default function StudentDashboard() {
               Mueve coins de tu saldo disponible a tu alcancía de ahorro o retíralos cuando los necesites.
             </p>
 
-            <div style={{ display: "flex", flexWrap: "wrap", gap: "10px", alignItems: "center" }}>
+            <div className="ahorro-acciones">
               <input
                 type="number"
                 placeholder="Cantidad de coins"
