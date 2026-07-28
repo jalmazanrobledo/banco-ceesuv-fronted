@@ -367,6 +367,13 @@ export default function StudentDashboard() {
           gap: 10px;
         }
 
+        .brand-logo {
+          width: 32px;
+          height: 32px;
+          object-fit: contain;
+          border-radius: 50%;
+        }
+
         .brand-title {
           font-size: 15px;
           font-weight: bold;
@@ -640,10 +647,10 @@ export default function StudentDashboard() {
       `}</style>
 
       <div className="dashboard-wrapper">
-        {/* Navbar con Ticker de Divisas Dinámico integrado */}
+        {/* Navbar con Ticker de Divisas Dinámico y Logo institucional */}
         <header className="portal-header">
           <div className="portal-brand">
-            <span style={{ fontSize: "16px" }}>🏛️</span>
+            <img src="/logo-ceesuv.png" alt="Logo CEESUV" className="brand-logo" />
             <h1 className="brand-title">BANCO CEESUV</h1>
             <span className="badge-envivo">EN VIVO</span>
           </div>
