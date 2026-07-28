@@ -368,14 +368,16 @@ export default function StudentDashboard() {
         }
 
         .brand-logo-container {
-          background-color: #132238;
-          border: 1px solid #1e3250;
-          padding: 3px 6px;
-          border-radius: 6px;
+          background-color: #ffffff;
+          border: 2px solid #D4AF37;
+          width: 44px;
+          height: 44px;
+          border-radius: 50%;
           display: flex;
           align-items: center;
           justify-content: center;
-          box-shadow: 0 2px 5px rgba(0,0,0,0.4);
+          box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+          overflow: hidden;
         }
 
         .brand-logo {
@@ -657,7 +659,7 @@ export default function StudentDashboard() {
       `}</style>
 
       <div className="dashboard-wrapper">
-        {/* Navbar con Ticker de Divisas Dinámico y Logo con contenedor para contraste */}
+        {/* Navbar con Ticker de Divisas Dinámico y Logo en círculo blanco con borde dorado */}
         <header className="portal-header">
           <div className="portal-brand">
             <div className="brand-logo-container">
