@@ -296,13 +296,20 @@ export default function StudentDashboard() {
           gap: 12px;
         }
 
+        .brand-logo-container {
+          background-color: rgba(255, 255, 255, 0.9);
+          padding: 6px;
+          border-radius: 8px;
+          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+
         .brand-logo {
           width: 40px;
           height: 40px;
           object-fit: contain;
-          background-color: rgba(255, 255, 255, 0.05);
-          padding: 4px;
-          border-radius: 8px;
         }
 
         .brand-title {
@@ -526,7 +533,9 @@ export default function StudentDashboard() {
         {/* Navbar */}
         <header className="portal-header">
           <div className="portal-brand">
-            <img src="/logo-ceesuv.png" alt="Logo CEESUV" className="brand-logo" />
+            <div className="brand-logo-container">
+              <img src="/logo-ceesuv.png" alt="Logo CEESUV" className="brand-logo" />
+            </div>
             <div>
               <p className="brand-title">CEESUV</p>
               <p className="brand-sub">Portal del Estudiante</p>
