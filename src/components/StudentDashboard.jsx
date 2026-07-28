@@ -12,6 +12,18 @@ export default function StudentDashboard() {
   const [mensajeAccion, setMensajeAccion] = useState(null);
   const [procesando, setProcesando] = useState(false);
 
+  // Estados para la Tienda / Compras
+  const [procesandoCompra, setProcesandoCompra] = useState(null);
+  const [mensajeTienda, setMensajeTienda] = useState(null);
+
+  // Catálogo de productos de ejemplo (puedes personalizarlo o cargarlo desde la BD después)
+  const productosTienda = [
+    { id: 1, nombre: "Lápiz CEESUV", costo: 5, icono: "✏️" },
+    { id: 2, nombre: "Libreta Profesional", costo: 15, icono: "📓" },
+    { id: 3, nombre: "Pase de Tarea Extra", costo: 30, icono: "⭐" },
+    { id: 4, nombre: "Goma y Sacapuntas", costo: 8, icono: "📐" }
+  ];
+
   const cargarDatosEstudiante = async () => {
     try {
       const storedUser = localStorage.getItem("usuario");
@@ -144,20 +156,16 @@ export default function StudentDashboard() {
         })
       });
 
-      // Validamos si la respuesta del servidor fue exitosa independientemente del formato del body
       if (response.ok) {
         setMensajeAccion({ tipo: "success", texto: "¡Operación realizada con éxito!" });
         setMontoAhorro("");
         await cargarDatosEstudiante();
       } else {
-        // Intentamos leer el mensaje de error si viene en JSON, si no, mostramos un texto genérico
         let mensajeError = "Error al procesar la operación.";
         try {
           const data = await response.json();
           if (data && data.mensaje) mensajeError = data.mensaje;
-        } catch (e) {
-          // El servidor respondió con texto plano o vacío pero con error
-        }
+        } catch (e) {}
         setMensajeAccion({ tipo: "error", texto: mensajeError });
       }
     } catch (error) {
@@ -168,9 +176,57 @@ export default function StudentDashboard() {
     }
   };
 
+  // Función para procesar la compra en la tienda
+  const handleComprar = async (producto) => {
+    const alumnoId = alumno?.alumno_id || alumno?.id;
+
+    if (!alumnoId) {
+      setMensajeTienda({ tipo: "error", texto: "No se identificó el ID del alumno." });
+      return;
+    }
+
+    if (Number(alumno?.coins || 0) < producto.costo) {
+      setMensajeTienda({ tipo: "error", texto: `Saldo insuficiente para comprar ${producto.nombre}.` });
+      return;
+    }
+
+    setProcesandoCompra(producto.id);
+    setMensajeTienda(null);
+
+    try {
+      const response = await fetch("https://banco-ceesuv-backend.vercel.app/api/compras", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          alumno_id: Number(alumnoId),
+          producto_nombre: producto.nombre,
+          costo: producto.costo,
+          usuario: alumno?.nombre || "Estudiante"
+        })
+      });
+
+      if (response.ok) {
+        setMensajeTienda({ tipo: "success", texto: `¡Has adquirido ${producto.nombre} con éxito!` });
+        await cargarDatosEstudiante();
+      } else {
+        let mensajeError = "Error al procesar la compra.";
+        try {
+          const data = await response.json();
+          if (data && data.mensaje) mensajeError = data.mensaje;
+        } catch (e) {}
+        setMensajeTienda({ tipo: "error", texto: mensajeError });
+      }
+    } catch (error) {
+      console.error("Error de red en compra:", error);
+      setMensajeTienda({ tipo: "error", texto: "Error de conexión con el servidor." });
+    } finally {
+      setProcesandoCompra(null);
+    }
+  };
+
   const obtenerColorTipo = (tipo) => {
     if (tipo === "ENTRADA" || tipo === "AHORRO_RENDIMIENTO") return "#10B981";
-    if (tipo === "SALIDA") return "#EF4444";
+    if (tipo === "SALIDA" || tipo === "COMPRA") return "#EF4444";
     if (tipo === "AHORRO_DEPOSITO") return "#3B82F6";
     if (tipo === "AHORRO_RETIRO") return "#F59E0B";
     return "#333";
@@ -178,7 +234,7 @@ export default function StudentDashboard() {
 
   const obtenerSignoMonto = (tipo, cantidad) => {
     if (tipo === "ENTRADA" || tipo === "AHORRO_RENDIMIENTO" || tipo === "AHORRO_RETIRO") return `+${cantidad}`;
-    if (tipo === "SALIDA" || tipo === "AHORRO_DEPOSITO") return `-${cantidad}`;
+    if (tipo === "SALIDA" || tipo === "AHORRO_DEPOSITO" || tipo === "COMPRA") return `-${cantidad}`;
     return `${cantidad}`;
   };
 
@@ -292,6 +348,24 @@ export default function StudentDashboard() {
           margin-bottom: 24px;
         }
 
+        .grid-tienda {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+          gap: 15px;
+          margin-top: 15px;
+        }
+
+        .card-producto {
+          background: #0c1527;
+          border: 1px solid #1e3250;
+          border-radius: 12px;
+          padding: 16px;
+          text-align: center;
+          display: flex;
+          flex-direction: column;
+          justify-content: space-between;
+        }
+
         .card-stat {
           background-color: #132238;
           border: 1px solid #1e3250;
@@ -375,6 +449,15 @@ export default function StudentDashboard() {
           color: white;
         }
         .btn-retirar:hover { background-color: #b45309; }
+
+        .btn-comprar {
+          background-color: #10b981;
+          color: white;
+          width: 100%;
+          margin-top: 10px;
+          padding: 8px;
+        }
+        .btn-comprar:hover { background-color: #059669; }
       `}</style>
 
       <div>
@@ -410,7 +493,7 @@ export default function StudentDashboard() {
               🎓 ¡Bienvenido, {nombreAlumno}!
             </h2>
             <p style={{ margin: "8px 0 0 0", color: "#94a3b8", fontSize: "14px" }}>
-              Consulta tus saldos disponibles, gestiona tus ahorros y revisa tus movimientos recientes.
+              Consulta tus saldos disponibles, gestiona tus ahorros, compra en la tienda escolar y revisa tus movimientos.
             </p>
           </div>
 
@@ -445,6 +528,46 @@ export default function StudentDashboard() {
               </div>
               <div className="badge-icon">💰</div>
             </div>
+          </div>
+
+          {/* Sección de Tienda / Compras */}
+          <div className="card-dark">
+            <h3 style={{ margin: "0 0 10px 0", fontSize: "18px" }}>🛒 Tienda Escolar</h3>
+            <p style={{ color: "#94a3b8", fontSize: "14px", marginBottom: "15px" }}>
+              Canjea tus coins disponibles por artículos escolares o privilegios especiales.
+            </p>
+
+            <div className="grid-tienda">
+              {productosTienda.map((prod) => (
+                <div key={prod.id} className="card-producto">
+                  <div>
+                    <div style={{ fontSize: "30px", marginBottom: "8px" }}>{prod.icono}</div>
+                    <p style={{ margin: "0 0 4px 0", fontWeight: "bold", fontSize: "14px" }}>{prod.nombre}</p>
+                    <p style={{ margin: 0, color: "#f59e0b", fontSize: "13px", fontWeight: "bold" }}>{prod.costo} COINS</p>
+                  </div>
+                  <button
+                    className="btn-accion btn-comprar"
+                    onClick={() => handleComprar(prod)}
+                    disabled={procesandoCompra === prod.id}
+                  >
+                    {procesandoCompra === prod.id ? "Comprando..." : "Comprar"}
+                  </button>
+                </div>
+              ))}
+            </div>
+
+            {mensajeTienda && (
+              <p
+                style={{
+                  marginTop: "15px",
+                  fontSize: "14px",
+                  color: mensajeTienda.tipo === "error" ? "#ef4444" : "#10b981",
+                  fontWeight: "bold"
+                }}
+              >
+                {mensajeTienda.texto}
+              </p>
+            )}
           </div>
 
           {/* Sección de Gestión de Ahorro */}
