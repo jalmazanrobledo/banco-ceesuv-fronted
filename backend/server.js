@@ -644,8 +644,12 @@ app.get(['/reset-db-directo', '/api/reset-db-directo'], async (req, res) => {
 // Inicialización del Servidor
 // =====================================
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-  console.log(`Servidor corriendo en el puerto ${PORT}`);
-});
+
+// Solo ejecutamos app.listen si estamos en desarrollo local (fuera de Vercel)
+if (process.env.NODE_ENV !== "production") {
+  app.listen(PORT, () => {
+    console.log(`Servidor corriendo en el puerto ${PORT}`);
+  });
+}
 
 module.exports = app;
