@@ -317,9 +317,8 @@ export default function StudentDashboard() {
           display: flex;
           justify-content: space-between;
           align-items: center;
-          padding: 15px 20px;
-          background-color: rgba(15, 28, 50, 0.95);
-          backdrop-filter: blur(8px);
+          padding: 12px 20px;
+          background-color: #0c1527;
           border-bottom: 1px solid #1a2a47;
           flex-wrap: wrap;
           gap: 15px;
@@ -328,37 +327,50 @@ export default function StudentDashboard() {
         .portal-brand {
           display: flex;
           align-items: center;
-          gap: 12px;
-        }
-
-        .brand-logo-container {
-          background-color: rgba(255, 255, 255, 0.9);
-          padding: 5px;
-          border-radius:10px;
-          box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          border: 1px solid #e2e8f0;
-        }
-
-        .brand-logo {
-          width: 36px;
-          height:36px;
-          object-fit: contain;
+          gap: 10px;
         }
 
         .brand-title {
-          font-size: 18px;
+          font-size: 15px;
           font-weight: bold;
-          color: #b3ab43;
+          color: #f59e0b;
           margin: 0;
+          letter-spacing: 0.5px;
         }
 
-        .brand-sub {
-          font-size: 12px;
+        .badge-envivo {
+          background-color: #10b981;
+          color: white;
+          font-size: 10px;
+          font-weight: bold;
+          padding: 2px 6px;
+          border-radius: 4px;
+          text-transform: uppercase;
+        }
+
+        .ticker-divisas {
+          display: flex;
+          align-items: center;
+          gap: 20px;
+          flex-wrap: wrap;
+          font-size: 13px;
+          font-family: monospace;
           color: #94a3b8;
-          margin: 0;
+        }
+
+        .ticker-item {
+          color: #10b981;
+          font-weight: bold;
+        }
+
+        .badge-coin-ticker {
+          background-color: #1e293b;
+          border: 1px solid #f59e0b;
+          color: #f59e0b;
+          padding: 4px 10px;
+          border-radius: 6px;
+          font-weight: bold;
+          font-size: 12px;
         }
 
         .user-info-bar {
@@ -406,7 +418,6 @@ export default function StudentDashboard() {
           margin-bottom: 20px;
         }
 
-        /* Estilos del Carrusel de la Tienda Escolar */
         .carrusel-contenedor {
           display: flex;
           align-items: center;
@@ -553,7 +564,7 @@ export default function StudentDashboard() {
 
         @media (min-width: 768px) {
           .portal-header {
-            padding: 15px 40px;
+            padding: 12px 40px;
           }
           .portal-container {
             margin: 30px auto;
@@ -592,16 +603,19 @@ export default function StudentDashboard() {
       `}</style>
 
       <div className="dashboard-wrapper">
-        {/* Navbar */}
+        {/* Navbar con Ticker de Divisas exacto al Admin */}
         <header className="portal-header">
           <div className="portal-brand">
-            <div className="brand-logo-container">
-              <img src="/logo-ceesuv.png" alt="Logo CEESUV" className="brand-logo" />
-            </div>
-            <div>
-              <p className="brand-title">CEESUV</p>
-              <p className="brand-sub">Portal del Estudiante</p>
-            </div>
+            <span style={{ fontSize: "16px" }}>🏦</span>
+            <h1 className="brand-title">BANCO CEESUV</h1>
+            <span className="badge-envivo">EN VIVO</span>
+          </div>
+
+          <div className="ticker-divisas">
+            <div>USD/MXN: <span className="ticker-item">$17.46</span></div>
+            <div>EUR/MXN: <span className="ticker-item">$19.86</span></div>
+            <div>CAD/MXN: <span className="ticker-item">$12.37</span></div>
+            <div className="badge-coin-ticker">1 COIN = $1.00 MXN</div>
           </div>
 
           <div className="user-info-bar">
