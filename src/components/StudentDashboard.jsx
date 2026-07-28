@@ -562,7 +562,7 @@ export default function StudentDashboard() {
         <main className="portal-container">
           <div className="card-dark">
             <h2 style={{ margin: 0, fontSize: "22px" }}>
-              🎓 ¡Bienvenido, {nombreAlumno}!
+              ¡Bienvenido, {nombreAlumno}!
             </h2>
             <p style={{ margin: "8px 0 0 0", color: "#94a3b8", fontSize: "14px" }}>
               Consulta tus saldos disponibles, gestiona tus ahorros, compra en la tienda escolar y revisa tus movimientos.
