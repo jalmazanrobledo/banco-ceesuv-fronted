@@ -272,7 +272,7 @@ export default function StudentDashboard() {
 
         .dashboard-wrapper {
           min-height: 100vh;
-          background-image: linear-gradient(rgba(12, 21, 39, 0.65)rgba(12, 21, 39, 0.70)),url('/fachada-ceesuv.png');
+          background-image: linear-gradient(rgba(12, 21, 39, 0.45), rgba(12, 21, 39, 0.50)), url('/fachada-ceesuv.png');
           background-size: cover;
           background-position: center;
           background-attachment: fixed;
