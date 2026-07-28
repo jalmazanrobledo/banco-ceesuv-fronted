@@ -39,13 +39,16 @@ app.use((req, res, next) => {
 app.use(express.json());
 
 // =====================================
-// Configuración de Base de Datos
+// Configuración de Base de Datos (Optimizado para Vercel Serverless)
 // =====================================
 const pool = new Pool(
   process.env.DATABASE_URL
     ? {
         connectionString: process.env.DATABASE_URL,
-        ssl: { rejectUnauthorized: false }
+        ssl: { rejectUnauthorized: false },
+        max: 1, // Evita agotar conexiones en entornos serverless
+        idleTimeoutMillis: 1000,
+        connectionTimeoutMillis: 5000,
       }
     : {
         user: "postgres",
@@ -179,7 +182,7 @@ inicializarBaseDeDatos();
 // =====================================
 
 app.get(["/", "/api"], (req, res) => {
-  res.send("Servidor Banco Escolar CEESUV funcionando correctamente.");
+  return res.status(200).send("Servidor Banco Escolar CEESUV funcionando correctamente.");
 });
 
 // Consulta pública vía Código QR (Padres)
@@ -209,14 +212,14 @@ app.get(["/consulta/:token", "/api/consulta/:token"], async (req, res) => {
       [alumno.id]
     );
 
-    res.json({
+    return res.status(200).json({
       alumno: alumno,
       movimientos: movimientosResult.rows
     });
 
   } catch (error) {
     console.error("Error al consultar por QR:", error);
-    res.status(500).json({
+    return res.status(500).json({
       mensaje: "Error interno del servidor al consultar QR."
     });
   }
@@ -258,14 +261,14 @@ app.get(["/api/alumno-dashboard/:alumnoId", "/api/alumnos/:identifier", "/alumno
       [alumno.id]
     );
 
-    res.json({
+    return res.status(200).json({
       ...alumno,
       alumno: alumno,
       movimientos: movsRes.rows
     });
   } catch (error) {
     console.error("Error al obtener dashboard del alumno:", error);
-    res.status(500).json({ mensaje: "Error al obtener datos del alumno." });
+    return res.status(500).json({ mensaje: "Error al obtener datos del alumno." });
   }
 });
 
@@ -286,10 +289,10 @@ app.get(["/alumnos", "/api/alumnos"], async (req, res) => {
        ORDER BY a.id`
     );
 
-    res.json(resultado.rows);
+    return res.status(200).json(resultado.rows);
   } catch (error) {
     console.error(error);
-    res.status(500).json({ mensaje: "Error al obtener alumnos." });
+    return res.status(500).json({ mensaje: "Error al obtener alumnos." });
   }
 });
 
@@ -309,10 +312,10 @@ app.post(["/alumnos", "/api/alumnos"], async (req, res) => {
     const nuevoAlumno = resultado.rows[0];
     const pin = await asegurarUsuarioAlumno(nuevoAlumno.id, nuevoAlumno.nombre);
 
-    res.json({ ...nuevoAlumno, pin });
+    return res.status(200).json({ ...nuevoAlumno, pin });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ mensaje: "Error al guardar alumno." });
+    return res.status(500).json({ mensaje: "Error al guardar alumno." });
   }
 });
 
@@ -327,12 +330,12 @@ app.post(["/alumnos/generar-usuarios", "/api/alumnos/generar-usuarios"], async (
       creados++;
     }
 
-    res.json({
+    return res.status(200).json({
       mensaje: `Sincronización completada. ${creados} usuarios/PINs actualizados.`
     });
   } catch (error) {
     console.error("Error al sincronizar usuarios de alumnos:", error);
-    res.status(500).json({ mensaje: "Error al generar usuarios para alumnos." });
+    return res.status(500).json({ mensaje: "Error al generar usuarios para alumnos." });
   }
 });
 
@@ -359,10 +362,10 @@ app.put(["/alumnos/:id", "/api/alumnos/:id"], async (req, res) => {
       await asegurarUsuarioAlumno(alumnoEditado.id, alumnoEditado.nombre);
     }
 
-    res.json(alumnoEditado);
+    return res.status(200).json(alumnoEditado);
   } catch (error) {
     console.error(error);
-    res.status(500).json({ mensaje: "Error al editar alumno." });
+    return res.status(500).json({ mensaje: "Error al editar alumno." });
   }
 });
 
@@ -374,12 +377,12 @@ app.delete(["/alumnos/:id", "/api/alumnos/:id"], async (req, res) => {
     await pool.query("DELETE FROM usuarios WHERE alumno_id=$1", [id]);
     await pool.query("DELETE FROM alumnos WHERE id=$1", [id]);
 
-    res.json({
+    return res.status(200).json({
       mensaje: "Alumno y usuario asociados eliminados correctamente."
     });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ mensaje: "Error al eliminar alumno." });
+    return res.status(500).json({ mensaje: "Error al eliminar alumno." });
   }
 });
 
@@ -400,10 +403,10 @@ app.get(["/movimientos", "/api/movimientos"], async (req, res) => {
       ORDER BY m.fecha DESC
     `);
 
-    res.json(resultado.rows);
+    return res.status(200).json(resultado.rows);
   } catch (error) {
     console.error(error);
-    res.status(500).json({ mensaje: "Error al obtener movimientos." });
+    return res.status(500).json({ mensaje: "Error al obtener movimientos." });
   }
 });
 
@@ -458,14 +461,14 @@ app.post(["/movimientos", "/api/movimientos"], async (req, res) => {
       [alumno_id, tipo, monto, motivo || 'Movimiento de saldo', usuario || 'Sistema']
     );
 
-    res.json({
+    return res.status(200).json({
       mensaje: "Movimiento registrado correctamente.",
       coins: coinsDisponibles,
       coins_ahorro: coinsAhorro
     });
   } catch (error) {
     console.error("Error al registrar movimiento:", error);
-    res.status(500).json({ mensaje: "Error al registrar movimiento." });
+    return res.status(500).json({ mensaje: "Error al registrar movimiento." });
   }
 });
 
@@ -477,7 +480,7 @@ app.get(["/dashboard", "/api/dashboard"], async (req, res) => {
     const coinsAhorro = await pool.query("SELECT COALESCE(SUM(coins_ahorro),0) AS total FROM alumnos");
     const movimientos = await pool.query("SELECT COUNT(*) AS total FROM movimientos");
 
-    res.json({
+    return res.status(200).json({
       alumnos: Number(alumnos.rows[0].total),
       coins: Number(coins.rows[0].total),
       coins_ahorro: Number(coinsAhorro.rows[0].total),
@@ -485,7 +488,7 @@ app.get(["/dashboard", "/api/dashboard"], async (req, res) => {
     });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ mensaje: "Error al obtener estadísticas." });
+    return res.status(500).json({ mensaje: "Error al obtener estadísticas." });
   }
 });
 
@@ -495,10 +498,10 @@ app.get(["/usuarios", "/api/usuarios"], async (req, res) => {
     const resultado = await pool.query(
       `SELECT id, nombre, usuario, rol, estado, pin, alumno_id, fecha_registro FROM usuarios ORDER BY id`
     );
-    res.json(resultado.rows);
+    return res.status(200).json(resultado.rows);
   } catch (error) {
     console.error(error);
-    res.status(500).json({ mensaje: "Error al obtener usuarios." });
+    return res.status(500).json({ mensaje: "Error al obtener usuarios." });
   }
 });
 
@@ -514,10 +517,10 @@ app.post(["/usuarios", "/api/usuarios"], async (req, res) => {
       [nombre, usuario, password, rol]
     );
 
-    res.json(resultado.rows[0]);
+    return res.status(200).json(resultado.rows[0]);
   } catch (error) {
     console.error(error);
-    res.status(500).json({ mensaje: "Error al guardar usuario." });
+    return res.status(500).json({ mensaje: "Error al guardar usuario." });
   }
 });
 
@@ -556,7 +559,7 @@ app.post(["/login", "/api/login"], async (req, res) => {
       );
 
       if (resPin.rows.length > 0) {
-        return res.json({
+        return res.status(200).json({
           ...resPin.rows[0],
           loginTipo: "PIN"
         });
@@ -581,10 +584,10 @@ app.post(["/login", "/api/login"], async (req, res) => {
     }
 
     delete usuarioEncontrado.password;
-    res.json(usuarioEncontrado);
+    return res.status(200).json(usuarioEncontrado);
   } catch (error) {
     console.error("Error al intentar iniciar sesión:", error);
-    res.status(500).json({
+    return res.status(500).json({
       mensaje: "Error al intentar iniciar sesión.",
       detalles: error.message
     });
@@ -634,9 +637,9 @@ app.get(['/reset-db-directo', '/api/reset-db-directo'], async (req, res) => {
       VALUES ('Administrador', 'admin', 'admin123', 'Admin', 'Activo');
     `);
     
-    res.send("<h1 style='color:green; font-family:sans-serif;'>¡BASE DE DATOS REPARADA Y ESTRUCTURADA CORRECTAMENTE!</h1><p>Usuario: <b>admin</b> | Contraseña: <b>admin123</b></p>");
+    return res.status(200).send("<h1 style='color:green; font-family:sans-serif;'>¡BASE DE DATOS REPARADA Y ESTRUCTURADA CORRECTAMENTE!</h1><p>Usuario: <b>admin</b> | Contraseña: <b>admin123</b></p>");
   } catch (error) {
-    res.status(500).send("<h1>Error al resetear la base de datos:</h1> <pre>" + error.message + "</pre>");
+    return res.status(500).send("<h1>Error al resetear la base de datos:</h1> <pre>" + error.message + "</pre>");
   }
 });
 
