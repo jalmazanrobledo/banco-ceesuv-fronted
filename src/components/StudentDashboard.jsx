@@ -121,7 +121,7 @@ export default function StudentDashboard() {
       return;
     }
 
-    const alumnoId = alumno?.id || alumno?.alumno_id;
+    const alumnoId = alumno?.alumno_id || alumno?.usuario_id || alumno?.id;
     if (!alumnoId) {
       setMensajeAccion({ tipo: "error", texto: "No se identificó el ID del alumno." });
       return;
