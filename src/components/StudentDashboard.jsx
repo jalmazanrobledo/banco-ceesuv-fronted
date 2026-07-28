@@ -121,7 +121,9 @@ export default function StudentDashboard() {
       return;
     }
 
-    const alumnoId = alumno?.alumno_id || alumno?.usuario_id || alumno?.id;
+    // Tomamos explícitamente el alumno_id o el id real de la tabla alumnos
+    const alumnoId = alumno?.alumno_id || alumno?.id;
+    
     if (!alumnoId) {
       setMensajeAccion({ tipo: "error", texto: "No se identificó el ID del alumno." });
       return;
@@ -135,8 +137,8 @@ export default function StudentDashboard() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          alumno_id: alumnoId,
-          tipo: tipoAccion, // "AHORRO_DEPOSITO" o "AHORRO_RETIRO"
+          alumno_id: Number(alumnoId),
+          tipo: tipoAccion,
           cantidad: Number(montoAhorro),
           motivo: tipoAccion === "AHORRO_DEPOSITO" ? "Depósito a cuenta de ahorro" : "Retiro desde cuenta de ahorro",
           usuario: alumno?.nombre || "Estudiante"
@@ -148,7 +150,6 @@ export default function StudentDashboard() {
       if (response.ok) {
         setMensajeAccion({ tipo: "success", texto: "¡Operación realizada con éxito!" });
         setMontoAhorro("");
-        // Recargamos los datos actualizados del alumno y movimientos
         await cargarDatosEstudiante();
       } else {
         setMensajeAccion({ tipo: "error", texto: data.mensaje || "Error al procesar la operación." });
