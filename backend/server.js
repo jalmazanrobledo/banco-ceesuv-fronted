@@ -643,6 +643,61 @@ app.get(['/reset-db-directo', '/api/reset-db-directo'], async (req, res) => {
   }
 });
 
+// ... (tus otras rutas como /movimientos o /alumnos)
+
+// =====================================
+// Ruta para realizar compras en la tienda
+// =====================================
+app.post(["/api/compras", "/compras"], async (req, res) => {
+  try {
+    const { alumno_id, producto_nombre, costo, usuario } = req.body;
+
+    // Verificar que el alumno exista y tenga sus saldos actuales
+    const alumnoQuery = await pool.query(
+      "SELECT coins, COALESCE(coins_ahorro, 0) AS coins_ahorro FROM alumnos WHERE id = $1",
+      [alumno_id]
+    );
+
+    if (alumnoQuery.rows.length === 0) {
+      return res.status(404).json({ mensaje: "Alumno no encontrado." });
+    }
+
+    let coinsDisponibles = Number(alumnoQuery.rows[0].coins);
+    const precioProducto = Number(costo);
+
+    // Validar saldo suficiente
+    if (coinsDisponibles < precioProducto) {
+      return res.status(400).json({ mensaje: "Saldo insuficiente para realizar la compra." });
+    }
+
+    // Restar los coins disponibles
+    coinsDisponibles -= precioProducto;
+
+    // Actualizar saldo del alumno
+    await pool.query(
+      "UPDATE alumnos SET coins = $1 WHERE id = $2",
+      [coinsDisponibles, alumno_id]
+    );
+
+    // Registrar el movimiento en la tabla
+    await pool.query(
+      `INSERT INTO movimientos (alumno_id, tipo, cantidad, motivo, usuario)
+       VALUES ($1, $2, $3, $4, $5)`,
+      [alumno_id, 'COMPRA', precioProducto, `Compra: ${producto_nombre}`, usuario || 'Tienda Escolar']
+    );
+
+    return res.status(200).json({
+      mensaje: "¡Compra realizada con éxito!",
+      coins: coinsDisponibles
+    });
+
+  } catch (error) {
+    console.error("Error al procesar la compra:", error);
+    return res.status(500).json({ mensaje: "Error interno al procesar la compra." });
+  }
+});
+
+
 // =====================================
 // Inicialización del Servidor
 // =====================================
