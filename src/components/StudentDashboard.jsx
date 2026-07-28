@@ -47,8 +47,8 @@ export default function StudentDashboard() {
         const param = encodeURIComponent(identifier);
         try {
           const resAlumno = await fetch(
-            `https://banco-ceesuv-backend.vercel.app/api/alumnos/${param}`
-          );
+  `https://banco-ceesuv-backend.vercel.app/api/alumnos/${param}?_t=${new Date().getTime()}`
+);
 
           if (resAlumno.ok) {
             const data = await resAlumno.json();

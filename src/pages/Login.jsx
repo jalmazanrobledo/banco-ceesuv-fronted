@@ -26,7 +26,10 @@ function Login() {
       if (res.mensaje && !res.rol && !res.nombre) {
         setError(res.mensaje);
       } else {
-        // Guardamos la sesión en AMBAS claves para máxima compatibilidad con el Dashboard
+        // Limpiamos cualquier rastro de sesiones pasadas o datos residuales en caché
+        localStorage.clear();
+
+        // Guardamos la sesión limpia en ambas claves para compatibilidad total
         localStorage.setItem("usuarioCEESUV", JSON.stringify(res));
         localStorage.setItem("usuario", JSON.stringify(res));
 
