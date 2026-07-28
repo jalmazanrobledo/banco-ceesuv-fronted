@@ -47,8 +47,8 @@ export default function StudentDashboard() {
         const param = encodeURIComponent(identifier);
         try {
           const resAlumno = await fetch(
-  `https://banco-ceesuv-backend.vercel.app/api/alumnos/${param}?_t=${new Date().getTime()}`
-);
+            `https://banco-ceesuv-backend.vercel.app/api/alumnos/${param}?_t=${new Date().getTime()}`
+          );
 
           if (resAlumno.ok) {
             const data = await resAlumno.json();
@@ -270,12 +270,21 @@ export default function StudentDashboard() {
           -webkit-text-size-adjust: 100%;
         }
 
+        .dashboard-wrapper {
+          min-height: 100vh;
+          background-image: linear-gradient(rgba(12, 21, 39, 0.90), rgba(12, 21, 39, 0.93)), url('/fachada-ceesuv.png');
+          background-size: cover;
+          background-position: center;
+          background-attachment: fixed;
+        }
+
         .portal-header {
           display: flex;
           justify-content: space-between;
           align-items: center;
           padding: 15px 20px;
-          background-color: #0f1c32;
+          background-color: rgba(15, 28, 50, 0.95);
+          backdrop-filter: blur(8px);
           border-bottom: 1px solid #1a2a47;
           flex-wrap: wrap;
           gap: 15px;
@@ -287,11 +296,13 @@ export default function StudentDashboard() {
           gap: 12px;
         }
 
-        .brand-icon {
-          background-color: #2563eb;
-          padding: 8px 12px;
+        .brand-logo {
+          width: 40px;
+          height: 40px;
+          object-fit: contain;
+          background-color: rgba(255, 255, 255, 0.05);
+          padding: 4px;
           border-radius: 8px;
-          font-size: 20px;
         }
 
         .brand-title {
@@ -336,12 +347,13 @@ export default function StudentDashboard() {
         }
 
         .card-dark {
-          background-color: #132238;
+          background-color: rgba(19, 34, 56, 0.88);
+          backdrop-filter: blur(6px);
           border: 1px solid #1e3250;
           border-radius: 16px;
           padding: 20px;
           margin-bottom: 20px;
-          box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+          box-shadow: 0 4px 12px rgba(0,0,0,0.3);
         }
 
         .grid-cards {
@@ -359,7 +371,7 @@ export default function StudentDashboard() {
         }
 
         .card-producto {
-          background: #0c1527;
+          background: rgba(12, 21, 39, 0.85);
           border: 1px solid #1e3250;
           border-radius: 12px;
           padding: 14px;
@@ -370,14 +382,15 @@ export default function StudentDashboard() {
         }
 
         .card-stat {
-          background-color: #132238;
+          background-color: rgba(19, 34, 56, 0.88);
+          backdrop-filter: blur(6px);
           border: 1px solid #1e3250;
           border-radius: 16px;
           padding: 18px;
           display: flex;
           justify-content: space-between;
           align-items: center;
-          box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+          box-shadow: 0 4px 12px rgba(0,0,0,0.3);
         }
 
         .stat-title {
@@ -421,7 +434,7 @@ export default function StudentDashboard() {
         }
 
         .input-ahorro {
-          background: #0c1527;
+          background: rgba(12, 21, 39, 0.9);
           border: 1px solid #1e3250;
           color: white;
           padding: 10px 14px;
@@ -469,7 +482,6 @@ export default function StudentDashboard() {
         }
         .btn-comprar:hover { background-color: #059669; }
 
-        /* Estilos específicos para pantallas de PC o tablets grandes */
         @media (min-width: 768px) {
           .portal-header {
             padding: 15px 40px;
@@ -510,11 +522,11 @@ export default function StudentDashboard() {
         }
       `}</style>
 
-      <div>
+      <div className="dashboard-wrapper">
         {/* Navbar */}
         <header className="portal-header">
           <div className="portal-brand">
-            <div className="brand-icon">🎓</div>
+            <img src="/logo-ceesuv.png" alt="Logo CEESUV" className="brand-logo" />
             <div>
               <p className="brand-title">CEESUV</p>
               <p className="brand-sub">Portal del Estudiante</p>
