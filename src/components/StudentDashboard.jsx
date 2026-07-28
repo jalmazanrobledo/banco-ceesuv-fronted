@@ -19,18 +19,6 @@ export default function StudentDashboard() {
   // Estado para el índice activo del carrusel de la tienda
   const [indiceActivo, setIndiceActivo] = useState(0);
 
-  // Estados para el Módulo de Cambio de Divisas (Monedas / Tasas internas)
-  const [monedaSeleccionada, setMonedaSeleccionada] = useState("USD");
-  const [montoAConvertir, setMontoAConvertir] = useState("");
-  const [tipoConversion, setTipoConversion] = useState("aCoins"); // "aCoins" o "aMoneda"
-
-  // Tasas de cambio de referencia (ej. 1 Coin = $X moneda externa)
-  const tasasCambio = {
-    USD: 0.10, // 10 Coins = 1 Dólar
-    EUR: 0.09, // ~11.11 Coins = 1 Euro
-    MXN: 2.00  // 1 Coin = 2 Pesos Mexicanos
-  };
-
   // Catálogo de productos de ejemplo
   const productosTienda = [
     { id: 1, nombre: "Lápiz CEESUV", costo: 5, icono: "✏️" },
@@ -246,19 +234,6 @@ export default function StudentDashboard() {
     }
   };
 
-  // Cálculo dinámico para la sección de Cambio de Divisas
-  const calcularCambioDivisa = () => {
-    if (!montoAConvertir || isNaN(montoAConvertir) || Number(montoAConvertir) <= 0) return 0;
-    const tasa = tasasCambio[monedaSeleccionada] || 1;
-    if (tipoConversion === "aCoins") {
-      // Ejemplo: Convertir moneda externa a Coins
-      return (Number(montoAConvertir) / tasa).toFixed(2);
-    } else {
-      // Convertir Coins a moneda externa
-      return (Number(montoAConvertir) * tasa).toFixed(2);
-    }
-  };
-
   const obtenerColorTipo = (tipo) => {
     if (tipo === "ENTRADA" || tipo === "AHORRO_RENDIMIENTO") return "#10B981";
     if (tipo === "SALIDA" || tipo === "COMPRA") return "#EF4444";
@@ -369,7 +344,7 @@ export default function StudentDashboard() {
 
         .brand-logo {
           width: 36px;
-          height: 36px;
+          height:36px;
           object-fit: contain;
         }
 
@@ -526,7 +501,7 @@ export default function StudentDashboard() {
           font-size: 13px;
         }
 
-        .input-ahorro, .input-divisa, .select-divisa {
+        .input-ahorro {
           background: rgba(12, 21, 39, 0.9);
           border: 1px solid #1e3250;
           color: white;
@@ -534,7 +509,7 @@ export default function StudentDashboard() {
           border-radius: 8px;
           font-size: 14px;
           width: 100%;
-          box-sizing: border-box;
+          max-width: 100%;
         }
 
         .ahorro-acciones {
@@ -576,13 +551,6 @@ export default function StudentDashboard() {
         }
         .btn-comprar:hover { background-color: #059669; }
 
-        .divisa-grid {
-          display: grid;
-          grid-template-columns: 1fr;
-          gap: 15px;
-          margin-top: 15px;
-        }
-
         @media (min-width: 768px) {
           .portal-header {
             padding: 15px 40px;
@@ -619,10 +587,6 @@ export default function StudentDashboard() {
           .tabla-movs th, .tabla-movs td {
             padding: 14px 12px;
             font-size: 14px;
-          }
-          .divisa-grid {
-            grid-template-columns: repeat(3, 1fr);
-            align-items: center;
           }
         }
       `}</style>
@@ -662,7 +626,7 @@ export default function StudentDashboard() {
               ¡Bienvenido, {nombreAlumno}!
             </h2>
             <p style={{ margin: "8px 0 0 0", color: "#94a3b8", fontSize: "14px" }}>
-              Consulta tus saldos disponibles, gestiona tus ahorros, realiza conversiones de divisa, compra en la tienda escolar y revisa tus movimientos.
+              Consulta tus saldos disponibles, gestiona tus ahorros, compra en la tienda escolar y revisa tus movimientos.
             </p>
           </div>
 
@@ -697,69 +661,6 @@ export default function StudentDashboard() {
               </div>
               <div className="badge-icon">💰</div>
             </div>
-          </div>
-
-          {/* Sección de Cambio de Divisas */}
-          <div className="card-dark">
-            <h3 style={{ margin: "0 0 5px 0", fontSize: "18px" }}>💱 Conversión y Cambio de Divisas</h3>
-            <p style={{ color: "#94a3b8", fontSize: "14px", margin: "0 0 15px 0" }}>
-              Calcula equivalencias entre tus Coins y monedas de referencia internacional (Tasas simuladas).
-            </p>
-
-            <div className="divisa-grid">
-              <div>
-                <label style={{ display: "block", fontSize: "12px", color: "#94a3b8", marginBottom: "6px" }}>
-                  Seleccionar Moneda
-                </label>
-                <select
-                  className="select-divisa"
-                  value={monedaSeleccionada}
-                  onChange={(e) => setMonedaSeleccionada(e.target.value)}
-                >
-                  <option value="USD">Dólar Estadounidense (USD)</option>
-                  <option value="EUR">Euro (EUR)</option>
-                  <option value="MXN">Peso Mexicano (MXN)</option>
-                </select>
-              </div>
-
-              <div>
-                <label style={{ display: "block", fontSize: "12px", color: "#94a3b8", marginBottom: "6px" }}>
-                  Dirección de Conversión
-                </label>
-                <select
-                  className="select-divisa"
-                  value={tipoConversion}
-                  onChange={(e) => setTipoConversion(e.target.value)}
-                >
-                  <option value="aCoins">Moneda Externa ➡️ Coins</option>
-                  <option value="aMoneda">Coins ➡️ Moneda Externa</option>
-                </select>
-              </div>
-
-              <div>
-                <label style={{ display: "block", fontSize: "12px", color: "#94a3b8", marginBottom: "6px" }}>
-                  Monto a Convertir
-                </label>
-                <input
-                  type="number"
-                  placeholder="Ej. 50"
-                  className="input-divisa"
-                  value={montoAConvertir}
-                  onChange={(e) => setMontoAConvertir(e.target.value)}
-                  min="0"
-                />
-              </div>
-            </div>
-
-            <div style={{ marginTop: "18px", padding: "14px", background: "rgba(12, 21, 39, 0.6)", borderRadius: "10px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <span style={{ fontSize: "14px", color: "#cbd5e1" }}>Resultado Estimado:</span>
-              <span style={{ fontSize: "18px", fontWeight: "bold", color: "#10b981" }}>
-                {calcularCambioDivisa()} {tipoConversion === "aCoins" ? "COINS" : monedaSeleccionada}
-              </span>
-            </div>
-            <p style={{ fontSize: "11px", color: "#64748b", margin: "8px 0 0 0", textAlign: "right" }}>
-              * Tasas de referencia vigentes en el sistema escolar CEESUV.
-            </p>
           </div>
 
           {/* Sección de Tienda / Compras con Carrusel Dinámico */}
