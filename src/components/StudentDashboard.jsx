@@ -316,7 +316,7 @@ export default function StudentDashboard() {
         .brand-title {
           font-size: 18px;
           font-weight: bold;
-          color: #60a5fa;
+          color: #b3ab43;
           margin: 0;
         }
 
