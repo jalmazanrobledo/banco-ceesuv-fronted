@@ -298,17 +298,18 @@ export default function StudentDashboard() {
 
         .brand-logo-container {
           background-color: rgba(255, 255, 255, 0.9);
-          padding: 6px;
-          border-radius: 8px;
-          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+          padding: 5px;
+          border-radius:10px;
+          box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
           display: flex;
           align-items: center;
           justify-content: center;
+          border: 1px solid #e2e8f0;
         }
 
         .brand-logo {
-          width: 40px;
-          height: 40px;
+          width: 36px;
+          height:36px;
           object-fit: contain;
         }
 
