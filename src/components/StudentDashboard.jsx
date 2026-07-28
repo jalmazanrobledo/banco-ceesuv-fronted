@@ -16,13 +16,24 @@ export default function StudentDashboard() {
   const [procesandoCompra, setProcesandoCompra] = useState(null);
   const [mensajeTienda, setMensajeTienda] = useState(null);
 
-  // Catálogo de productos de ejemplo (puedes personalizarlo o cargarlo desde la BD después)
+  // Estado para el índice activo del carrusel de la tienda
+  const [indiceActivo, setIndiceActivo] = useState(0);
+
+  // Catálogo de productos de ejemplo
   const productosTienda = [
     { id: 1, nombre: "Lápiz CEESUV", costo: 5, icono: "✏️" },
     { id: 2, nombre: "Libreta Profesional", costo: 15, icono: "📓" },
     { id: 3, nombre: "Pase de Tarea Extra", costo: 30, icono: "⭐" },
     { id: 4, nombre: "Goma y Sacapuntas", costo: 8, icono: "📐" }
   ];
+
+  // Rotación automática del carrusel cada 3.5 segundos
+  useEffect(() => {
+    const intervalo = setInterval(() => {
+      setIndiceActivo((prev) => (prev + 1) % productosTienda.length);
+    }, 3500);
+    return () => clearInterval(intervalo);
+  }, [productosTienda.length]);
 
   const cargarDatosEstudiante = async () => {
     try {
@@ -395,22 +406,47 @@ export default function StudentDashboard() {
           margin-bottom: 20px;
         }
 
-        .grid-tienda {
-          display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-          gap: 12px;
+        /* Estilos del Carrusel de la Tienda Escolar */
+        .carrusel-contenedor {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          overflow: hidden;
+          position: relative;
+          width: 100%;
+          height: 240px;
           margin-top: 15px;
         }
 
-        .card-producto {
+        .tarjeta-producto {
+          transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
           background: rgba(12, 21, 39, 0.85);
           border: 1px solid #1e3250;
-          border-radius: 12px;
-          padding: 14px;
+          border-radius: 16px;
+          padding: 16px;
+          margin: 0 8px;
           text-align: center;
           display: flex;
           flex-direction: column;
           justify-content: space-between;
+          box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
+          flex-shrink: 0;
+          width: 180px;
+          box-sizing: border-box;
+        }
+
+        .tarjeta-inactiva {
+          transform: scale(0.85);
+          opacity: 0.4;
+          filter: brightness(0.7);
+        }
+
+        .tarjeta-activa {
+          transform: scale(1.1);
+          opacity: 1;
+          filter: brightness(1);
+          border-color: #10b981;
+          z-index: 10;
         }
 
         .card-stat {
@@ -509,8 +545,9 @@ export default function StudentDashboard() {
           background-color: #10b981;
           color: white;
           width: 100%;
-          margin-top: 10px;
-          padding: 8px;
+          margin-top: 8px;
+          padding: 7px;
+          font-size: 12px;
         }
         .btn-comprar:hover { background-color: #059669; }
 
@@ -626,39 +663,65 @@ export default function StudentDashboard() {
             </div>
           </div>
 
-          {/* Sección de Tienda / Compras */}
+          {/* Sección de Tienda / Compras con Carrusel Dinámico */}
           <div className="card-dark">
-            <h3 style={{ margin: "0 0 10px 0", fontSize: "18px" }}>🛒 Tienda Escolar</h3>
-            <p style={{ color: "#94a3b8", fontSize: "14px", marginBottom: "15px" }}>
+            <h3 style={{ margin: "0 0 5px 0", fontSize: "18px" }}>🛒 Tienda Escolar</h3>
+            <p style={{ color: "#94a3b8", fontSize: "14px", margin: 0 }}>
               Canjea tus coins disponibles por artículos escolares o privilegios especiales.
             </p>
 
-            <div className="grid-tienda">
-              {productosTienda.map((prod) => (
-                <div key={prod.id} className="card-producto">
-                  <div>
-                    <div style={{ fontSize: "30px", marginBottom: "8px" }}>{prod.icono}</div>
-                    <p style={{ margin: "0 0 4px 0", fontWeight: "bold", fontSize: "14px" }}>{prod.nombre}</p>
-                    <p style={{ margin: 0, color: "#f59e0b", fontSize: "13px", fontWeight: "bold" }}>{prod.costo} COINS</p>
-                  </div>
-                  <button
-                    className="btn-accion btn-comprar"
-                    onClick={() => handleComprar(prod)}
-                    disabled={procesandoCompra === prod.id}
+            <div className="carrusel-contenedor">
+              {productosTienda.map((prod, index) => {
+                const esActivo = index === indiceActivo;
+                return (
+                  <div
+                    key={prod.id}
+                    className={`tarjeta-producto ${esActivo ? "tarjeta-activa" : "tarjeta-inactiva"}`}
                   >
-                    {procesandoCompra === prod.id ? "Comprando..." : "Comprar"}
-                  </button>
-                </div>
+                    <div>
+                      <div style={{ fontSize: "28px", marginBottom: "6px" }}>{prod.icono}</div>
+                      <p style={{ margin: "0 0 4px 0", fontWeight: "bold", fontSize: "13px" }}>{prod.nombre}</p>
+                      <p style={{ margin: 0, color: "#f59e0b", fontSize: "12px", fontWeight: "bold" }}>{prod.costo} COINS</p>
+                    </div>
+                    <button
+                      className="btn-accion btn-comprar"
+                      onClick={() => handleComprar(prod)}
+                      disabled={procesandoCompra === prod.id}
+                    >
+                      {procesandoCompra === prod.id ? "Comprando..." : "Comprar"}
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Puntos / Indicadores del carrusel */}
+            <div style={{ display: "flex", justifyContent: "center", alignItems: "center", marginTop: "12px", gap: "6px" }}>
+              {productosTienda.map((_, index) => (
+                <button
+                  key={index}
+                  onClick={() => setIndiceActivo(index)}
+                  style={{
+                    border: "none",
+                    height: "8px",
+                    borderRadius: "4px",
+                    cursor: "pointer",
+                    transition: "all 0.3s",
+                    width: index === indiceActivo ? "24px" : "8px",
+                    background: index === indiceActivo ? "#10b981" : "#334155"
+                  }}
+                />
               ))}
             </div>
 
             {mensajeTienda && (
               <p
                 style={{
-                  marginTop: "15px",
+                  marginTop: "12px",
                   fontSize: "14px",
                   color: mensajeTienda.tipo === "error" ? "#ef4444" : "#10b981",
-                  fontWeight: "bold"
+                  fontWeight: "bold",
+                  textAlign: "center"
                 }}
               >
                 {mensajeTienda.texto}
