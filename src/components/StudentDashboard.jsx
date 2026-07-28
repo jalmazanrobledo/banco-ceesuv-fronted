@@ -7,6 +7,10 @@ export default function StudentDashboard() {
   const [movimientos, setMovimientos] = useState([]);
   const [cargando, setCargando] = useState(true);
   
+  // Estados para el Ticker de Divisas Dinámico
+  const [tasas, setTasas] = useState(null);
+  const [cargandoDivisas, setCargandoDivisas] = useState(true);
+
   // Estados para la gestión de ahorros
   const [montoAhorro, setMontoAhorro] = useState("");
   const [mensajeAccion, setMensajeAccion] = useState(null);
@@ -26,6 +30,34 @@ export default function StudentDashboard() {
     { id: 3, nombre: "Pase de Tarea Extra", costo: 30, icono: "⭐" },
     { id: 4, nombre: "Goma y Sacapuntas", costo: 8, icono: "📐" }
   ];
+
+  // Obtener tasas de cambio en vivo
+  useEffect(() => {
+    async function obtenerTiposCambio() {
+      try {
+        const res = await fetch("https://open.er-api.com/v6/latest/USD");
+        const data = await res.json();
+        
+        if (data && data.rates) {
+          const usdMxn = data.rates.MXN;
+          const eurMxn = data.rates.MXN / data.rates.EUR;
+          const cadMxn = data.rates.MXN / data.rates.CAD;
+
+          setTasas({
+            usd: usdMxn.toFixed(2),
+            eur: eurMxn.toFixed(2),
+            cad: cadMxn.toFixed(2)
+          });
+        }
+      } catch (error) {
+        console.error("Error al obtener divisas reales:", error);
+      } finally {
+        setCargandoDivisas(false);
+      }
+    }
+
+    obtenerTiposCambio();
+  }, []);
 
   // Rotación automática del carrusel cada 3.5 segundos
   useEffect(() => {
@@ -294,6 +326,11 @@ export default function StudentDashboard() {
   const coinsTotales = coinsDisponibles + coinsAhorro;
   const matricula = alumno?.matricula || alumno?.id || "N/A";
 
+  // Valores dinámicos del Ticker con respaldo
+  const usdMxn = tasas?.usd || "17.50";
+  const eurMxn = tasas?.eur || "19.05";
+  const cadMxn = tasas?.cad || "12.80";
+
   return (
     <>
       <style>{`
@@ -330,6 +367,13 @@ export default function StudentDashboard() {
           gap: 10px;
         }
 
+        .brand-logo {
+          width: 32px;
+          height: 32px;
+          object-fit: contain;
+          border-radius: 50%;
+        }
+
         .brand-title {
           font-size: 15px;
           font-weight: bold;
@@ -354,7 +398,7 @@ export default function StudentDashboard() {
           gap: 20px;
           flex-wrap: wrap;
           font-size: 13px;
-          font-family: monospace;
+          font-family: 'Courier New', Courier, monospace;
           color: #94a3b8;
         }
 
@@ -364,13 +408,13 @@ export default function StudentDashboard() {
         }
 
         .badge-coin-ticker {
-          background-color: #1e293b;
-          border: 1px solid #f59e0b;
-          color: #f59e0b;
-          padding: 4px 10px;
-          border-radius: 6px;
+          background-color: rgba(212, 175, 55, 0.15);
+          border: 1px solid #D4AF37;
+          color: #D4AF37;
+          padding: 2px 8px;
+          border-radius: 4px;
           font-weight: bold;
-          font-size: 12px;
+          font-size: 11px;
         }
 
         .user-info-bar {
@@ -603,18 +647,18 @@ export default function StudentDashboard() {
       `}</style>
 
       <div className="dashboard-wrapper">
-        {/* Navbar con Ticker de Divisas exacto al Admin */}
+        {/* Navbar con Ticker de Divisas Dinámico y Logo institucional */}
         <header className="portal-header">
           <div className="portal-brand">
-            <span style={{ fontSize: "16px" }}>🏦</span>
+            <img src="/logo-ceesuv.png" alt="Logo CEESUV" className="brand-logo" />
             <h1 className="brand-title">BANCO CEESUV</h1>
             <span className="badge-envivo">EN VIVO</span>
           </div>
 
           <div className="ticker-divisas">
-            <div>USD/MXN: <span className="ticker-item">$17.46</span></div>
-            <div>EUR/MXN: <span className="ticker-item">$19.86</span></div>
-            <div>CAD/MXN: <span className="ticker-item">$12.37</span></div>
+            <div>USD/MXN: <span className="ticker-item">${usdMxn}</span></div>
+            <div>EUR/MXN: <span className="ticker-item">${eurMxn}</span></div>
+            <div>CAD/MXN: <span className="ticker-item">${cadMxn}</span></div>
             <div className="badge-coin-ticker">1 COIN = $1.00 MXN</div>
           </div>
 
