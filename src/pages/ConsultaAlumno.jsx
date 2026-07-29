@@ -272,4 +272,4 @@ function ConsultaAlumno() {
   );
 }
 
-export default ConsultaAlumno;
+export! default ConsultaAlumno;
