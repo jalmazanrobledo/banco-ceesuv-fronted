@@ -40,7 +40,14 @@ export async function editarAlumno(id, alumno) {
         },
         body: JSON.stringify(alumno)
     });
-    return await respuesta.json();
+
+    const data = await respuesta.json();
+
+    if (!respuesta.ok) {
+        throw new Error(data.mensaje || "Error al actualizar el alumno");
+    }
+
+    return data;
 }
 
 export async function eliminarAlumno(id) {
