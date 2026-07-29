@@ -251,6 +251,9 @@ function Sidebar() {
             <Link to="/movimientos" style={{ textDecoration: "none" }} onClick={() => setMenuAbierto(false)}>
               <button style={estylosBoton("/movimientos")}>💰 Movimientos</button>
             </Link>
+            <Link to="/reportes" style={{ textDecoration: "none" }} onClick={() => setMenuAbierto(false)}>
+              <button style={estylosBoton("/reportes")}>📊 Reportes</button>
+            </Link>
 
             {/* MUESTRA 'USUARIOS' ÚNICAMENTE SI ES ADMINISTRADOR */}
             {esAdmin && (
