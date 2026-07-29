@@ -279,7 +279,7 @@ app.get(["/api/alumno-dashboard/:alumnoId", "/api/alumnos/:identifier", "/alumno
   }
 });
 
-// Obtener todos los alumnos
+// Obtener todos los alumnos (Solo activos)
 app.get(["/alumnos", "/api/alumnos"], async (req, res) => {
   try {
     const resultado = await pool.query(
@@ -294,6 +294,7 @@ app.get(["/alumnos", "/api/alumnos"], async (req, res) => {
         COALESCE(u.estado, 'Activo') AS estado
        FROM alumnos a
        LEFT JOIN usuarios u ON a.id = u.id
+       WHERE COALESCE(u.estado, 'Activo') = 'Activo'
        ORDER BY a.id`
     );
 
@@ -394,7 +395,7 @@ app.delete(["/alumnos/:id", "/api/alumnos/:id"], async (req, res) => {
   }
 });
 
-// Movimientos de saldo
+// Movimientos de saldo (Solo alumnos activos)
 app.get(["/movimientos", "/api/movimientos"], async (req, res) => {
   try {
     const resultado = await pool.query(`
@@ -408,6 +409,8 @@ app.get(["/movimientos", "/api/movimientos"], async (req, res) => {
         m.usuario
       FROM movimientos m
       INNER JOIN alumnos a ON m.alumno_id = a.id
+      LEFT JOIN usuarios u ON u.alumno_id = a.id
+      WHERE COALESCE(u.estado, 'Activo') = 'Activo'
       ORDER BY m.fecha DESC
     `);
 
@@ -480,13 +483,37 @@ app.post(["/movimientos", "/api/movimientos"], async (req, res) => {
   }
 });
 
-// Dashboard General
+// Dashboard General (Filtrando solo alumnos activos)
 app.get(["/dashboard", "/api/dashboard"], async (req, res) => {
   try {
-    const alumnos = await pool.query("SELECT COUNT(*) AS total FROM alumnos");
-    const coins = await pool.query("SELECT COALESCE(SUM(coins),0) AS total FROM alumnos");
-    const coinsAhorro = await pool.query("SELECT COALESCE(SUM(coins_ahorro),0) AS total FROM alumnos");
-    const movimientos = await pool.query("SELECT COUNT(*) AS total FROM movimientos");
+    const alumnos = await pool.query(`
+      SELECT COUNT(a.id) AS total 
+      FROM alumnos a 
+      LEFT JOIN usuarios u ON u.alumno_id = a.id 
+      WHERE COALESCE(u.estado, 'Activo') = 'Activo'
+    `);
+    
+    const coins = await pool.query(`
+      SELECT COALESCE(SUM(a.coins),0) AS total 
+      FROM alumnos a 
+      LEFT JOIN usuarios u ON u.alumno_id = a.id 
+      WHERE COALESCE(u.estado, 'Activo') = 'Activo'
+    `);
+
+    const coinsAhorro = await pool.query(`
+      SELECT COALESCE(SUM(a.coins_ahorro),0) AS total 
+      FROM alumnos a 
+      LEFT JOIN usuarios u ON u.alumno_id = a.id 
+      WHERE COALESCE(u.estado, 'Activo') = 'Activo'
+    `);
+
+    const movimientos = await pool.query(`
+      SELECT COUNT(m.id) AS total 
+      FROM movimientos m 
+      JOIN alumnos a ON m.alumno_id = a.id 
+      LEFT JOIN usuarios u ON u.alumno_id = a.id 
+      WHERE COALESCE(u.estado, 'Activo') = 'Activo'
+    `);
 
     return res.status(200).json({
       alumnos: Number(alumnos.rows[0].total),
