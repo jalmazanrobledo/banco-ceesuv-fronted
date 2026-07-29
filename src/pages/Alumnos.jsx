@@ -62,9 +62,10 @@ function Alumnos() {
   };
 
 // 🔄 Lógica para cambiar estatus (Activo / Inactivo) de forma correcta
-  const handleCambiarEstatus = async (alumno) => {
-    // Usamos 'estado' en lugar de 'estatus' para que coincida con la base de datos
+ const handleCambiarEstatus = async (alumno) => {
+    // Si el estado actual es "Activo", el nuevo estado debe ser "Inactivo" (y viceversa)
     const nuevoEstado = alumno.estado === "Inactivo" ? "Activo" : "Inactivo";
+    
     const mensaje = nuevoEstado === "Inactivo" 
       ? `¿Estás seguro de inactivar a ${alumno.nombre}? No contará para los totales, pero conservará su historial y coins.`
       : `¿Deseas reactivar a ${alumno.nombre}? Volverá a estar activo en el sistema.`;
@@ -73,25 +74,23 @@ function Alumnos() {
       try {
         const idAlumno = alumno.id || alumno._id;
         
-        // Llamamos directamente a la ruta especializada en cambiar estado en tu server.js
         const respuesta = await fetch(`https://banco-ceesuv-backend.onrender.com/api/alumnos/${idAlumno}/estado`, {
-  method: "PUT",
-  headers: {
-    "Content-Type": "application/json"
-  },
-  body: JSON.stringify({ estado: nuevoEstado })
-});
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({ estado: nuevoEstado })
+        });
 
         if (!respuesta.ok) {
           throw new Error("No se pudo cambiar el estatus en el servidor");
         }
 
-        // Actualización optimista inmediata usando 'estado'
+        // Actualización optimista inmediata
         setAlumnos(prevAlumnos => 
           prevAlumnos.map(a => ((a.id === idAlumno || a._id === idAlumno) ? { ...a, estado: nuevoEstado } : a))
         );
 
-        // Opcional recomendado: Recargar la lista completa desde la BD para sincronizar
         if (typeof cargarAlumnos === "function") {
           cargarAlumnos();
         }
@@ -363,9 +362,9 @@ function Alumnos() {
                           </button>
                           <button
                             onClick={() => handleCambiarEstatus(a)}
-                            style={{ marginRight: "6px", padding: "8px 12px", background: a.estado ? "#28a745" : "#ffc107", color: esInactivo ? "white" : "#212529", border: "none", borderRadius: "6px", cursor: "pointer", fontWeight: "bold" }}
-                          >
-                            {a.estado ? "🟢 Activar" : "🟡 Inactivar"}
+                            style={{ marginRight: "6px", padding: "8px 12px", background: a.estado === "Inactivo" ? "#28a745" : "#ffc107", color: a.estado === "Inactivo" ? "white" : "#0f2341", border: "none", borderRadius: "6px", cursor: "pointer", fontWeight: "bold" }}
+>
+                            {a.estado === "Inactivo" ? "🟢 Activar" : "🟡 Inactivar"}
                           </button>
                           <button
                             onClick={() => handleEliminar(alumnoId)}
