@@ -62,10 +62,26 @@ function Alumnos() {
     
     if (window.confirm(mensaje)) {
       try {
-        await editarAlumno(alumno.id, { ...alumno, estatus: nuevoEstatus });
+        // Determinamos el ID correcto (soporta tanto .id como ._id de MongoDB)
+        const idAlumno = alumno.id || alumno._id;
+        
+        // Enviamos el objeto con el estatus actualizado explícitamente
+        const datosActualizados = {
+          nombre: alumno.nombre,
+          grado: alumno.grado,
+          coins: alumno.coins,
+          estatus: nuevoEstatus
+        };
+
+        console.log(`Enviando actualización para alumno ID ${idAlumno}:`, datosActualizados);
+
+        const respuesta = await editarAlumno(idAlumno, datosActualizados);
+        console.log("Respuesta del servidor:", respuesta);
+
         cargarAlumnos();
       } catch (error) {
         console.error("Error al cambiar estatus del alumno:", error);
+        alert("Hubo un error al cambiar el estatus. Revisa la consola.");
       }
     }
   };
