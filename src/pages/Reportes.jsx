@@ -26,7 +26,7 @@ function Reportes() {
 
   const DOMINIO_PUBLICO = "https://banco-ceesuv-fronted.vercel.app";
 
-  // 📄 FUNCIÓN PARA EXPORTAR PDF POR GRADO / SEMESTRE CON CÓDIGOS QR
+// 📄 FUNCIÓN PARA EXPORTAR PDF POR GRADO / SEMESTRE CON CÓDIGOS QR
   const exportarPDFPorGrado = async (gradoSeleccionado) => {
     const alumnosFiltradosGrado = alumnos.filter(
       (alumno) => alumno.grado && alumno.grado.trim().toLowerCase() === gradoSeleccionado.trim().toLowerCase()
@@ -42,18 +42,17 @@ function Reportes() {
     // Encabezado institucional
     doc.setFont("helvetica", "bold");
     doc.setFontSize(16);
-    doc.setTextColor(11, 35, 65); // Azul institucional CEESUV
+    doc.setTextColor(11, 35, 65);
     doc.text("CENTRO DE ESTUDIOS ELEMENTALES Y SUPERIORES DE VALLES", 105, 15, { align: "center" });
 
     doc.setFontSize(12);
-    doc.setTextColor(212, 175, 55); // Dorado institucional
+    doc.setTextColor(212, 175, 55);
     doc.text("BANCO ESCOLAR - CREDENCIALES Y ACCESOS", 105, 22, { align: "center" });
 
     doc.setFontSize(11);
     doc.setTextColor(100, 100, 100);
     doc.text(`Grado / Semestre: ${gradoSeleccionado}`, 14, 30);
 
-    // Generamos las filas de la tabla de forma asíncrona para incluir los QR en Base64
     const tablaDatos = [];
     for (let index = 0; index < alumnosFiltradosGrado.length; index++) {
       const alumno = alumnosFiltradosGrado[index];
@@ -62,27 +61,25 @@ function Reportes() {
 
       let qrDataURL = "";
       try {
-        // Genera el código QR en formato de imagen Base64 (PNG)
-        qrDataURL = await QRCode.toDataURL(enlaceQR, { width: 100, margin: 1 });
+        qrDataURL = await QRCode.toDataURL(enlaceQR, { width: 120, margin: 1 });
       } catch (err) {
         console.error("Error generando QR para PDF:", err);
       }
 
+      // Estructuramos la celda indicando que su contenido visual será una imagen QR
       tablaDatos.push([
         index + 1,
         alumno.nombre.toUpperCase(),
-        qrDataURL, // Pasamos el DataURL para que autoTable lo pinte como imagen
+        { content: "", image: qrDataURL }, // Objeto especial para que el hook lo pinte como imagen
         alumno.pin || "----"
       ]);
     }
 
-    // Uso correcto de autoTable con soporte para renderizado de imágenes en celdas
     autoTable(doc, {
       startY: 35,
       head: [["#", "NOMBRE DEL ALUMNO", "CÓDIGO QR DE ACCESO", "PIN DE ACCESO"]],
       body: tablaDatos,
       theme: "grid",
-      rowHeight: 18, // Damos altura suficiente a las filas para que el QR luzca bien
       headStyles: {
         fillColor: [11, 35, 65],
         textColor: [255, 255, 255],
@@ -92,21 +89,22 @@ function Reportes() {
       columnStyles: {
         0: { cellWidth: 10, halign: "center", valign: "middle" },
         1: { cellWidth: 85, valign: "middle" },
-        2: { cellWidth: 45, halign: "center", valign: "middle" }, // Celda para alojar la imagen del QR
+        2: { cellWidth: 35, halign: "center", valign: "middle", minCellHeight: 18 }, // Altura forzada para la celda del QR
         3: { cellWidth: 30, halign: "center", valign: "middle", fontStyle: "bold", textColor: [180, 0, 0] }
       },
       styles: {
-        fontSize: 9
+        fontSize: 9,
+        valign: "middle"
       },
-      // Hook para dibujar la imagen del QR dentro de la celda de la tabla
+      // Hook crítico para estampar la imagen del QR de forma limpia en la celda
       didDrawCell: (data) => {
         if (data.section === "body" && data.column.index === 2) {
-          const qrImage = data.cell.raw;
-          if (qrImage && qrImage.startsWith("data:image")) {
-            const dim = 14; // Tamaño en mm del código QR dentro de la celda
-            const cellX = data.cell.x + (data.cell.width - dim) / 2;
-            const cellY = data.cell.y + (data.cell.height - dim) / 2;
-            doc.addImage(qrImage, "PNG", cellX, cellY, dim, dim);
+          const cellData = data.cell.raw;
+          if (cellData && cellData.image) {
+            const dim = 14; // Tamaño del QR en milímetros dentro de la celda
+            const posX = data.cell.x + (data.cell.width - dim) / 2;
+            const posY = data.cell.y + (data.cell.height - dim) / 2;
+            doc.addImage(cellData.image, "PNG", posX, posY, dim, dim);
           }
         }
       },
