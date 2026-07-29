@@ -284,16 +284,17 @@ app.get(["/alumnos", "/api/alumnos"], async (req, res) => {
   try {
     const resultado = await pool.query(
       `SELECT 
-        a.id, 
-        a.nombre, 
-        a.grado, 
-        a.coins, 
-        COALESCE(a.coins_ahorro, 0) AS coins_ahorro, 
+        a.id,
+        a.nombre,
+        a.grado,
+        a.coins,
+        COALESCE(a.coins_ahorro, 0) AS coins_ahorro,
         a.token_qr,
         u.pin,
-        COALESCE(u.estado, 'Activo') AS estado
+        u.estado
        FROM alumnos a
-       LEFT JOIN usuarios u ON a.id = u.alumno_id
+       JOIN usuarios u ON a.id = u.id
+       WHERE u.estado = 'Activo'
        ORDER BY a.id`
     );
 
@@ -748,11 +749,12 @@ async function cambiarEstadoLogica(req, res) {
     const { id } = req.params;
     const { estado } = req.body;
 
+    // 1. Actualizar en la tabla usuarios vinculada al alumno_id o id
     const resultado = await pool.query(
       `UPDATE usuarios 
        SET estado = $1 
-       WHERE id = $2 OR alumno_id = $2
-       RETURNING id, nombre, usuario, rol, estado, alumno_id`,
+       WHERE alumno_id = $2 OR id = $2
+       RETURNING id, nombre, usuario, rol, estado, pin, alumno_id`,
       [estado, id]
     );
 
@@ -760,7 +762,31 @@ async function cambiarEstadoLogica(req, res) {
       return res.status(404).json({ mensaje: "Usuario o alumno no encontrado." });
     }
 
-    return res.status(200).json(resultado.rows[0]);
+    const usuarioModificado = resultado.rows[0];
+    const alumnoIdReal = usuarioModificado.alumno_id || id;
+
+    // 2. Traer la información completa combinada del alumno (como lo hace el endpoint GET /alumnos)
+    const alumnoCompletoRes = await pool.query(
+      `SELECT 
+        a.id, 
+        a.nombre, 
+        a.grado, 
+        a.coins, 
+        COALESCE(a.coins_ahorro, 0) AS coins_ahorro, 
+        a.token_qr,
+        u.pin,
+        COALESCE(u.estado, 'Activo') AS estado
+       FROM alumnos a
+       LEFT JOIN usuarios u ON a.id = u.alumno_id
+       WHERE a.id = $1`,
+      [alumnoIdReal]
+    );
+
+    if (alumnoCompletoRes.rows.length > 0) {
+      return res.status(200).json(alumnoCompletoRes.rows[0]);
+    }
+
+    return res.status(200).json(usuarioModificado);
   } catch (error) {
     console.error("Error al cambiar estado de usuario:", error);
     return res.status(500).json({ mensaje: "Error al cambiar el estado." });
