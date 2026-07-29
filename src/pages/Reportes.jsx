@@ -2,7 +2,8 @@ import { useEffect, useState } from "react";
 import Sidebar from "../components/Sidebar";
 import { obtenerAlumnos } from "../services/api";
 import jsPDF from "jspdf";
-import autoTable from "jspdf-autotable"; // Importación correcta para evitar errores de tipo "is not a function"
+import autoTable from "jspdf-autotable";
+import QRCode from "qrcode"; // Importamos la librería qrcode para generar las imágenes
 
 function Reportes() {
   const [alumnos, setAlumnos] = useState([]);
@@ -25,8 +26,8 @@ function Reportes() {
 
   const DOMINIO_PUBLICO = "https://banco-ceesuv-fronted.vercel.app";
 
-  // 📄 FUNCIÓN PARA EXPORTAR PDF POR GRADO / SEMESTRE
-  const exportarPDFPorGrado = (gradoSeleccionado) => {
+  // 📄 FUNCIÓN PARA EXPORTAR PDF POR GRADO / SEMESTRE CON CÓDIGOS QR
+  const exportarPDFPorGrado = async (gradoSeleccionado) => {
     const alumnosFiltradosGrado = alumnos.filter(
       (alumno) => alumno.grado && alumno.grado.trim().toLowerCase() === gradoSeleccionado.trim().toLowerCase()
     );
@@ -52,23 +53,36 @@ function Reportes() {
     doc.setTextColor(100, 100, 100);
     doc.text(`Grado / Semestre: ${gradoSeleccionado}`, 14, 30);
 
-    const tablaDatos = alumnosFiltradosGrado.map((alumno, index) => {
+    // Generamos las filas de la tabla de forma asíncrona para incluir los QR en Base64
+    const tablaDatos = [];
+    for (let index = 0; index < alumnosFiltradosGrado.length; index++) {
+      const alumno = alumnosFiltradosGrado[index];
       const tokenAlumno = alumno.token_qr || alumno.token || alumno.id || alumno._id;
       const enlaceQR = `${DOMINIO_PUBLICO}/consulta/${tokenAlumno}`;
-      return [
+
+      let qrDataURL = "";
+      try {
+        // Genera el código QR en formato de imagen Base64 (PNG)
+        qrDataURL = await QRCode.toDataURL(enlaceQR, { width: 100, margin: 1 });
+      } catch (err) {
+        console.error("Error generando QR para PDF:", err);
+      }
+
+      tablaDatos.push([
         index + 1,
         alumno.nombre.toUpperCase(),
-        enlaceQR,
+        qrDataURL, // Pasamos el DataURL para que autoTable lo pinte como imagen
         alumno.pin || "----"
-      ];
-    });
+      ]);
+    }
 
-    // Uso correcto de autoTable importado como función
+    // Uso correcto de autoTable con soporte para renderizado de imágenes en celdas
     autoTable(doc, {
       startY: 35,
-      head: [["#", "NOMBRE DEL ALUMNO", "ENLACE / CÓDIGO QR", "PIN DE ACCESO"]],
+      head: [["#", "NOMBRE DEL ALUMNO", "CÓDIGO QR DE ACCESO", "PIN DE ACCESO"]],
       body: tablaDatos,
       theme: "grid",
+      rowHeight: 18, // Damos altura suficiente a las filas para que el QR luzca bien
       headStyles: {
         fillColor: [11, 35, 65],
         textColor: [255, 255, 255],
@@ -76,14 +90,25 @@ function Reportes() {
         halign: "center"
       },
       columnStyles: {
-        0: { cellWidth: 10, halign: "center" },
-        1: { cellWidth: 80 },
-        2: { cellWidth: 75, fontSize: 8 },
-        3: { cellWidth: 25, halign: "center", fontStyle: "bold", textColor: [180, 0, 0] }
+        0: { cellWidth: 10, halign: "center", valign: "middle" },
+        1: { cellWidth: 85, valign: "middle" },
+        2: { cellWidth: 45, halign: "center", valign: "middle" }, // Celda para alojar la imagen del QR
+        3: { cellWidth: 30, halign: "center", valign: "middle", fontStyle: "bold", textColor: [180, 0, 0] }
       },
       styles: {
-        valign: "middle",
         fontSize: 9
+      },
+      // Hook para dibujar la imagen del QR dentro de la celda de la tabla
+      didDrawCell: (data) => {
+        if (data.section === "body" && data.column.index === 2) {
+          const qrImage = data.cell.raw;
+          if (qrImage && qrImage.startsWith("data:image")) {
+            const dim = 14; // Tamaño en mm del código QR dentro de la celda
+            const cellX = data.cell.x + (data.cell.width - dim) / 2;
+            const cellY = data.cell.y + (data.cell.height - dim) / 2;
+            doc.addImage(qrImage, "PNG", cellX, cellY, dim, dim);
+          }
+        }
       },
       foot: [
         [
@@ -123,7 +148,7 @@ function Reportes() {
             📥 Descargar Credenciales y Accesos (PDF por Grado)
           </h3>
           <p style={{ color: "#666", fontSize: "14px", marginBottom: "20px" }}>
-            Selecciona el grado o semestre para generar un archivo PDF con los enlaces de consulta QR y los PINs de acceso de todos los alumnos inscritos.
+            Selecciona el grado o semestre para generar un archivo PDF con los códigos QR de consulta y los PINs de acceso de todos los alumnos inscritos.
           </p>
 
           {cargando ? (
