@@ -105,7 +105,7 @@ const asegurarUsuarioAlumno = async (alumnoId, nombreCompleto) => {
   );
 
   if (checkUser.rows.length > 0) {
-    // NOTA: Omitimos el estado en este UPDATE para que NUNCA se reactive solo si tú lo habías inativado
+    // BLINDADO: Omitimos el estado en este UPDATE para que NUNCA se reactive solo si tú lo habías inactivado
     await pool.query(
       "UPDATE usuarios SET nombre = $1, usuario = $2 WHERE alumno_id = $3",
       [nombreMostrado, usuarioBase, alumnoId]
@@ -704,7 +704,7 @@ app.post(["/api/compras", "/compras"], async (req, res) => {
 });
 
 // =====================================
-// NUEVAS RUTAS PUT (Actualizar y Estado de Usuarios)
+// RUTAS PUT (Actualizar y Estado de Usuarios)
 // =====================================
 
 app.put(["/usuarios/:id", "/api/usuarios/:id"], actualizarUsuarioLogica);
@@ -734,16 +734,20 @@ async function actualizarUsuarioLogica(req, res) {
   }
 }
 
-// Añade esta ruta para atrapar también si el frontend le manda /alumnos/:id/estado
-app.put(["/alumnos/:id/estado", "/api/alumnos/:id/estado"], cambiarEstadoLogica);
+// Rutas amplias para atrapar solicitudes de estado sin importar si el frontend usa /usuarios o /alumnos
+app.put([
+  "/usuarios/:id/estado", 
+  "/api/usuarios/:id/estado", 
+  "/alumnos/:id/estado", 
+  "/api/alumnos/:id/estado"
+], cambiarEstadoLogica);
 
 async function cambiarEstadoLogica(req, res) {
-  console.log("⚡ [PUT] Cambiando estado de usuario/alumno ID:", req.params.id);
+  console.log("⚡ [PUT] Cambiando estado de usuario/alumno ID:", req.params.id, "Nuevo estado:", req.body.estado);
   try {
     const { id } = req.params;
     const { estado } = req.body;
 
-    // Actualizamos buscando por ID de usuario O por el alumno_id para que funcione desde cualquier vista
     const resultado = await pool.query(
       `UPDATE usuarios 
        SET estado = $1 
