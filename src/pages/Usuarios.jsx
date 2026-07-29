@@ -53,25 +53,26 @@ function Usuarios() {
   }
 
   async function editar(u) {
-    const nombre = prompt("Nombre:", u.nombre);
-    if (nombre === null) return;
+    const nuevoNombre = prompt("Nombre:", u.nombre);
+    if (nuevoNombre === null) return;
 
-    const usuario = prompt("Usuario:", u.usuario);
-    if (usuario === null) return;
+    const nuevoUsuario = prompt("Usuario:", u.usuario);
+    if (nuevoUsuario === null) return;
 
-    const rol = prompt(
-      "Rol (Administrador o Docente):",
-      u.rol
-    );
-    if (rol === null) return;
+    const nuevoRol = prompt("Rol (Administrador o Docente):", u.rol);
+    if (nuevoRol === null) return;
 
-    await editarUsuario(u.id, {
-      nombre,
-      usuario,
-      rol
-    });
-
-    cargar();
+    try {
+      await editarUsuario(u.id, {
+        nombre: nuevoNombre,
+        usuario: nuevoUsuario,
+        rol: nuevoRol
+      });
+      cargar();
+    } catch (error) {
+      console.error("Error al editar el usuario:", error);
+      alert("No se pudo actualizar el usuario.");
+    }
   }
 
   async function cambiarEstado(u) {
