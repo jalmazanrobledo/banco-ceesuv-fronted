@@ -100,11 +100,12 @@ const asegurarUsuarioAlumno = async (alumnoId, nombreCompleto) => {
   const nombreMostrado = `${partes[0] || ""} ${partes[1] || ""}`.trim();
 
   const checkUser = await pool.query(
-    "SELECT id, pin FROM usuarios WHERE alumno_id = $1",
+    "SELECT id, pin, estado FROM usuarios WHERE alumno_id = $1",
     [alumnoId]
   );
 
   if (checkUser.rows.length > 0) {
+    // NOTA: Omitimos el estado en este UPDATE para que NUNCA se reactive solo si tú lo habías inativado
     await pool.query(
       "UPDATE usuarios SET nombre = $1, usuario = $2 WHERE alumno_id = $3",
       [nombreMostrado, usuarioBase, alumnoId]
