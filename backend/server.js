@@ -769,29 +769,33 @@ app.put([
   "/api/alumnos/:id/estado"
 ], cambiarEstadoLogica);
 
+// Rutas amplias para atrapar solicitudes de estado sin importar si el frontend usa /usuarios o /alumnos
+app.put([
+  "/usuarios/:id/estado", 
+  "/api/usuarios/:id/estado", 
+  "/alumnos/:id/estado", 
+  "/api/alumnos/:id/estado"
+], cambiarEstadoLogica);
+
 async function cambiarEstadoLogica(req, res) {
   console.log("⚡ [PUT] Cambiando estado de usuario/alumno ID:", req.params.id, "Nuevo estado:", req.body.estado);
   try {
     const { id } = req.params;
     const { estado } = req.body;
 
-    // 1. Actualizar en la tabla usuarios vinculada al alumno_id o id
+    // 1. Actualizar el estado SÍ y SOLO SÍ es un usuario de tipo Alumno (evita tocar al Administrador)
     const resultado = await pool.query(
       `UPDATE usuarios 
        SET estado = $1 
-       WHERE alumno_id = $2 OR id = $2
-       RETURNING id, nombre, usuario, rol, estado, pin, alumno_id`,
+       WHERE alumno_id = $2 OR (id = $2 AND rol != 'Admin')`,
       [estado, id]
     );
 
-    if (resultado.rows.length === 0) {
+    if (resultado.rowCount === 0) {
       return res.status(404).json({ mensaje: "Usuario o alumno no encontrado." });
     }
 
-    const usuarioModificado = resultado.rows[0];
-    const alumnoIdReal = usuarioModificado.alumno_id || id;
-
-    // 2. Traer la información completa combinada del alumno (como lo hace el endpoint GET /alumnos)
+    // 2. Buscar la información completa combinada del alumno para responder al frontend
     const alumnoCompletoRes = await pool.query(
       `SELECT 
         a.id, 
@@ -803,16 +807,16 @@ async function cambiarEstadoLogica(req, res) {
         u.pin,
         COALESCE(u.estado, 'Activo') AS estado
        FROM alumnos a
-       LEFT JOIN usuarios u ON a.id = u.alumno_id
+       LEFT JOIN usuarios u ON u.alumno_id = a.id
        WHERE a.id = $1`,
-      [alumnoIdReal]
+      [id]
     );
 
     if (alumnoCompletoRes.rows.length > 0) {
       return res.status(200).json(alumnoCompletoRes.rows[0]);
     }
 
-    return res.status(200).json(usuarioModificado);
+    return res.status(200).json({ mensaje: "Estado actualizado correctamente." });
   } catch (error) {
     console.error("Error al cambiar estado de usuario:", error);
     return res.status(500).json({ mensaje: "Error al cambiar el estado." });
