@@ -62,10 +62,8 @@ function Alumnos() {
     
     if (window.confirm(mensaje)) {
       try {
-        // Determinamos el ID correcto (soporta tanto .id como ._id de MongoDB)
         const idAlumno = alumno.id || alumno._id;
         
-        // Enviamos el objeto con el estatus actualizado explícitamente
         const datosActualizados = {
           nombre: alumno.nombre,
           grado: alumno.grado,
@@ -73,10 +71,13 @@ function Alumnos() {
           estatus: nuevoEstatus
         };
 
-        console.log(`Enviando actualización para alumno ID ${idAlumno}:`, datosActualizados);
-
         const respuesta = await editarAlumno(idAlumno, datosActualizados);
         console.log("Respuesta del servidor:", respuesta);
+
+        // Actualización optimista o recarga inmediata del estado local
+        setAlumnos(prevAlumnos => 
+          prevAlumnos.map(a => (a.id === idAlumno || a._id === idAlumno ? { ...a, estatus: nuevoEstatus } : a))
+        );
 
         cargarAlumnos();
       } catch (error) {
