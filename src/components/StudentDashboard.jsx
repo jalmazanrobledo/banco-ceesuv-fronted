@@ -326,7 +326,6 @@ export default function StudentDashboard() {
   const coinsTotales = coinsDisponibles + coinsAhorro;
   const matricula = alumno?.matricula || alumno?.id || "N/A";
 
-  // Valores dinámicos del Ticker con respaldo
   const usdMxn = tasas?.usd || "17.50";
   const eurMxn = tasas?.eur || "19.05";
   const cadMxn = tasas?.cad || "12.80";
@@ -659,7 +658,6 @@ export default function StudentDashboard() {
       `}</style>
 
       <div className="dashboard-wrapper">
-        {/* Navbar con Ticker de Divisas Dinámico y Logo en círculo blanco con borde dorado */}
         <header className="portal-header">
           <div className="portal-brand">
             <div className="brand-logo-container">
@@ -691,7 +689,6 @@ export default function StudentDashboard() {
           </div>
         </header>
 
-        {/* Body */}
         <main className="portal-container">
           <div className="card-dark">
             <h2 style={{ margin: 0, fontSize: "22px" }}>
@@ -702,7 +699,6 @@ export default function StudentDashboard() {
             </p>
           </div>
 
-          {/* Tarjetas de Balances */}
           <div className="grid-cards">
             <div className="card-stat">
               <div>
@@ -735,7 +731,6 @@ export default function StudentDashboard() {
             </div>
           </div>
 
-          {/* Sección de Tienda / Compras con Carrusel Dinámico */}
           <div className="card-dark">
             <h3 style={{ margin: "0 0 5px 0", fontSize: "18px" }}>🛒 Tienda Escolar</h3>
             <p style={{ color: "#94a3b8", fontSize: "14px", margin: 0 }}>
@@ -767,7 +762,6 @@ export default function StudentDashboard() {
               })}
             </div>
 
-            {/* Puntos / Indicadores del carrusel */}
             <div style={{ display: "flex", justifyContent: "center", alignItems: "center", marginTop: "12px", gap: "6px" }}>
               {productosTienda.map((_, index) => (
                 <button
@@ -801,7 +795,6 @@ export default function StudentDashboard() {
             )}
           </div>
 
-          {/* Sección de Gestión de Ahorro */}
           <div className="card-dark">
             <h3 style={{ margin: "0 0 10px 0", fontSize: "18px" }}>📥 Gestión de Caja de Ahorro</h3>
             <p style={{ color: "#94a3b8", fontSize: "14px", marginBottom: "15px" }}>
@@ -847,7 +840,6 @@ export default function StudentDashboard() {
             )}
           </div>
 
-          {/* Tabla de Movimientos */}
           <div className="card-dark">
             <h3 style={{ margin: 0, fontSize: "18px" }}>🕒 Mis Últimos Movimientos</h3>
 
