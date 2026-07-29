@@ -697,7 +697,7 @@ app.post(["/api/compras", "/compras"], async (req, res) => {
   }
 });
 
-// Agregar usuario administrativo
+// Agregar usuario administrativo (ESTE SE QUEDA IGUAL)
 app.post(["/usuarios", "/api/usuarios"], async (req, res) => {
   try {
     const { nombre, usuario, password, rol } = req.body;
@@ -716,7 +716,65 @@ app.post(["/usuarios", "/api/usuarios"], async (req, res) => {
   }
 });
 
-// >>> AQUÍ ES EL LUGAR IDEAL PARA PEGAR LAS RUTAS PUT DE EDITAR Y CAMBIAR ESTADO <<<
+// =====================================
+// PEGA AQUÍ ABAJO LAS NUEVAS RUTAS PUT
+// =====================================
+
+app.put("/usuarios/:id", actualizarUsuarioLogica);
+app.put("/api/usuarios/:id", actualizarUsuarioLogica);
+
+async function actualizarUsuarioLogica(req, res) {
+  console.log("⚡ [PUT] Actualizando usuario ID:", req.params.id);
+  try {
+    const { id } = req.params;
+    const { nombre, usuario, rol } = req.body;
+
+    const resultado = await pool.query(
+      `UPDATE usuarios 
+       SET nombre = $1, usuario = $2, rol = $3 
+       WHERE id = $4 
+       RETURNING id, nombre, usuario, rol, estado`,
+      [nombre, usuario, rol, id]
+    );
+
+    if (resultado.rows.length === 0) {
+      return res.status(404).json({ mensaje: "Usuario no encontrado." });
+    }
+
+    return res.status(200).json(resultado.rows[0]);
+  } catch (error) {
+    console.error("Error al actualizar usuario:", error);
+    return res.status(500).json({ mensaje: "Error al actualizar el usuario." });
+  }
+}
+
+app.put("/usuarios/:id/estado", cambiarEstadoLogica);
+app.put("/api/usuarios/:id/estado", cambiarEstadoLogica);
+
+async function cambiarEstadoLogica(req, res) {
+  console.log("⚡ [PUT] Cambiando estado de usuario ID:", req.params.id);
+  try {
+    const { id } = req.params;
+    const { estado } = req.body;
+
+    const resultado = await pool.query(
+      `UPDATE usuarios 
+       SET estado = $1 
+       WHERE id = $2 
+       RETURNING id, nombre, usuario, rol, estado`,
+      [estado, id]
+    );
+
+    if (resultado.rows.length === 0) {
+      return res.status(404).json({ mensaje: "Usuario no encontrado." });
+    }
+
+    return res.status(200).json(resultado.rows[0]);
+  } catch (error) {
+    console.error("Error al cambiar estado de usuario:", error);
+    return res.status(500).json({ mensaje: "Error al cambiar el estado." });
+  }
+}
 
 // =====================================
 // Inicialización del Servidor
