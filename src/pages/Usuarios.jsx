@@ -33,23 +33,39 @@ function Usuarios() {
   async function agregarUsuario() {
     if (
       !nuevoUsuario.nombre ||
-      !nuevoUsuario.usuario ||
       !nuevoUsuario.password
     ) {
-      alert("Completa todos los datos.");
+      alert("Completa al menos el nombre y la contraseña.");
       return;
     }
 
-    await guardarUsuario(nuevoUsuario);
+    // Opcional: Autogenerar el campo usuario si el usuario lo deja en blanco
+    let usernameFinal = nuevoUsuario.usuario;
+    if (!usernameFinal) {
+      const partes = nuevoUsuario.nombre.trim().toLowerCase().split(/\s+/);
+      const pNombre = partes[0] || "user";
+      const pApellido = partes[1] || "";
+      usernameFinal = pApellido ? `${pNombre}.${pApellido}` : pNombre;
+    }
 
-    setNuevoUsuario({
-      nombre: "",
-      usuario: "",
-      password: "",
-      rol: "Docente"
-    });
+    try {
+      await guardarUsuario({
+        ...nuevoUsuario,
+        usuario: usernameFinal
+      });
 
-    cargar();
+      setNuevoUsuario({
+        nombre: "",
+        usuario: "",
+        password: "",
+        rol: "Docente"
+      });
+
+      cargar();
+    } catch (error) {
+      console.error("Error al guardar usuario:", error);
+      alert("No se pudo guardar el usuario. Es posible que el nombre de usuario ya exista.");
+    }
   }
 
   async function editar(u) {
