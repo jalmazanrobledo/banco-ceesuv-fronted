@@ -8,10 +8,12 @@ function Alumnos() {
   const [modalOpen, setModalOpen] = useState(false);
   const [modalQROpen, setModalQROpen] = useState(false);
   const [alumnoSeleccionado, setAlumnoSeleccionado] = useState(null);
+  
   // Formulario
   const [nombre, setNombre] = useState("");
   const [grado, setGrado] = useState("");
   const [coins, setCoins] = useState(0);
+  const [estatusForm, setEstatusForm] = useState("Activo"); // Agregado para controlar el estatus en el formulario
   const [editId, setEditId] = useState(null);
 
   useEffect(() => {
@@ -20,7 +22,7 @@ function Alumnos() {
 
   const cargarAlumnos = async () => {
     try {
-     const data = await obtenerAlumnos();
+      const data = await obtenerAlumnos();
       setAlumnos(data || []);
     } catch (error) {
       console.error("Error al cargar alumnos:", error);
@@ -29,20 +31,26 @@ function Alumnos() {
 
   const handleGuardar = async (e) => {
     e.preventDefault();
-    if (editId) {
-      await editarAlumno(editId, { nombre, grado, coins });
-    } else {
-      await guardarAlumno({ nombre, grado, coins });
+    try {
+      if (editId) {
+        await editarAlumno(editId, { nombre, grado, coins, estatus: estatusForm });
+      } else {
+        await guardarAlumno({ nombre, grado, coins, estatus: estatusForm });
+      }
+      cerrarModal();
+      cargarAlumnos();
+    } catch (error) {
+      console.error("Error al guardar alumno:", error);
+      alert("Hubo un error al guardar el alumno.");
     }
-   cerrarModal();
-    cargarAlumnos();
   };
 
   const handleEditar = (a) => {
-    setEditId(a.id);
+    setEditId(a.id || a._id);
     setNombre(a.nombre);
     setGrado(a.grado);
     setCoins(a.coins);
+    setEstatusForm(a.estatus || "Activo");
     setModalOpen(true);
   };
 
@@ -68,15 +76,15 @@ function Alumnos() {
           nombre: alumno.nombre,
           grado: alumno.grado,
           coins: alumno.coins,
+          pin: alumno.pin,
           estatus: nuevoEstatus
         };
 
-        const respuesta = await editarAlumno(idAlumno, datosActualizados);
-        console.log("Respuesta del servidor:", respuesta);
+        await editarAlumno(idAlumno, datosActualizados);
 
-        // Actualización optimista o recarga inmediata del estado local
+        // Actualización optimista del estado local
         setAlumnos(prevAlumnos => 
-          prevAlumnos.map(a => (a.id === idAlumno || a._id === idAlumno ? { ...a, estatus: nuevoEstatus } : a))
+          prevAlumnos.map(a => ((a.id === idAlumno || a._id === idAlumno) ? { ...a, estatus: nuevoEstatus } : a))
         );
 
         cargarAlumnos();
@@ -98,6 +106,7 @@ function Alumnos() {
     setNombre("");
     setGrado("");
     setCoins(0);
+    setEstatusForm("Activo");
   };
 
   // 🔍 Lógica de filtrado
@@ -306,10 +315,11 @@ function Alumnos() {
               <tbody>
                 {alumnosFiltrados.length > 0 ? (
                   alumnosFiltrados.map((a, idx) => {
+                    const alumnoId = a.id || a._id;
                     const esInactivo = a.estatus === "Inactivo";
                     return (
-                      <tr key={a.id} style={{ borderBottom: "1px solid #F0F0F0", backgroundColor: esInactivo ? "#FFF3F3" : (idx % 2 === 0 ? "#FFFFFF" : "#FAFAFA"), opacity: esInactivo ? 0.75 : 1 }}>
-                        <td style={{ padding: "15px 20px", fontWeight: "bold", color: "#666" }}>{a.id}</td>
+                      <tr key={alumnoId} style={{ borderBottom: "1px solid #F0F0F0", backgroundColor: esInactivo ? "#FFF3F3" : (idx % 2 === 0 ? "#FFFFFF" : "#FAFAFA"), opacity: esInactivo ? 0.75 : 1 }}>
+                        <td style={{ padding: "15px 20px", fontWeight: "bold", color: "#666" }}>{alumnoId}</td>
                         <td style={{ padding: "15px 20px", fontWeight: "bold", color: esInactivo ? "#999" : "#0B2341", textDecoration: esInactivo ? "line-through" : "none" }}>{a.nombre}</td>
                         <td style={{ padding: "15px 20px", color: "#555" }}>{a.grado}</td>
                         <td style={{ padding: "15px 20px", fontWeight: "bold", color: "#D4AF37" }}>🪙 {a.coins}</td>
@@ -350,7 +360,7 @@ function Alumnos() {
                             {esInactivo ? "🟢 Activar" : "🟡 Inactivar"}
                           </button>
                           <button
-                            onClick={() => handleEliminar(a.id)}
+                            onClick={() => handleEliminar(alumnoId)}
                             style={{ padding: "8px 12px", background: "#dc3545", color: "white", border: "none", borderRadius: "6px", cursor: "pointer", fontWeight: "bold" }}
                           >
                             🗑️ Eliminar
@@ -384,9 +394,16 @@ function Alumnos() {
                     <label style={{ fontSize: "14px", fontWeight: "bold" }}>Grado / Grupo:</label>
                     <input type="text" value={grado} onChange={(e) => setGrado(e.target.value)} required style={{ width: "100%", padding: "10px", marginTop: "5px", borderRadius: "6px", border: "1px solid #ccc", boxSizing: "border-box" }} />
                   </div>
-                  <div style={{ marginBottom: "20px" }}>
+                  <div style={{ marginBottom: "15px" }}>
                     <label style={{ fontSize: "14px", fontWeight: "bold" }}>Coins Iniciales:</label>
                     <input type="number" value={coins} onChange={(e) => setCoins(e.target.value)} required style={{ width: "100%", padding: "10px", marginTop: "5px", borderRadius: "6px", border: "1px solid #ccc", boxSizing: "border-box" }} />
+                  </div>
+                  <div style={{ marginBottom: "20px" }}>
+                    <label style={{ fontSize: "14px", fontWeight: "bold" }}>Estatus:</label>
+                    <select value={estatusForm} onChange={(e) => setEstatusForm(e.target.value)} style={{ width: "100%", padding: "10px", marginTop: "5px", borderRadius: "6px", border: "1px solid #ccc", boxSizing: "border-box", backgroundColor: "white" }}>
+                      <option value="Activo">Activo</option>
+                      <option value="Inactivo">Inactivo</option>
+                    </select>
                   </div>
                   <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px" }}>
                     <button type="button" onClick={cerrarModal} style={{ padding: "10px 18px", background: "#6c757d", color: "white", border: "none", borderRadius: "6px", cursor: "pointer" }}>Cancelar</button>
