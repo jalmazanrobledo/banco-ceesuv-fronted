@@ -649,8 +649,6 @@ app.get(['/reset-db-directo', '/api/reset-db-directo'], async (req, res) => {
   }
 });
 
-// ... (tus otras rutas como /movimientos o /alumnos)
-
 // =====================================
 // Ruta para realizar compras en la tienda
 // =====================================
@@ -703,31 +701,11 @@ app.post(["/api/compras", "/compras"], async (req, res) => {
   }
 });
 
-// Agregar usuario administrativo (ESTE SE QUEDA IGUAL)
-app.post(["/usuarios", "/api/usuarios"], async (req, res) => {
-  try {
-    const { nombre, usuario, password, rol } = req.body;
-
-    const resultado = await pool.query(
-      `INSERT INTO usuarios (nombre, usuario, password, rol)
-       VALUES ($1, $2, $3, $4)
-       RETURNING id, nombre, usuario, rol, estado`,
-      [nombre, usuario, password, rol]
-    );
-
-    return res.status(200).json(resultado.rows[0]);
-  } catch (error) {
-    console.error(error);
-    return res.status(500).json({ mensaje: "Error al guardar usuario." });
-  }
-});
-
 // =====================================
-// PEGA AQUÍ ABAJO LAS NUEVAS RUTAS PUT
+// NUEVAS RUTAS PUT (Actualizar y Estado de Usuarios)
 // =====================================
 
-app.put("/usuarios/:id", actualizarUsuarioLogica);
-app.put("/api/usuarios/:id", actualizarUsuarioLogica);
+app.put(["/usuarios/:id", "/api/usuarios/:id"], actualizarUsuarioLogica);
 
 async function actualizarUsuarioLogica(req, res) {
   console.log("⚡ [PUT] Actualizando usuario ID:", req.params.id);
@@ -754,8 +732,7 @@ async function actualizarUsuarioLogica(req, res) {
   }
 }
 
-app.put("/usuarios/:id/estado", cambiarEstadoLogica);
-app.put("/api/usuarios/:id/estado", cambiarEstadoLogica);
+app.put(["/usuarios/:id/estado", "/api/usuarios/:id/estado"], cambiarEstadoLogica);
 
 async function cambiarEstadoLogica(req, res) {
   console.log("⚡ [PUT] Cambiando estado de usuario ID:", req.params.id);
