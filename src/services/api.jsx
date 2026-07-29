@@ -115,11 +115,10 @@ export async function guardarUsuario(usuario) {
 }
 
 export async function editarUsuario(id, usuario) {
-    const respuesta = await fetch(`${API_URL}/api/usuarios/${id}`, {
+    const respuesta = await fetch(`https://banco-ceesuv-backend.onrender.com/api/usuarios/${id}`, {
         method: "PUT",
         headers: {
-            "Content-Type": "application/json",
-            ...getHeadersNoCache
+            "Content-Type": "application/json"
         },
         body: JSON.stringify(usuario)
     });
