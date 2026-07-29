@@ -697,6 +697,26 @@ app.post(["/api/compras", "/compras"], async (req, res) => {
   }
 });
 
+// Agregar usuario administrativo
+app.post(["/usuarios", "/api/usuarios"], async (req, res) => {
+  try {
+    const { nombre, usuario, password, rol } = req.body;
+
+    const resultado = await pool.query(
+      `INSERT INTO usuarios (nombre, usuario, password, rol)
+       VALUES ($1, $2, $3, $4)
+       RETURNING id, nombre, usuario, rol, estado`,
+      [nombre, usuario, password, rol]
+    );
+
+    return res.status(200).json(resultado.rows[0]);
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ mensaje: "Error al guardar usuario." });
+  }
+});
+
+// >>> AQUÍ ES EL LUGAR IDEAL PARA PEGAR LAS RUTAS PUT DE EDITAR Y CAMBIAR ESTADO <<<
 
 // =====================================
 // Inicialización del Servidor
