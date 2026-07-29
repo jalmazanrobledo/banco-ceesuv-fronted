@@ -734,7 +734,8 @@ async function actualizarUsuarioLogica(req, res) {
   }
 }
 
-app.put(["/usuarios/:id/estado", "/api/usuarios/:id/estado"], cambiarEstadoLogica);
+// Añade esta ruta para atrapar también si el frontend le manda /alumnos/:id/estado
+app.put(["/alumnos/:id/estado", "/api/alumnos/:id/estado"], cambiarEstadoLogica);
 
 async function cambiarEstadoLogica(req, res) {
   console.log("⚡ [PUT] Cambiando estado de usuario/alumno ID:", req.params.id);
