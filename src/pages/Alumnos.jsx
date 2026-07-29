@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import Sidebar from "../components/Sidebar";
 import { obtenerAlumnos, guardarAlumno, editarAlumno, eliminarAlumno } from "../services/api";
+import jsPDF from "jspdf";
+import "jspdf-autotable";
 
 function Alumnos() {
   const [alumnos, setAlumnos] = useState([]);
@@ -103,6 +105,86 @@ function Alumnos() {
     const mensaje = `Hola, este es el acceso de *${alumnoSeleccionado.nombre}* para la plataforma del Banco Escolar CEESUV:\n\n🔑 *PIN de Acceso:* ${alumnoSeleccionado.pin || 'Sin PIN'}\n📲 *Consulta QR:* ${qrTargetUrl}`;
     window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(mensaje)}`, "_blank");
   };
+
+  // 📄 FUNCIÓN PARA EXPORTAR PDF POR GRADO / SEMESTRE
+  const exportarPDFPorGrado = (gradoSeleccionado, listaAlumnos) => {
+    const alumnosFiltradosGrado = listaAlumnos.filter(
+      (alumno) => alumno.grado && alumno.grado.trim().toLowerCase() === gradoSeleccionado.trim().toLowerCase()
+    );
+
+    if (alumnosFiltradosGrado.length === 0) {
+      alert(`No hay alumnos registrados en el grado: ${gradoSeleccionado}`);
+      return;
+    }
+
+    const doc = new jsPDF();
+
+    // Encabezado institucional
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(16);
+    doc.setTextColor(11, 35, 65); // Azul institucional CEESUV
+    doc.text("CENTRO DE ESTUDIOS ELEMENTALES Y SUPERIORES DE VALLES", 105, 15, { align: "center" });
+
+    doc.setFontSize(12);
+    doc.setTextColor(212, 175, 55); // Dorado institucional
+    doc.text(`BANCO ESCOLAR - CREDENCIALES Y ACCESOS`, 105, 22, { align: "center" });
+
+    doc.setFontSize(11);
+    doc.setTextColor(100, 100, 100);
+    doc.text(`Grado / Semestre: ${gradoSeleccionado}`, 14, 30);
+
+    const tablaDatos = alumnosFiltradosGrado.map((alumno, index) => {
+      const tokenAlumno = alumno.token_qr || alumno.token || alumno.id || alumno._id;
+      const enlaceQR = `${DOMINIO_PUBLICO}/consulta/${tokenAlumno}`;
+      return [
+        index + 1,
+        alumno.nombre.toUpperCase(),
+        enlaceQR,
+        alumno.pin || "----"
+      ];
+    });
+
+    doc.autoTable({
+      startY: 35,
+      head: [["#", "NOMBRE DEL ALUMNO", "ENLACE / CÓDIGO QR", "PIN DE ACCESO"]],
+      body: tablaDatos,
+      theme: "grid",
+      headStyles: {
+        fillColor: [11, 35, 65],
+        textColor: [255, 255, 255],
+        fontStyle: "bold",
+        halign: "center"
+      },
+      columnStyles: {
+        0: { cellWidth: 10, halign: "center" },
+        1: { cellWidth: 80 },
+        2: { cellWidth: 75, fontSize: 8 },
+        3: { cellWidth: 25, halign: "center", fontStyle: "bold", textColor: [180, 0, 0] }
+      },
+      styles: {
+        valign: "middle",
+        fontSize: 9
+      },
+      foot: [
+        [
+          {
+            content: `Total de alumnos en este grado: ${alumnosFiltradosGrado.length}`,
+            colSpan: 4,
+            styles: { halign: "right", fontStyle: "bold", textColor: [50, 50, 50] }
+          }
+        ]
+      ]
+    });
+
+    doc.save(`Credenciales_Y_Accesos_${gradoSeleccionado.replace(/°\s/g, "_").toLowerCase()}.pdf`);
+  };
+
+  const gradosDisponibles = [
+    "1° Primaria", "2° Primaria", "3° Primaria", 
+    "4° Primaria", "5° Primaria", "6° Primaria", 
+    "1° Secundaria", "2° Secundaria", "3° Secundaria", 
+    "1° Semestre", "3° Semestre", "5° Semestre"
+  ];
 
   return (
     <>
@@ -266,6 +348,36 @@ function Alumnos() {
             >
               ➕ Agregar Alumno
             </button>
+          </div>
+
+          {/* 📥 SECCIÓN NUEVA: EXPORTAR CREDENCIALES EN PDF POR GRADO */}
+          <div style={{ background: "white", padding: "20px", borderRadius: "12px", marginBottom: "20px", boxShadow: "0 2px 8px rgba(0,0,0,0.05)" }}>
+            <h3 style={{ color: "#0B2341", marginTop: 0, marginBottom: "15px", fontSize: "18px" }}>
+              📥 Exportar Credenciales y Accesos por Grado (PDF)
+            </h3>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))", gap: "10px" }}>
+              {gradosDisponibles.map((gradoItem) => (
+                <button
+                  key={gradoItem}
+                  onClick={() => exportarPDFPorGrado(gradoItem, alumnos)}
+                  style={{
+                    background: "#1A73E8",
+                    color: "white",
+                    border: "none",
+                    padding: "10px 12px",
+                    borderRadius: "8px",
+                    cursor: "pointer",
+                    fontWeight: "600",
+                    fontSize: "13px",
+                    transition: "background 0.2s"
+                  }}
+                  onMouseOver={(e) => (e.currentTarget.style.background = "#1557B0")}
+                  onMouseOut={(e) => (e.currentTarget.style.background = "#1A73E8")}
+                >
+                  📄 {gradoItem}
+                </button>
+              ))}
+            </div>
           </div>
 
           {/* TABLA CON PIN DE ACCESO */}
