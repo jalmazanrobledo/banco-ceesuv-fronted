@@ -158,29 +158,27 @@ function TarjetaDebito({ alumno }) {
           </div>
 
           {/* DATOS DEL TITULAR Y VENCIMIENTO */}
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginTop: "14px" }}>
-            <div style={{ maxWidth: "220px" }}>
-              <div style={{ fontSize: "7px", color: "rgba(255,255,255,0.6)", textTransform: "uppercase", letterSpacing: "0.5px" }}>
-                TITULAR DE LA CUENTA
-              </div>
-              <div style={{ 
-                fontSize: "13px", 
-                fontWeight: "bold", 
-                letterSpacing: "0.8px",
-                whiteSpace: "nowrap",
-                overflow: "hidden",
-                textOverflow: "ellipsis"
-              }}>
-                {nombre}
-              </div>
-            </div>
+<div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginTop: "14px" }}>
+  <div style={{ maxWidth: "220px", width: "100%" }}>
+    <div style={{ fontSize: "7px", color: "rgba(255,255,255,0.6)", textTransform: "uppercase", letterSpacing: "0.5px" }}>
+      TITULAR DE LA CUENTA
+    </div>
+    <div style={{ 
+      fontSize: nombre && nombre.length > 18 ? "10px" : "13px", 
+      fontWeight: "bold", 
+      letterSpacing: "0.8px",
+      whiteSpace: "nowrap",
+      overflow: "hidden"
+    }}>
+      {nombre}
+    </div>
+  </div>
 
-            <div style={{ textAlign: "right" }}>
-              <div style={{ fontSize: "6px", color: "rgba(255,255,255,0.6)", letterSpacing: "0.5px" }}>VENCE</div>
-              <div style={{ fontSize: "11px", fontWeight: "bold", fontFamily: "monospace" }}>07/28</div>
-            </div>
-          </div>
-        </div>
+  <div style={{ textAlign: "right" }}>
+    <div style={{ fontSize: "6px", color: "rgba(255,255,255,0.6)", letterSpacing: "0.5px" }}>VENCE</div>
+    <div style={{ fontSize: "11px", fontWeight: "bold", fontFamily: "monospace" }}>07/28</div>
+  </div>
+</div>
 
         {/* REVERSO DE LA TARJETA */}
         <div className="card-face card-back">
