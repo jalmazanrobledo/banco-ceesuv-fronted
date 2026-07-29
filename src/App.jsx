@@ -8,6 +8,7 @@ import Login from "./pages/Login";
 import ConsultaAlumno from "./pages/ConsultaAlumno";
 import Operaciones from "./pages/Operaciones";
 import StudentDashboard from "./components/StudentDashboard";
+import Reportes from "./pages/Reportes";
 
 // Importamos el componente del ticker de divisas
 import TickerDivisas from "./components/TickerDivisas";
@@ -117,7 +118,7 @@ function App() {
 
         {/* -----------------------------------------------------------
             RUTAS PÚBLICAS / ALUMNOS (SIN TICKER DE DIVISAS)
-           ----------------------------------------------------------- */}
+            ----------------------------------------------------------- */}
         <Route path="/login" element={<Login />} />
         <Route path="/consulta/:token" element={<ConsultaAlumno />} />
 
@@ -133,7 +134,7 @@ function App() {
 
         {/* -----------------------------------------------------------
             RUTAS PRIVADAS / ADMIN Y DOCENTES (CON TICKER DE DIVISAS)
-           ----------------------------------------------------------- */}
+            ----------------------------------------------------------- */}
         <Route element={<LayoutPanel />}>
           
           <Route
@@ -168,6 +169,16 @@ function App() {
             element={
               <RutaProtegida>
                 <Movimientos />
+              </RutaProtegida>
+            }
+          />
+
+          {/* Ruta para la nueva página de Reportes */}
+          <Route
+            path="/reportes"
+            element={
+              <RutaProtegida>
+                <Reportes />
               </RutaProtegida>
             }
           />
