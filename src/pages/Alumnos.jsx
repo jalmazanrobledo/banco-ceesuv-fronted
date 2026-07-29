@@ -61,7 +61,7 @@ function Alumnos() {
     }
   };
 
-  // 🔄 Lógica para cambiar estatus (Activo / Inactivo) sin perder historial
+// 🔄 Lógica para cambiar estatus (Activo / Inactivo) sin perder historial
   const handleCambiarEstatus = async (alumno) => {
     const nuevoEstatus = alumno.estatus === "Inactivo" ? "Activo" : "Inactivo";
     const mensaje = nuevoEstatus === "Inactivo" 
@@ -80,17 +80,18 @@ function Alumnos() {
           estatus: nuevoEstatus
         };
 
-        await editarAlumno(idAlumno, datosActualizados);
-
-        // Actualización optimista del estado local
+        // Actualización optimista inmediata en la interfaz
         setAlumnos(prevAlumnos => 
           prevAlumnos.map(a => ((a.id === idAlumno || a._id === idAlumno) ? { ...a, estatus: nuevoEstatus } : a))
         );
 
-        cargarAlumnos();
+        // Envía el cambio al servidor en segundo plano
+        await editarAlumno(idAlumno, datosActualizados);
+
       } catch (error) {
         console.error("Error al cambiar estatus del alumno:", error);
         alert("Hubo un error al cambiar el estatus. Revisa la consola.");
+        cargarAlumnos(); // Solo recargamos si hubo un error real para sincronizar
       }
     }
   };
