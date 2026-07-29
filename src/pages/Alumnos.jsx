@@ -74,13 +74,13 @@ function Alumnos() {
         const idAlumno = alumno.id || alumno._id;
         
         // Llamamos directamente a la ruta especializada en cambiar estado en tu server.js
-        const respuesta = await fetch(`https://banco-ceesuv-backend.onrender.com/alumnos/${idAlumno}/estado`, {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify({ estado: nuevoEstado })
-        });
+        const respuesta = await fetch(`https://banco-ceesuv-backend.onrender.com/api/alumnos/${idAlumno}/estado`, {
+  method: "PUT",
+  headers: {
+    "Content-Type": "application/json"
+  },
+  body: JSON.stringify({ estado: nuevoEstado })
+});
 
         if (!respuesta.ok) {
           throw new Error("No se pudo cambiar el estatus en el servidor");
@@ -363,9 +363,9 @@ function Alumnos() {
                           </button>
                           <button
                             onClick={() => handleCambiarEstatus(a)}
-                            style={{ marginRight: "6px", padding: "8px 12px", background: esInactivo ? "#28a745" : "#ffc107", color: esInactivo ? "white" : "#212529", border: "none", borderRadius: "6px", cursor: "pointer", fontWeight: "bold" }}
+                            style={{ marginRight: "6px", padding: "8px 12px", background: a.estado ? "#28a745" : "#ffc107", color: esInactivo ? "white" : "#212529", border: "none", borderRadius: "6px", cursor: "pointer", fontWeight: "bold" }}
                           >
-                            {esInactivo ? "🟢 Activar" : "🟡 Inactivar"}
+                            {a.estado ? "🟢 Activar" : "🟡 Inactivar"}
                           </button>
                           <button
                             onClick={() => handleEliminar(alumnoId)}
