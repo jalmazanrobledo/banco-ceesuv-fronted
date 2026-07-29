@@ -115,7 +115,7 @@ export async function guardarUsuario(usuario) {
 }
 
 export async function editarUsuario(id, usuario) {
-    const respuesta = await fetch(`${API_URL}/usuarios/${id}`, {
+    const respuesta = await fetch(`${API_URL}/api/usuarios/${id}`, {
         method: "PUT",
         headers: {
             "Content-Type": "application/json",
