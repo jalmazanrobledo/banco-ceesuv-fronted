@@ -61,10 +61,11 @@ function Alumnos() {
     }
   };
 
-// 🔄 Lógica para cambiar estatus (Activo / Inactivo) sin perder historial
+// 🔄 Lógica para cambiar estatus (Activo / Inactivo) de forma correcta
   const handleCambiarEstatus = async (alumno) => {
-    const nuevoEstatus = alumno.estatus === "Inactivo" ? "Activo" : "Inactivo";
-    const mensaje = nuevoEstatus === "Inactivo" 
+    // Usamos 'estado' en lugar de 'estatus' para que coincida con la base de datos
+    const nuevoEstado = alumno.estado === "Inactivo" ? "Activo" : "Inactivo";
+    const mensaje = nuevoEstado === "Inactivo" 
       ? `¿Estás seguro de inactivar a ${alumno.nombre}? No contará para los totales, pero conservará su historial y coins.`
       : `¿Deseas reactivar a ${alumno.nombre}? Volverá a estar activo en el sistema.`;
     
@@ -72,26 +73,32 @@ function Alumnos() {
       try {
         const idAlumno = alumno.id || alumno._id;
         
-        const datosActualizados = {
-          nombre: alumno.nombre,
-          grado: alumno.grado,
-          coins: alumno.coins,
-          pin: alumno.pin,
-          estatus: nuevoEstatus
-        };
+        // Llamamos directamente a la ruta especializada en cambiar estado en tu server.js
+        const respuesta = await fetch(`https://banco-ceesuv-backend.onrender.com/alumnos/${idAlumno}/estado`, {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({ estado: nuevoEstado })
+        });
 
-        // Actualización optimista inmediata en la interfaz
+        if (!respuesta.ok) {
+          throw new Error("No se pudo cambiar el estatus en el servidor");
+        }
+
+        // Actualización optimista inmediata usando 'estado'
         setAlumnos(prevAlumnos => 
-          prevAlumnos.map(a => ((a.id === idAlumno || a._id === idAlumno) ? { ...a, estatus: nuevoEstatus } : a))
+          prevAlumnos.map(a => ((a.id === idAlumno || a._id === idAlumno) ? { ...a, estado: nuevoEstado } : a))
         );
 
-        // Envía el cambio al servidor en segundo plano
-        await editarAlumno(idAlumno, datosActualizados);
+        // Opcional recomendado: Recargar la lista completa desde la BD para sincronizar
+        if (typeof cargarAlumnos === "function") {
+          cargarAlumnos();
+        }
 
       } catch (error) {
         console.error("Error al cambiar estatus del alumno:", error);
         alert("Hubo un error al cambiar el estatus. Revisa la consola.");
-        cargarAlumnos(); // Solo recargamos si hubo un error real para sincronizar
       }
     }
   };
