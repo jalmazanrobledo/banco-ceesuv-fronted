@@ -83,15 +83,10 @@ const generarPinUnico = async () => {
 const asegurarUsuarioAlumno = async (alumnoId, nombreCompleto) => {
   const partes = nombreCompleto.trim().split(/\s+/);
   const primerNombre = partes[0] ? partes[0].toLowerCase() : "alumno";
+  const primerApellido = partes.length >= 2 ? partes[partes.length - 1].toLowerCase() : "";
 
-  let primerApellido = "";
-  if (partes.length >= 3) {
-    primerApellido = partes[2].toLowerCase();
-  } else if (partes.length === 2) {
-    primerApellido = partes[1].toLowerCase();
-  }
-
-  const usuarioBase = primerApellido ? `${primerNombre}.${primerApellido}` : primerNombre;
+  // Añadimos el alumnoId al final para garantizar que nunca se repita el campo usuario
+  let usuarioBase = primerApellido ? `${primerNombre}.${primerApellido}${alumnoId}` : `${primerNombre}${alumnoId}`;
   const nombreMostrado = `${partes[0] || ""} ${partes[1] || ""}`.trim();
 
   const checkUser = await pool.query(
@@ -111,7 +106,8 @@ const asegurarUsuarioAlumno = async (alumnoId, nombreCompleto) => {
 
   await pool.query(
     `INSERT INTO usuarios (nombre, usuario, password, rol, estado, pin, alumno_id)
-     VALUES ($1, $2, $3, 'Alumno', 'Activo', $4, $5)`,
+     VALUES ($1, $2, $3, 'Alumno', 'Activo', $4, $5)
+     ON CONFLICT (usuario) DO UPDATE SET nombre = EXCLUDED.nombre`,
     [nombreMostrado, usuarioBase, pinNuevo, pinNuevo, alumnoId]
   );
 
