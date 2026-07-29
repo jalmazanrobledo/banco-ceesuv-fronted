@@ -3,7 +3,6 @@ import Sidebar from "../components/Sidebar";
 import { obtenerAlumnos } from "../services/api";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
-import QRCode from "qrcode"; // Importamos la librería qrcode para generar las imágenes
 
 function Reportes() {
   const [alumnos, setAlumnos] = useState([]);
@@ -26,7 +25,23 @@ function Reportes() {
 
   const DOMINIO_PUBLICO = "https://banco-ceesuv-fronted.vercel.app";
 
-// 📄 FUNCIÓN PARA EXPORTAR PDF POR GRADO / SEMESTRE CON CÓDIGOS QR
+  // Función auxiliar para convertir una imagen externa (URL del QR) en Base64 para jsPDF
+  const obtenerImagenBase64DesdeUrl = async (urlImagen) => {
+    try {
+      const respuesta = await fetch(urlImagen);
+      const blob = await respuesta.blob();
+      return new Promise((resolve) => {
+        const lector = new FileReader();
+        lector.onloadend = () => resolve(lector.result);
+        lector.readAsDataURL(blob);
+      });
+    } catch (error) {
+      console.error("Error al convertir QR a base64:", error);
+      return null;
+    }
+  };
+
+  // 📄 FUNCIÓN PARA EXPORTAR PDF POR GRADO / SEMESTRE CON CÓDIGOS QR
   const exportarPDFPorGrado = async (gradoSeleccionado) => {
     const alumnosFiltradosGrado = alumnos.filter(
       (alumno) => alumno.grado && alumno.grado.trim().toLowerCase() === gradoSeleccionado.trim().toLowerCase()
@@ -59,18 +74,16 @@ function Reportes() {
       const tokenAlumno = alumno.token_qr || alumno.token || alumno.id || alumno._id;
       const enlaceQR = `${DOMINIO_PUBLICO}/consulta/${tokenAlumno}`;
 
-      let qrDataURL = "";
-      try {
-        qrDataURL = await QRCode.toDataURL(enlaceQR, { width: 120, margin: 1 });
-      } catch (err) {
-        console.error("Error generando QR para PDF:", err);
-      }
+      // URL del servicio generador de QR en formato PNG
+      const urlApiQR = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(enlaceQR)}`;
+      
+      // Convertimos la imagen del QR a Base64 para que jsPDF la incruste de forma segura
+      const qrBase64 = await obtenerImagenBase64DesdeUrl(urlApiQR);
 
-      // Estructuramos la celda indicando que su contenido visual será una imagen QR
       tablaDatos.push([
         index + 1,
         alumno.nombre.toUpperCase(),
-        { content: "", image: qrDataURL }, // Objeto especial para que el hook lo pinte como imagen
+        { content: "", image: qrBase64 },
         alumno.pin || "----"
       ]);
     }
@@ -89,19 +102,18 @@ function Reportes() {
       columnStyles: {
         0: { cellWidth: 10, halign: "center", valign: "middle" },
         1: { cellWidth: 85, valign: "middle" },
-        2: { cellWidth: 35, halign: "center", valign: "middle", minCellHeight: 18 }, // Altura forzada para la celda del QR
+        2: { cellWidth: 35, halign: "center", valign: "middle", minCellHeight: 18 },
         3: { cellWidth: 30, halign: "center", valign: "middle", fontStyle: "bold", textColor: [180, 0, 0] }
       },
       styles: {
         fontSize: 9,
         valign: "middle"
       },
-      // Hook crítico para estampar la imagen del QR de forma limpia en la celda
       didDrawCell: (data) => {
         if (data.section === "body" && data.column.index === 2) {
           const cellData = data.cell.raw;
           if (cellData && cellData.image) {
-            const dim = 14; // Tamaño del QR en milímetros dentro de la celda
+            const dim = 14;
             const posX = data.cell.x + (data.cell.width - dim) / 2;
             const posY = data.cell.y + (data.cell.height - dim) / 2;
             doc.addImage(cellData.image, "PNG", posX, posY, dim, dim);
