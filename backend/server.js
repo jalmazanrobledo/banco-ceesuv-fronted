@@ -5,6 +5,16 @@ const { Pool } = require("pg");
 const app = express();
 
 // =====================================
+// Middleware Anti-Cache Global
+// =====================================
+app.use((req, res, next) => {
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
+  next();
+});
+
+// =====================================
 // Configuración de CORS para Vercel
 // =====================================
 const allowedOrigins = [
