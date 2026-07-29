@@ -737,21 +737,22 @@ async function actualizarUsuarioLogica(req, res) {
 app.put(["/usuarios/:id/estado", "/api/usuarios/:id/estado"], cambiarEstadoLogica);
 
 async function cambiarEstadoLogica(req, res) {
-  console.log("⚡ [PUT] Cambiando estado de usuario ID:", req.params.id);
+  console.log("⚡ [PUT] Cambiando estado de usuario/alumno ID:", req.params.id);
   try {
     const { id } = req.params;
     const { estado } = req.body;
 
+    // Actualizamos buscando por ID de usuario O por el alumno_id para que funcione desde cualquier vista
     const resultado = await pool.query(
       `UPDATE usuarios 
        SET estado = $1 
-       WHERE id = $2 
-       RETURNING id, nombre, usuario, rol, estado`,
+       WHERE id = $2 OR alumno_id = $2
+       RETURNING id, nombre, usuario, rol, estado, alumno_id`,
       [estado, id]
     );
 
     if (resultado.rows.length === 0) {
-      return res.status(404).json({ mensaje: "Usuario no encontrado." });
+      return res.status(404).json({ mensaje: "Usuario o alumno no encontrado." });
     }
 
     return res.status(200).json(resultado.rows[0]);
