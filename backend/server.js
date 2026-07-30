@@ -5,37 +5,36 @@ const { Pool } = require("pg");
 const app = express();
 
 // =====================================
-// Configuración de CORS y Seguridad
+// Configuración de CORS y Seguridad (Corregida para Vercel)
 // =====================================
-app.options(/(.*)/, cors({
+const corsOptions = {
   origin: true,
   credentials: true,
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "Cache-Control", "Pragma", "Expires"]
-}));
+};
 
-app.use(
-  cors({
-    origin: true,
-    credentials: true,
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "Cache-Control", "Pragma", "Expires"]
-  })
-);
+app.use(cors(corsOptions));
+app.options('*', cors(corsOptions));
+
+// Middleware explícito para asegurar cabeceras en Vercel
+app.use((req, res, next) => {
+  res.setHeader('Access-Control-Allow-Origin', req.headers.origin || '*');
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
+  
+  if (req.method === "OPTIONS") {
+    return res.status(200).end();
+  }
+  next();
+});
 
 // Middleware Anti-Cache Global
 app.use((req, res, next) => {
   res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
   res.setHeader('Pragma', 'no-cache');
   res.setHeader('Expires', '0');
-  next();
-});
-
-// Responder explícitamente a solicitudes preflight (OPTIONS)
-app.use((req, res, next) => {
-  if (req.method === "OPTIONS") {
-    return res.sendStatus(200);
-  }
   next();
 });
 
