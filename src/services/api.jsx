@@ -1,4 +1,4 @@
-const API_URL = "https://banco-ceesuv-backend.onrender.com";
+const API_URL = "https://banco-ceesuv-backend.vercel.app";
 
 // Función auxiliar para evitar caché en peticiones GET
 const getHeadersNoCache = {
@@ -11,7 +11,6 @@ const getHeadersNoCache = {
 // ALUMNOS
 // =====================================
 export async function obtenerAlumnos() {
-    // Añadimos un timestamp (?_t=...) para que la URL sea única y el navegador no guarde caché
     const timestamp = new Date().getTime();
     const respuesta = await fetch(`${API_URL}/alumnos?_t=${timestamp}`, {
         headers: getHeadersNoCache
@@ -122,10 +121,11 @@ export async function guardarUsuario(usuario) {
 }
 
 export async function editarUsuario(id, usuario) {
-    const respuesta = await fetch(`https://banco-ceesuv-backend.onrender.com/api/usuarios/${id}`, {
+    const respuesta = await fetch(`${API_URL}/usuarios/${id}`, {
         method: "PUT",
         headers: {
-            "Content-Type": "application/json"
+            "Content-Type": "application/json",
+            ...getHeadersNoCache
         },
         body: JSON.stringify(usuario)
     });
