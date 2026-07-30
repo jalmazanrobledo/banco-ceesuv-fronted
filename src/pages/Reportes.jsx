@@ -15,7 +15,11 @@ function Reportes() {
   const cargarDatosAlumnos = async () => {
     try {
       const data = await obtenerAlumnos();
-      setAlumnos(data || []);
+      // Filtramos para que solo guarde los alumnos que están activos en los reportes
+      const alumnosActivos = (data || []).filter(
+        (alumno) => !alumno.estado || alumno.estado.toLowerCase() === 'activo'
+      );
+      setAlumnos(alumnosActivos);
     } catch (error) {
       console.error("Error al cargar alumnos para reportes:", error);
     } finally {
