@@ -59,14 +59,14 @@ const pool = new Pool(
     ? {
         connectionString: process.env.DATABASE_URL,
         ssl: { rejectUnauthorized: false },
-        max: 1, // Evita agotar conexiones en entornos serverless
+        max: 1,
         idleTimeoutMillis: 1000,
         connectionTimeoutMillis: 5000,
       }
     : {
         user: "postgres",
         host: "localhost",
-        database: "bancoescolarceesuv",
+        database: "banco_ceesuv", // <-- Corregido aquí para coincidir con tu base de datos real
         password: "2026",
         port: 5432
       }
@@ -75,7 +75,6 @@ const pool = new Pool(
 pool.on('error', (err) => {
   console.error('❌ Error inesperado en el cliente inactivo de PostgreSQL', err);
 });
-
 // =====================================
 // Funciones Auxiliares
 // =====================================
