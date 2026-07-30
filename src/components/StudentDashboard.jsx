@@ -9,7 +9,7 @@ export default function StudentDashboard() {
   const [movimientos, setMovimientos] = useState([]);
   const [cargando, setCargando] = useState(true);
   
-  // Estado para controlar la pestaña activa
+  // Estado para controlar la pestaña activa ('tarjeta', 'tienda', 'ahorro', 'historial')
   const [activeTab, setActiveTab] = useState("tarjeta");
   
   // Estados para el Ticker de Divisas Dinámico
@@ -185,6 +185,7 @@ export default function StudentDashboard() {
     }
 
     const alumnoId = alumno?.alumno_id || alumno?.id;
+    
     if (!alumnoId) {
       setMensajeAccion({ tipo: "error", texto: "No se identificó el ID del alumno." });
       return;
@@ -219,6 +220,7 @@ export default function StudentDashboard() {
         setMensajeAccion({ tipo: "error", texto: mensajeError });
       }
     } catch (error) {
+      console.error("Error de red:", error);
       setMensajeAccion({ tipo: "error", texto: "Error de conexión con el servidor." });
     } finally {
       setProcesando(false);
@@ -227,6 +229,7 @@ export default function StudentDashboard() {
 
   const handleComprar = async (producto) => {
     const alumnoId = alumno?.alumno_id || alumno?.id;
+
     if (!alumnoId) {
       setMensajeTienda({ tipo: "error", texto: "No se identificó el ID del alumno." });
       return;
@@ -264,6 +267,7 @@ export default function StudentDashboard() {
         setMensajeTienda({ tipo: "error", texto: mensajeError });
       }
     } catch (error) {
+      console.error("Error de red en compra:", error);
       setMensajeTienda({ tipo: "error", texto: "Error de conexión con el servidor." });
     } finally {
       setProcesandoCompra(null);
@@ -286,9 +290,41 @@ export default function StudentDashboard() {
 
   if (cargando) {
     return (
-      <div style={{ minHeight: "100vh", background: "#0c1527", color: "white", display: "flex", justifyContent: "center", alignItems: "center" }}>
-        <p style={{ fontSize: "16px", fontWeight: "500", color: "#94a3b8" }}>Cargando información del estudiante...</p>
-      </div>
+      <>
+        <style>{`
+          @keyframes girar {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+          }
+          .loader-icon {
+            display: inline-block;
+            animation: girar 2s linear infinite;
+            font-size: 40px;
+            margin-bottom: 15px;
+          }
+        `}</style>
+        <div
+          style={{
+            minHeight: "100vh",
+            background: "#0c1527",
+            color: "white",
+            display: "flex",
+            flexDirection: "column",
+            justifyContent: "center",
+            alignItems: "center",
+            padding: "40px",
+            textAlign: "center",
+            fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif"
+          }}
+        >
+          <div>
+            <span className="loader-icon">⏳</span>
+            <p style={{ margin: 0, fontSize: "16px", fontWeight: "500", color: "#94a3b8" }}>
+              Cargando información del estudiante...
+            </p>
+          </div>
+        </div>
+      </>
     );
   }
 
@@ -310,11 +346,12 @@ export default function StudentDashboard() {
           background-color: #0c1527;
           font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
           color: white;
+          -webkit-text-size-adjust: 100%;
         }
 
         .dashboard-wrapper {
           min-height: 100vh;
-          background-image: linear-gradient(rgba(12, 21, 39, 0.50), rgba(12, 21, 39, 0.60)), url('/fachada-ceesuv.png');
+          background-image: linear-gradient(rgba(12, 21, 39, 0.45), rgba(12, 21, 39, 0.50)), url('/fachada-ceesuv.png');
           background-size: cover;
           background-position: center;
           background-attachment: fixed;
@@ -340,18 +377,19 @@ export default function StudentDashboard() {
         .brand-logo-container {
           background-color: #ffffff;
           border: 2px solid #D4AF37;
-          width: 40px;
-          height: 40px;
+          width: 44px;
+          height: 44px;
           border-radius: 50%;
           display: flex;
           align-items: center;
           justify-content: center;
+          box-shadow: 0 2px 8px rgba(0,0,0,0.4);
           overflow: hidden;
         }
 
         .brand-logo {
-          width: 26px;
-          height: 26px;
+          width: 30px;
+          height: 30px;
           object-fit: contain;
         }
 
@@ -360,6 +398,7 @@ export default function StudentDashboard() {
           font-weight: bold;
           color: #f59e0b;
           margin: 0;
+          letter-spacing: 0.5px;
         }
 
         .badge-envivo {
@@ -369,6 +408,7 @@ export default function StudentDashboard() {
           font-weight: bold;
           padding: 2px 6px;
           border-radius: 4px;
+          text-transform: uppercase;
         }
 
         .ticker-divisas {
@@ -406,14 +446,17 @@ export default function StudentDashboard() {
           background-color: #ef4444;
           color: white;
           border: none;
-          padding: 7px 12px;
+          padding: 8px 14px;
           border-radius: 8px;
           font-weight: bold;
           cursor: pointer;
           font-size: 13px;
           transition: 0.2s;
         }
-        .btn-logout:hover { background-color: #dc2626; }
+
+        .btn-logout:hover {
+          background-color: #dc2626;
+        }
 
         .portal-container {
           max-width: 1100px;
@@ -423,12 +466,12 @@ export default function StudentDashboard() {
 
         .card-dark {
           background-color: rgba(19, 34, 56, 0.88);
-          backdrop-filter: blur(8px);
+          backdrop-filter: blur(6px);
           border: 1px solid #1e3250;
           border-radius: 16px;
-          padding: 22px;
+          padding: 20px;
           margin-bottom: 20px;
-          box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+          box-shadow: 0 4px 12px rgba(0,0,0,0.3);
         }
 
         .grid-cards {
@@ -438,23 +481,7 @@ export default function StudentDashboard() {
           margin-bottom: 20px;
         }
 
-        .card-stat {
-          background-color: rgba(19, 34, 56, 0.88);
-          backdrop-filter: blur(6px);
-          border: 1px solid #1e3250;
-          border-radius: 16px;
-          padding: 18px;
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-        }
-
-        .stat-title { color: #94a3b8; font-size: 13px; margin: 0 0 4px 0; }
-        .stat-value { font-size: 22px; font-weight: 800; margin: 0; }
-        .badge-icon { background: rgba(255,255,255,0.05); padding: 10px; border-radius: 10px; font-size: 20px; }
-
-        /* Barra de Pestañas Moderna Estilo Banco */
+        /* Barra de Pestañas Moderna Estilo Banco Abajo del Ticker / Cabecera */
         .modern-tabs-bar {
           display: flex;
           gap: 10px;
@@ -498,7 +525,6 @@ export default function StudentDashboard() {
           box-shadow: 0 4px 15px rgba(245, 158, 11, 0.35);
         }
 
-        /* Animación de transición suave para las vistas */
         @keyframes fadeIn {
           from {
             opacity: 0;
@@ -536,16 +562,77 @@ export default function StudentDashboard() {
           display: flex;
           flex-direction: column;
           justify-content: space-between;
+          box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
+          flex-shrink: 0;
           width: 180px;
           box-sizing: border-box;
         }
 
-        .tarjeta-inactiva { transform: scale(0.85); opacity: 0.4; filter: brightness(0.7); }
-        .tarjeta-activa { transform: scale(1.1); opacity: 1; filter: brightness(1); border-color: #10b981; z-index: 10; }
+        .tarjeta-inactiva {
+          transform: scale(0.85);
+          opacity: 0.4;
+          filter: brightness(0.7);
+        }
 
-        .tabla-movs { width: 100%; border-collapse: collapse; margin-top: 15px; text-align: left; min-width: 500px; }
-        .tabla-movs th { padding: 10px; color: #94a3b8; border-bottom: 1px solid #1e3250; font-size: 13px; }
-        .tabla-movs td { padding: 12px 10px; border-bottom: 1px solid #1e3250; font-size: 13px; }
+        .tarjeta-activa {
+          transform: scale(1.1);
+          opacity: 1;
+          filter: brightness(1);
+          border-color: #10b981;
+          z-index: 10;
+        }
+
+        .card-stat {
+          background-color: rgba(19, 34, 56, 0.88);
+          backdrop-filter: blur(6px);
+          border: 1px solid #1e3250;
+          border-radius: 16px;
+          padding: 18px;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        }
+
+        .stat-title {
+          color: #94a3b8;
+          font-size: 13px;
+          margin: 0 0 4px 0;
+        }
+
+        .stat-value {
+          font-size: 22px;
+          font-weight: 800;
+          margin: 0;
+        }
+
+        .badge-icon {
+          background: rgba(255,255,255,0.05);
+          padding: 10px;
+          border-radius: 10px;
+          font-size: 20px;
+        }
+
+        .tabla-movs {
+          width: 100%;
+          border-collapse: collapse;
+          margin-top: 15px;
+          text-align: left;
+          min-width: 500px;
+        }
+
+        .tabla-movs th {
+          padding: 10px;
+          color: #94a3b8;
+          border-bottom: 1px solid #1e3250;
+          font-size: 13px;
+        }
+
+        .tabla-movs td {
+          padding: 12px 10px;
+          border-bottom: 1px solid #1e3250;
+          font-size: 13px;
+        }
 
         .input-ahorro {
           background: rgba(12, 21, 39, 0.9);
@@ -555,9 +642,14 @@ export default function StudentDashboard() {
           border-radius: 8px;
           font-size: 14px;
           width: 100%;
+          max-width: 100%;
         }
 
-        .ahorro-acciones { display: flex; flex-direction: column; gap: 10px; }
+        .ahorro-acciones {
+          display: flex;
+          flex-direction: column;
+          gap: 10px;
+        }
 
         .btn-accion {
           padding: 10px 16px;
@@ -570,19 +662,65 @@ export default function StudentDashboard() {
           transition: 0.2s;
         }
 
-        .btn-guardar { background-color: #2563eb; color: white; }
+        .btn-guardar {
+          background-color: #2563eb;
+          color: white;
+        }
         .btn-guardar:hover { background-color: #1d4ed8; }
 
-        .btn-retirar { background-color: #d97706; color: white; }
+        .btn-retirar {
+          background-color: #d97706;
+          color: white;
+        }
         .btn-retirar:hover { background-color: #b45309; }
 
-        .btn-comprar { background-color: #10b981; color: white; width: 100%; margin-top: 8px; padding: 7px; font-size: 12px; }
+        .btn-comprar {
+          background-color: #10b981;
+          color: white;
+          width: 100%;
+          margin-top: 8px;
+          padding: 7px;
+          font-size: 12px;
+        }
         .btn-comprar:hover { background-color: #059669; }
 
         @media (min-width: 768px) {
-          .ahorro-acciones { flex-direction: row; align-items: center; }
-          .input-ahorro { max-width: 220px; width: auto; }
-          .btn-accion:not(.btn-comprar) { width: auto; }
+          .portal-header {
+            padding: 12px 40px;
+          }
+          .portal-container {
+            margin: 30px auto;
+            padding: 0 20px;
+          }
+          .card-dark {
+            padding: 24px;
+            margin-bottom: 24px;
+          }
+          .card-stat {
+            padding: 20px;
+          }
+          .stat-title {
+            font-size: 14px;
+          }
+          .stat-value {
+            font-size: 24px;
+          }
+          .input-ahorro {
+            max-width: 200px;
+            width: auto;
+            margin-right: 10px;
+          }
+          .ahorro-acciones {
+            flex-direction: row;
+            align-items: center;
+          }
+          .btn-accion:not(.btn-comprar) {
+            width: auto;
+          }
+          .tabla-movs th, .tabla-movs td {
+            padding: 14px 12px;
+            font-size: 14px;
+          }
         }
       `}</style>
 
@@ -605,16 +743,24 @@ export default function StudentDashboard() {
 
           <div className="user-info-bar">
             <div style={{ textAlign: "right" }}>
-              <p style={{ margin: 0, fontWeight: "bold", fontSize: "14px" }}>{nombreAlumno}</p>
-              <p style={{ margin: 0, color: "#94a3b8", fontSize: "12px" }}>Matrícula: {matricula}</p>
+              <p style={{ margin: 0, fontWeight: "bold", fontSize: "14px" }}>
+                {nombreAlumno}
+              </p>
+              <p style={{ margin: 0, color: "#94a3b8", fontSize: "12px" }}>
+                Matrícula: {matricula}
+              </p>
             </div>
-            <button onClick={handleLogout} className="btn-logout">🚪 Salir</button>
+            <button onClick={handleLogout} className="btn-logout">
+              🚪 Cerrar Sesión
+            </button>
           </div>
         </header>
 
         <main className="portal-container">
           <div className="card-dark">
-            <h2 style={{ margin: 0, fontSize: "22px" }}>¡Bienvenido, {nombreAlumno}!</h2>
+            <h2 style={{ margin: 0, fontSize: "22px" }}>
+              ¡Bienvenido, {nombreAlumno}!
+            </h2>
             <p style={{ margin: "8px 0 0 0", color: "#94a3b8", fontSize: "14px" }}>
               Consulta tus saldos disponibles, gestiona tus ahorros, compra en la tienda escolar y revisa tus movimientos.
             </p>
@@ -624,7 +770,9 @@ export default function StudentDashboard() {
             <div className="card-stat">
               <div>
                 <p className="stat-title">Saldo Disponible</p>
-                <p className="stat-value" style={{ color: "#f59e0b" }}>{coinsDisponibles} <span style={{ fontSize: "12px", color: "#94a3b8" }}>COINS</span></p>
+                <p className="stat-value" style={{ color: "#f59e0b" }}>
+                  {coinsDisponibles} <span style={{ fontSize: "12px", color: "#94a3b8" }}>COINS</span>
+                </p>
               </div>
               <div className="badge-icon">🪙</div>
             </div>
@@ -632,7 +780,9 @@ export default function StudentDashboard() {
             <div className="card-stat">
               <div>
                 <p className="stat-title">Saldo en Ahorro</p>
-                <p className="stat-value" style={{ color: "#3b82f6" }}>{coinsAhorro} <span style={{ fontSize: "12px", color: "#94a3b8" }}>COINS</span></p>
+                <p className="stat-value" style={{ color: "#3b82f6" }}>
+                  {coinsAhorro} <span style={{ fontSize: "12px", color: "#94a3b8" }}>COINS</span>
+                </p>
               </div>
               <div className="badge-icon">🏦</div>
             </div>
@@ -640,7 +790,9 @@ export default function StudentDashboard() {
             <div className="card-stat">
               <div>
                 <p className="stat-title">Total Acumulado</p>
-                <p className="stat-value" style={{ color: "#10b981" }}>{coinsTotales} <span style={{ fontSize: "12px", color: "#94a3b8" }}>COINS</span></p>
+                <p className="stat-value" style={{ color: "#10b981" }}>
+                  {coinsTotales} <span style={{ fontSize: "12px", color: "#94a3b8" }}>COINS</span>
+                </p>
               </div>
               <div className="badge-icon">💰</div>
             </div>
@@ -652,7 +804,7 @@ export default function StudentDashboard() {
               onClick={() => setActiveTab('tarjeta')}
               className={`modern-tab-btn ${activeTab === 'tarjeta' ? 'active' : ''}`}
             >
-              💳 Tarjeta y Transferencias
+              💳 Mi Tarjeta y Transferencias
             </button>
             <button
               onClick={() => setActiveTab('tienda')}
@@ -670,11 +822,11 @@ export default function StudentDashboard() {
               onClick={() => setActiveTab('historial')}
               className={`modern-tab-btn ${activeTab === 'historial' ? 'active' : ''}`}
             >
-              🕒 Historial
+              🕒 Historial de Movimientos
             </button>
           </nav>
 
-          {/* VISTAS CON TRANSICIÓN SUAVE */}
+          {/* CONTENEDOR DE VISTAS CON TRANSICIÓN SUAVE */}
           <div className="view-transition" key={activeTab}>
             {activeTab === 'tarjeta' && (
               <div className="card-dark" style={{ textAlign: "center" }}>
@@ -759,7 +911,15 @@ export default function StudentDashboard() {
                 </div>
 
                 {mensajeTienda && (
-                  <p style={{ marginTop: "12px", fontSize: "14px", color: mensajeTienda.tipo === "error" ? "#ef4444" : "#10b981", fontWeight: "bold", textAlign: "center" }}>
+                  <p
+                    style={{
+                      marginTop: "12px",
+                      fontSize: "14px",
+                      color: mensajeTienda.tipo === "error" ? "#ef4444" : "#10b981",
+                      fontWeight: "bold",
+                      textAlign: "center"
+                    }}
+                  >
                     {mensajeTienda.texto}
                   </p>
                 )}
@@ -799,7 +959,14 @@ export default function StudentDashboard() {
                 </div>
 
                 {mensajeAccion && (
-                  <p style={{ marginTop: "12px", fontSize: "14px", color: mensajeAccion.tipo === "error" ? "#ef4444" : "#10b981", fontWeight: "bold" }}>
+                  <p
+                    style={{
+                      marginTop: "12px",
+                      fontSize: "14px",
+                      color: mensajeAccion.tipo === "error" ? "#ef4444" : "#10b981",
+                      fontWeight: "bold"
+                    }}
+                  >
                     {mensajeAccion.texto}
                   </p>
                 )}
@@ -824,9 +991,15 @@ export default function StudentDashboard() {
                       <tbody>
                         {movimientos.map((m, idx) => (
                           <tr key={m.id || idx}>
-                            <td style={{ color: "#cbd5e1" }}>{m.fecha ? new Date(m.fecha).toLocaleString() : "N/A"}</td>
-                            <td style={{ color: obtenerColorTipo(m.tipo), fontWeight: "bold" }}>{m.tipo}</td>
-                            <td style={{ color: obtenerColorTipo(m.tipo), fontWeight: "bold" }}>🪙 {obtenerSignoMonto(m.tipo, m.cantidad)}</td>
+                            <td style={{ color: "#cbd5e1" }}>
+                              {m.fecha ? new Date(m.fecha).toLocaleString() : "N/A"}
+                            </td>
+                            <td style={{ color: obtenerColorTipo(m.tipo), fontWeight: "bold" }}>
+                              {m.tipo}
+                            </td>
+                            <td style={{ color: obtenerColorTipo(m.tipo), fontWeight: "bold" }}>
+                              🪙 {obtenerSignoMonto(m.tipo, m.cantidad)}
+                            </td>
                             <td style={{ color: "#cbd5e1" }}>{m.motivo || "-"}</td>
                           </tr>
                         ))}
@@ -836,6 +1009,9 @@ export default function StudentDashboard() {
                 ) : (
                   <div style={{ textAlign: "center", padding: "30px 0", color: "#94a3b8" }}>
                     <p style={{ margin: 0, fontSize: "15px" }}>Aún no tienes movimientos registrados.</p>
+                    <p style={{ margin: "5px 0 0 0", fontSize: "12px", color: "#64748b" }}>
+                      Tus abonos, ahorros y canjes aparecerán reflejados en esta sección.
+                    </p>
                   </div>
                 )}
               </div>
