@@ -293,7 +293,7 @@ app.get(["/alumnos", "/api/alumnos"], async (req, res) => {
         u.pin,
         COALESCE(u.estado, 'Activo') AS estado
        FROM alumnos a
-       LEFT JOIN usuarios u ON a.id = u.id
+       LEFT JOIN usuarios u ON a.id = u.alumno_id
        WHERE COALESCE(u.estado, 'Activo') = 'Activo'
        ORDER BY a.id`
     );
