@@ -831,12 +831,6 @@ app.post("/api/analisis-ia", async (req, res) => {
   try {
     const { datosAlumnos, resumenMovimientos } = req.body;
 
-    // Endpoint para generar el análisis de reportes
-app.post("/api/analisis-ia", async (req, res) => {
-  try {
-    const { datosAlumnos, resumenMovimientos } = req.body;
-
-    // Prompt estructurado para el rol directivo/escolar
     const prompt = `
       Actúa como un analista de datos escolares experto para la institución "Centro de Estudios Elementales y Superiores de Valles (CEESUV)".
       Analiza la siguiente información de los alumnos y el banco escolar:
@@ -852,13 +846,11 @@ app.post("/api/analisis-ia", async (req, res) => {
       Mantén un tono formal, educativo y directo.
     `;
 
-    // Llamada al modelo Gemini
     const response = await ai.models.generateContent({
-    model: 'gemini-2.5-flash',
-    contents: prompt,
-});
+      model: 'gemini-2.0-flash',
+      contents: prompt,
+    });
 
-    // Extracción segura del texto de la respuesta (maneja propiedad o método)
     let textoAnalisis = "";
     if (typeof response.text === 'function') {
       textoAnalisis = response.text();
@@ -878,9 +870,10 @@ app.post("/api/analisis-ia", async (req, res) => {
     res.status(500).json({ error: "No se pudo generar el análisis inteligente." });
   }
 });
-// =====================================
+
+// ==========================================
 // Inicialización del Servidor
-// =====================================
+// ==========================================
 const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, () => {
