@@ -227,7 +227,7 @@ function Reportes() {
             🤖 Análisis Ejecutivo con IA
           </h3>
           <p style={{ color: "#666", fontSize: "14px", marginBottom: "20px" }}>
-            Obtén un informe automatizado sobre el comportamiento escolar y estadísticas generales procesado por Gemini.
+            Obtén un informe automatizado sobre el comportamiento escolar y estadísticas generales procesado por Inteligencia Artificial.
           </p>
 
           <button
