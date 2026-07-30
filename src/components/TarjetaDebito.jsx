@@ -4,7 +4,10 @@ import logoCeesuvHorizontal from "/ceesuv.png";
 function TarjetaDebito({ alumno }) {
   const [volteada, setVolteada] = useState(false);
 
-// Extraer el nombre completo combinando nombre y apellidos de forma segura
+  // Definir idAlumno de forma segura a partir del objeto alumno recibido
+  const idAlumno = alumno?.id || alumno?.alumno_id || 1;
+
+  // Extraer el nombre completo combinando nombre y apellidos de forma segura
   const nombreCompleto = (
     alumno?.nombre_completo ||
     `${alumno?.nombre || ""} ${alumno?.apellidos || alumno?.apellido || ""}`
