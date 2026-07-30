@@ -224,7 +224,7 @@ function Reportes() {
         {/* Sección 2: Análisis Inteligente con Gemini */}
         <div style={{ background: "white", padding: "25px", borderRadius: "12px", boxShadow: "0 2px 8px rgba(0,0,0,0.05)", marginTop: "25px" }}>
           <h3 style={{ color: "#0B2341", marginTop: 0, marginBottom: "15px", fontSize: "18px" }}>
-            ✨ Análisis Ejecutivo con Inteligencia Artificial (Gemini)
+            🤖 Análisis Ejecutivo con IA
           </h3>
           <p style={{ color: "#666", fontSize: "14px", marginBottom: "20px" }}>
             Obtén un informe automatizado sobre el comportamiento escolar y estadísticas generales procesado por Gemini.
