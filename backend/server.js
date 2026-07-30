@@ -854,13 +854,11 @@ app.post(['/api/transferir-por-tarjeta', '/transferir-por-tarjeta'], async (req,
 });
 
 // ==========================================
-// Inicialización Segura para Vercel y Local
+// Inicialización del Servidor (Local y Render)
 // ==========================================
-if (process.env.NODE_ENV !== 'production') {
-  const PORT = process.env.PORT || 5000;
-  app.listen(PORT, () => {
-    console.log(`Servidor corriendo en el puerto ${PORT}`);
-  });
-}
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, () => {
+  console.log(`Servidor corriendo en el puerto ${PORT}`);
+});
 
 module.exports = app;
