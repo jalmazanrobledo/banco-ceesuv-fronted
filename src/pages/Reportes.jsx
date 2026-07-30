@@ -147,8 +147,8 @@ function Reportes() {
     setAnalizando(true);
     setAnalisisIA("");
     try {
-      // Reemplaza esta URL con la dirección real de tu backend en producción
-      const respuesta = await fetch("https://TU-BACKEND-EN-RENDER.onrender.com/api/analisis-ia", {
+      // Usa la misma URL o servicio que usa el resto de tu app (ej. process.env o tu archivo api.js)
+      const respuesta = await fetch("https://TU-URL-REAL-DE-BACKEND/api/analisis-ia", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ datosAlumnos: alumnos, resumenMovimientos: [] })
