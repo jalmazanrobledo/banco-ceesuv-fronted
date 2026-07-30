@@ -821,7 +821,7 @@ async function cambiarEstadoLogica(req, res) {
     return res.status(500).json({ mensaje: "Error al cambiar el estado." });
   }
 }
-import { GoogleGenAI } from "@google/genai";
+const { GoogleGenAI } = require("@google/genai");
 
 // Inicializa el SDK (asegúrate de tener tu GEMINI_API_KEY en tus variables de entorno .env)
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
