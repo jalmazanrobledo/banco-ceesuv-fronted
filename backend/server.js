@@ -821,12 +821,10 @@ async function cambiarEstadoLogica(req, res) {
     return res.status(500).json({ mensaje: "Error al cambiar el estado." });
   }
 }
-const { GoogleGenAI } = require("@google/genai");
+const { Groq } = require("groq-sdk");
+const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
-// Inicializa el SDK (asegúrate de tener tu GEMINI_API_KEY en tus variables de entorno .env)
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-
-// Endpoint para generar el análisis de reportes
+// Endpoint para generar el análisis de reportes con Groq
 app.post("/api/analisis-ia", async (req, res) => {
   try {
     const { datosAlumnos, resumenMovimientos } = req.body;
@@ -846,28 +844,17 @@ app.post("/api/analisis-ia", async (req, res) => {
       Mantén un tono formal, educativo y directo.
     `;
 
-    const response = await ai.models.generateContent({
-      model: 'gemini-2.0-flash',
-      contents: prompt,
+    const completion = await groq.chat.completions.create({
+      messages: [{ role: "user", content: prompt }],
+      model: "llama-3.3-70b-versatile",
     });
 
-    let textoAnalisis = "";
-    if (typeof response.text === 'function') {
-      textoAnalisis = response.text();
-    } else if (typeof response.text === 'string') {
-      textoAnalisis = response.text;
-    } else if (response.candidates && response.candidates[0]?.content?.parts[0]?.text) {
-      textoAnalisis = response.candidates[0].content.parts[0].text;
-    }
-
-    if (!textoAnalisis) {
-      textoAnalisis = "No se pudo extraer el texto de la respuesta de la IA.";
-    }
+    const textoAnalisis = completion.choices[0]?.message?.content || "No se pudo generar el análisis.";
 
     res.json({ analisis: textoAnalisis });
   } catch (error) {
-    console.error("Error al generar análisis con Gemini:", error);
-    res.status(500).json({ error: "No se pudo generar el análisis inteligente." });
+    console.error("Error al generar análisis con Groq:", error);
+    res.status(500).json({ error: "No se pudo generar el análisis inteligente con Groq." });
   }
 });
 

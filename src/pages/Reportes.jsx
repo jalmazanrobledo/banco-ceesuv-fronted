@@ -154,11 +154,9 @@ function Reportes() {
       });
       const data = await respuesta.json();
       setAnalisisIA(data.analisis || "No se obtuvo respuesta de la IA.");
-    } catch (error) {
+    }  catch (error) {
       console.error("Error:", error);
-      alert("Hubo un error al conectar con Gemini desde el servidor.");
-    } finally {
-      setAnalizando(false);
+      alert("Hubo un error al generar el análisis inteligente.");
     }
   };
 
