@@ -575,9 +575,12 @@ app.post(["/login", "/api/login"], async (req, res) => {
 
     if (passClean.length === 4 && !isNaN(passClean)) {
       const resPin = await pool.query(
-        `SELECT u.id AS usuario_id, u.nombre, u.usuario, u.rol, u.estado, u.alumno_id, a.grado, a.coins, COALESCE(a.coins_ahorro,0) as coins_ahorro
+        `SELECT u.id AS usuario_id, u.nombre, u.usuario, u.rol, u.estado, u.alumno_id, 
+                COALESCE(a.grado, 'N/A') AS grado, 
+                COALESCE(a.coins, 0) as coins, 
+                COALESCE(a.coins_ahorro,0) as coins_ahorro
          FROM usuarios u
-         JOIN alumnos a ON u.alumno_id = a.id
+         LEFT JOIN alumnos a ON u.alumno_id = a.id
          WHERE u.pin = $1 AND u.estado = 'Activo'`,
         [passClean]
       );
