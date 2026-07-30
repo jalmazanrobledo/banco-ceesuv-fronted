@@ -14,14 +14,17 @@ app.use((req, res, next) => {
   next();
 });
 
-// =====================================
+// ==========================================
 // Configuración de CORS para Vercel
-// =====================================
-const allowedOrigins = [
-  "https://banco-ceesuv-fronted.vercel.app",
-  "http://localhost:5173",
-  "http://localhost:3000"
-];
+// ==========================================
+app.use(
+  cors({
+    origin: true, // Permite automáticamente el origen actual del frontend
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "Cache-Control", "Pragma", "Expires"]
+  })
+);
 
 app.use(
   cors({
@@ -29,7 +32,7 @@ app.use(
       if (!origin || allowedOrigins.indexOf(origin) !== -1) {
         callback(null, true);
       } else {
-        callback(new Error("Bloqueado por la política de CORS"));
+        callback(new Error("Bloqueado por la política de CORS"));   
       }
     },
     credentials: true,
