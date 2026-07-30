@@ -858,6 +858,69 @@ app.post("/api/analisis-ia", async (req, res) => {
   }
 });
 
+// ENDPOINT PARA TRANSFERENCIAS ENTRE ALUMNOS MEDIANTE TARJETA DE DÉBITO
+app.post('/api/transferir-por-tarjeta', async (req, res) => {
+    const { remitenteId, numeroTarjetaDestino, monto } = req.body;
+
+    // Validar que el monto sea válido
+    const cantidad = Number(monto);
+    if (!cantidad || cantidad <= 0) {
+        return res.status(400).json({ error: "El monto debe ser mayor a cero." });
+    }
+
+    // Limpiar espacios o guiones del número de tarjeta ingresado
+    const tarjetaLimpia = numeroTarjetaDestino ? numeroTarjetaDestino.replace(/\s+/g, '') : '';
+
+    // Validar formato y prefijo de Banco CEESUV (48200000 + 8 dígitos de ID)
+    if (!tarjetaLimpia.startsWith("48200000") || tarjetaLimpia.length !== 16) {
+        return res.status(400).json({ error: "Número de tarjeta de destino inválido." });
+    }
+
+    // Extraer el ID del destinatario de los últimos 8 dígitos
+    const idDestinatarioStr = tarjetaLimpia.slice(8);
+    const destinatarioId = parseInt(idDestinatarioStr, 10);
+
+    // Evitar que se transfieran a sí mismos
+    if (Number(remitenteId) === Number(destinatarioId)) {
+        return res.status(400).json({ error: "No puedes transferir coins a tu propia tarjeta." });
+    }
+
+    try {
+        // Buscar al remitente y al destinatario en la base de datos
+        // (Nota: Ajusta la consulta según si buscas por 'id' numérico o '_id' de MongoDB)
+        const remitente = await Alumno.findOne({ id: remitenteId });
+        const destinatario = await Alumno.findOne({ id: destinatarioId });
+
+        if (!remitente) {
+            return res.status(404).json({ error: "No se encontró la cuenta del remitente." });
+        }
+
+        if (remitente.coins < cantidad) {
+            return res.status(400).json({ error: "Saldo insuficiente para realizar la transferencia." });
+        }
+
+        if (!destinatario) {
+            return res.status(404).json({ error: "La tarjeta ingresada no corresponde a ningún alumno activo." });
+        }
+
+        // Realizar la transacción
+        remitente.coins -= cantidad;
+        destinatario.coins += cantidad;
+
+        await remitente.save();
+        await destinatario.save();
+
+        res.json({ 
+            success: true, 
+            mensaje: `¡Transferencia exitosa! Enviaste ${cantidad} coins a ${destinatario.nombre}.` 
+        });
+
+    } catch (error) {
+        console.error("Error al procesar la transferencia:", error);
+        res.status(500).json({ error: "Error interno del servidor al procesar la transferencia." });
+    }
+});
+
 // ==========================================
 // Inicialización del Servidor
 // ==========================================

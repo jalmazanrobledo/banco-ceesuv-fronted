@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import TarjetaDebito from "./TarjetaDebito";
+import TransferenciaCoins from "./TransferenciaCoins";
 
 export default function StudentDashboard() {
   const navigate = useNavigate();
@@ -22,6 +24,9 @@ export default function StudentDashboard() {
 
   // Estado para el índice activo del carrusel de la tienda
   const [indiceActivo, setIndiceActivo] = useState(0);
+
+  // Estado para desplegar o cerrar la sección de transferencias por tarjeta
+  const [mostrarTransferencia, setMostrarTransferencia] = useState(false);
 
   // Catálogo de productos de ejemplo
   const productosTienda = [
@@ -730,6 +735,41 @@ export default function StudentDashboard() {
               <div className="badge-icon">💰</div>
             </div>
           </div>
+
+          {/* SECCIÓN DE BANCO Y TRANSFERENCIAS CON TARJETA */}
+          <div className="card-dark" style={{ textAlign: "center" }}>
+            <h3 style={{ margin: "0 0 10px 0", fontSize: "18px" }}>💳 Tarjeta de Débito y Transferencias CEESUV</h3>
+            <p style={{ color: "#94a3b8", fontSize: "14px", marginBottom: "20px" }}>
+              Consulta tu tarjeta digital oficial y envía coins a tus compañeros usando su número de tarjeta.
+            </p>
+
+            {/* Visualización de la Tarjeta de Débito del Alumno */}
+            <div style={{ display: "flex", justifyContent: "center", marginBottom: "15px" }}>
+              <TarjetaDebito alumno={alumno} />
+            </div>
+
+            {/* Botón para desplegar/ocultar el panel de transferencia */}
+            <button
+              onClick={() => setMostrarTransferencia(!mostrarTransferencia)}
+              className="btn-accion btn-guardar"
+              style={{ maxWidth: "260px", margin: "0 auto", display: "block" }}
+            >
+              {mostrarTransferencia ? "Ocultar Transferencias" : "🔄 Realizar Transferencia a Compañero"}
+            </button>
+
+            {/* Componente desplegable de Transferencias */}
+            {mostrarTransferencia && (
+              <div style={{ marginTop: "20px", borderTop: "1px solid #1e3250", paddingTop: "20px" }}>
+                <TransferenciaCoins
+                  alumnoActual={alumno}
+                  onTransferenciaExitosa={() => {
+                    cargarDatosEstudiante(); // Recarga los saldos y movimientos automáticamente
+                  }}
+                />
+              </div>
+            )}
+          </div>
+
 
           <div className="card-dark">
             <h3 style={{ margin: "0 0 5px 0", fontSize: "18px" }}>🛒 Tienda Escolar</h3>
