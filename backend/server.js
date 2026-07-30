@@ -831,6 +831,11 @@ app.post("/api/analisis-ia", async (req, res) => {
   try {
     const { datosAlumnos, resumenMovimientos } = req.body;
 
+    // Endpoint para generar el análisis de reportes
+app.post("/api/analisis-ia", async (req, res) => {
+  try {
+    const { datosAlumnos, resumenMovimientos } = req.body;
+
     // Prompt estructurado para el rol directivo/escolar
     const prompt = `
       Actúa como un analista de datos escolares experto para la institución "Centro de Estudios Elementales y Superiores de Valles (CEESUV)".
@@ -849,9 +854,9 @@ app.post("/api/analisis-ia", async (req, res) => {
 
     // Llamada al modelo Gemini
     const response = await ai.models.generateContent({
-      model: 'gemini-1.5-flash',
-      contents: prompt,
-    });
+    model: 'gemini-2.5-flash',
+    contents: prompt,
+});
 
     // Extracción segura del texto de la respuesta (maneja propiedad o método)
     let textoAnalisis = "";
