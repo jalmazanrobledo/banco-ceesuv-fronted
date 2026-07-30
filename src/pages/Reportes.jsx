@@ -7,6 +7,10 @@ import autoTable from "jspdf-autotable";
 function Reportes() {
   const [alumnos, setAlumnos] = useState([]);
   const [cargando, setCargando] = useState(true);
+  
+  // Estados para la funcionalidad de IA con Gemini
+  const [analisisIA, setAnalisisIA] = useState("");
+  const [analizando, setAnalizando] = useState(false);
 
   useEffect(() => {
     cargarDatosAlumnos();
@@ -138,6 +142,27 @@ function Reportes() {
     doc.save(`Credenciales_Y_Accesos_${gradoSeleccionado.replace(/°\s/g, "_").toLowerCase()}.pdf`);
   };
 
+  // 🤖 FUNCIÓN PARA CONECTAR CON GEMINI DESDE EL BACKEND
+  const generarAnalisisGemini = async () => {
+    setAnalizando(true);
+    setAnalisisIA("");
+    try {
+      // Ajusta la URL de tu backend si corre en otro puerto (ej: http://localhost:4000/api/analisis-ia)
+      const respuesta = await fetch("http://localhost:4000/api/analisis-ia", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ datosAlumnos: alumnos, resumenMovimientos: [] })
+      });
+      const data = await respuesta.json();
+      setAnalisisIA(data.analisis || "No se obtuvo respuesta de la IA.");
+    } catch (error) {
+      console.error("Error:", error);
+      alert("Hubo un error al conectar con Gemini desde el servidor.");
+    } finally {
+      setAnalizando(false);
+    }
+  };
+
   const gradosDisponibles = [
     "1° Primaria", "2° Primaria", "3° Primaria", 
     "4° Primaria", "5° Primaria", "6° Primaria", 
@@ -157,6 +182,7 @@ function Reportes() {
           </p>
         </div>
 
+        {/* Sección 1: Descarga de Credenciales PDF */}
         <div style={{ background: "white", padding: "25px", borderRadius: "12px", boxShadow: "0 2px 8px rgba(0,0,0,0.05)" }}>
           <h3 style={{ color: "#0B2341", marginTop: 0, marginBottom: "15px", fontSize: "18px" }}>
             📥 Descargar Credenciales y Accesos (PDF por Grado)
@@ -194,6 +220,43 @@ function Reportes() {
                   📄 {gradoItem}
                 </button>
               ))}
+            </div>
+          )}
+        </div>
+
+        {/* Sección 2: Análisis Inteligente con Gemini */}
+        <div style={{ background: "white", padding: "25px", borderRadius: "12px", boxShadow: "0 2px 8px rgba(0,0,0,0.05)", marginTop: "25px" }}>
+          <h3 style={{ color: "#0B2341", marginTop: 0, marginBottom: "15px", fontSize: "18px" }}>
+            ✨ Análisis Ejecutivo con Inteligencia Artificial (Gemini)
+          </h3>
+          <p style={{ color: "#666", fontSize: "14px", marginBottom: "20px" }}>
+            Obtén un informe automatizado sobre el comportamiento escolar y estadísticas generales procesado por Gemini.
+          </p>
+
+          <button
+            onClick={generarAnalisisGemini}
+            disabled={analizando || cargando}
+            style={{
+              background: "#D4AF37", // Color dorado institucional
+              color: "#0B2341",
+              border: "none",
+              padding: "12px 20px",
+              borderRadius: "8px",
+              cursor: "pointer",
+              fontWeight: "bold",
+              fontSize: "14px",
+              transition: "background 0.2s"
+            }}
+          >
+            {analizando ? "Analizando datos con Gemini..." : "🤖 Generar Informe Inteligente"}
+          </button>
+
+          {analisisIA && (
+            <div style={{ marginTop: "20px", background: "#F8FAFC", padding: "20px", borderRadius: "8px", borderLeft: "4px solid #0B2341" }}>
+              <h4 style={{ color: "#0B2341", marginTop: 0 }}>📋 Informe Generado:</h4>
+              <p style={{ color: "#333", whiteSpace: "pre-line", lineHeight: "1.6", fontSize: "14px" }}>
+                {analisisIA}
+              </p>
             </div>
           )}
         </div>
