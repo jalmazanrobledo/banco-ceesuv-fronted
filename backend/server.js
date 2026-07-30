@@ -4,8 +4,8 @@ const { Pool } = require("pg");
 
 const app = express();
 
-// Permitir solicitudes pre-flight de CORS en todas las rutas
-app.options('*', cors({
+// ✅ Corrección para Express moderno (usa /(.*)/ en lugar de solo '*')
+app.options(/(.*)/, cors({
   origin: true,
   credentials: true,
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
