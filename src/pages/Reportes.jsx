@@ -143,12 +143,11 @@ function Reportes() {
   };
 
   // 🤖 FUNCIÓN PARA CONECTAR CON GEMINI DESDE EL BACKEND
-  const generarAnalisisGemini = async () => {
+ const generarAnalisisGemini = async () => {
     setAnalizando(true);
     setAnalisisIA("");
     try {
-      // Usa la misma URL o servicio que usa el resto de tu app (ej. process.env o tu archivo api.js)
-      const respuesta = await fetch("https://TU-URL-REAL-DE-BACKEND/api/analisis-ia", {
+      const respuesta = await fetch("https://banco-ceesuv-backend.onrender.com/api/analisis-ia", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ datosAlumnos: alumnos, resumenMovimientos: [] })
