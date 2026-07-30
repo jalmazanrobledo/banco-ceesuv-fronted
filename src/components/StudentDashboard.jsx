@@ -88,7 +88,7 @@ export default function StudentDashboard() {
         const param = encodeURIComponent(identifier);
         try {
           const resAlumno = await fetch(
-            `https://banco-ceesuv-backend.vercel.app/api/alumnos/${param}?_t=${new Date().getTime()}`
+            `https://banco-ceesuv-backend.onrender.com/api/alumnos/${param}?_t=${new Date().getTime()}`
           );
 
           if (resAlumno.ok) {
@@ -98,7 +98,7 @@ export default function StudentDashboard() {
               data.movimientos || datosAlumno?.movimientos || listaMovimientos;
           } else {
             const resTodosAlumnos = await fetch(
-              `https://banco-ceesuv-backend.vercel.app/api/alumnos`
+              `https://banco-ceesuv-backend.onrender.com/api/alumnos`
             );
             if (resTodosAlumnos.ok) {
               const todosAlumnos = await resTodosAlumnos.json();
@@ -122,7 +122,7 @@ export default function StudentDashboard() {
 
       try {
         const resMovs = await fetch(
-          `https://banco-ceesuv-backend.vercel.app/api/movimientos`
+          `https://banco-ceesuv-backend.onrender.com/api/movimientos`
         );
 
         if (resMovs.ok) {
@@ -185,7 +185,7 @@ export default function StudentDashboard() {
     setMensajeAccion(null);
 
     try {
-      const response = await fetch("https://banco-ceesuv-backend.vercel.app/api/movimientos", {
+      const response = await fetch("https://banco-ceesuv-backend.onrender.com/api/movimientos", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -234,7 +234,7 @@ export default function StudentDashboard() {
     setMensajeTienda(null);
 
     try {
-      const response = await fetch("https://banco-ceesuv-backend.vercel.app/api/compras", {
+      const response = await fetch("https://banco-ceesuv-backend.onrender.com/api/compras", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
