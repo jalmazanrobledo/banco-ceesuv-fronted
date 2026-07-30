@@ -1,15 +1,13 @@
 import React, { useState } from "react";
-import TarjetaDebito from "./TarjetaDebito"; // Asegúrate de ajustar la ruta de importación si es necesario
 
-function TransferenciaCoins({ alumnoActual, onTransferenciaExitosa }) {
+export default function TransferenciaCoins({ alumnoActual, onTransferenciaExitosa }) {
   const [tarjetaDestino, setTarjetaDestino] = useState("");
   const [monto, setMonto] = useState("");
   const [cargando, setCargando] = useState(false);
   const [mensaje, setMensaje] = useState({ texto: "", tipo: "" });
 
-  // Función para formatear lo que escribe el usuario con guiones o espacios (opcional, visual)
   const manejarCambioTarjeta = (e) => {
-    let valor = e.target.value.replace(/\D/g, ""); // Solo números
+    let valor = e.target.value.replace(/\D/g, "");
     if (valor.length > 16) valor = valor.slice(0, 16);
     setTarjetaDestino(valor);
   };
@@ -31,27 +29,27 @@ function TransferenciaCoins({ alumnoActual, onTransferenciaExitosa }) {
     setCargando(true);
 
     try {
-      const respuesta = await fetch("https://banco-ceesuv-backend.onrender.com/api/transferir-por-tarjeta", {
+      const respuesta = await fetch("https://banco-ceesuv-backend.vercel.app/api/transferencias", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          remitenteId: alumnoActual.id || alumnoActual.id_alumno,
-          numeroTarjetaDestino: tarjetaDestino,
-          monto: Number(monto)
+          remitente_id: Number(alumnoActual?.id || alumnoActual?.alumno_id),
+          tarjeta_destino: tarjetaDestino,
+          cantidad: Number(monto),
+          usuario: `${alumnoActual?.nombre || ""} ${alumnoActual?.apellidos || ""}`.trim()
         })
       });
 
-      const data = await respuesta.json();
+      const data = await respuesta.json().catch(() => ({}));
 
       if (!respuesta.ok) {
-        throw new Error(data.error || "Error al realizar la transferencia.");
+        throw new Error(data.mensaje || "Error al realizar la transferencia.");
       }
 
-      setMensaje({ texto: data.mensaje, tipo: "exito" });
+      setMensaje({ texto: "¡Transferencia realizada con éxito!", tipo: "exito" });
       setTarjetaDestino("");
       setMonto("");
 
-      // Si tienes una función para refrescar los datos del alumno en la app, la llamas aquí
       if (onTransferenciaExitosa) {
         onTransferenciaExitosa();
       }
@@ -64,13 +62,8 @@ function TransferenciaCoins({ alumnoActual, onTransferenciaExitosa }) {
   };
 
   return (
-    <div style={{ maxWidth: "450px", margin: "20px auto", padding: "20px", background: "#ffffff", borderRadius: "12px", boxShadow: "0 4px 15px rgba(0,0,0,0.08)" }}>
-      <h3 style={{ textAlign: "center", color: "#0B2341", marginBottom: "15px" }}>Transferir CEESUV Coins</h3>
-      
-      {/* Mostramos su propia tarjeta para que la consulten o recuerden */}
-      <div style={{ marginBottom: "20px", transform: "scale(0.85)", transformOrigin: "top center", height: "180px" }}>
-        <TarjetaDebito alumno={alumnoActual} />
-      </div>
+    <div style={{ maxWidth: "600px", margin: "20px auto", padding: "20px", background: "#ffffff", borderRadius: "12px", boxShadow: "0 4px 15px rgba(0,0,0,0.08)", color: "#0f172a" }}>
+      <h3 style={{ textAlign: "center", color: "#0B2341", marginBottom: "15px" }}>🔄 Transferir CEESUV Coins</h3>
 
       <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "15px" }}>
         <div>
@@ -82,7 +75,7 @@ function TransferenciaCoins({ alumnoActual, onTransferenciaExitosa }) {
             value={tarjetaDestino}
             onChange={manejarCambioTarjeta}
             placeholder="48200000XXXXXXXX"
-            style={{ width: "100%", padding: "10px", borderRadius: "8px", border: "1px solid #cbd5e1", fontSize: "15px", fontFamily: "monospace" }}
+            style={{ width: "100%", padding: "10px", borderRadius: "8px", border: "1px solid #cbd5e1", fontSize: "15px", fontFamily: "monospace", boxSizing: "border-box" }}
           />
         </div>
 
@@ -96,7 +89,7 @@ function TransferenciaCoins({ alumnoActual, onTransferenciaExitosa }) {
             value={monto}
             onChange={(e) => setMonto(e.target.value)}
             placeholder="Ej. 50"
-            style={{ width: "100%", padding: "10px", borderRadius: "8px", border: "1px solid #cbd5e1", fontSize: "15px" }}
+            style={{ width: "100%", padding: "10px", borderRadius: "8px", border: "1px solid #cbd5e1", fontSize: "15px", boxSizing: "border-box" }}
           />
         </div>
 
@@ -135,5 +128,3 @@ function TransferenciaCoins({ alumnoActual, onTransferenciaExitosa }) {
     </div>
   );
 }
-
-export default TransferenciaCoins;
