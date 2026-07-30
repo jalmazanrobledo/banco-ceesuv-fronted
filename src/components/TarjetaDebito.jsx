@@ -4,7 +4,7 @@ import logoCeesuvHorizontal from "/ceesuv.png";
 function TarjetaDebito({ alumno }) {
   const [volteada, setVolteada] = useState(false);
 
-  // Extraer datos del alumno con valores por defecto
+// Extraer el nombre completo directamente del campo 'nombre' de la base de datos
   const nombre = (alumno?.nombre || "NOMBRE DEL ALUMNO").toUpperCase();
   const idAlumno = alumno?.id || alumno?.id_alumno || 1;
 
