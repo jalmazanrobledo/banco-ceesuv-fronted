@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
-import TarjetaDebito from "./TarjetaDebito"; // Asegúrate de ajustar la ruta si es necesario
-import TransferenciaCoins from "./TransferenciaCoins"; // Asegúrate de ajustar la ruta si es necesario
+import TarjetaDebito from "./TarjetaDebito";
+import TransferenciaCoins from "./TransferenciaCoins";
 
 export default function StudentDashboard({ alumno, onActualizarDatos }) {
   // Estados principales de saldos y datos del estudiante
@@ -8,7 +8,11 @@ export default function StudentDashboard({ alumno, onActualizarDatos }) {
   const [coinsAhorro, setCoinsAhorro] = useState(0);
   const [coinsTotales, setCoinsTotales] = useState(0);
   const [movimientos, setMovimientos] = useState([]);
-  const [nombreAlumno, setNombreAlumno] = useState("");
+  
+  // Nombre del alumno asegurando que no quede vacío
+  const [nombreAlumno, setNombreAlumno] = useState(
+    alumno?.nombre || alumno?.nombreCompleto || alumno?.user || "Estudiante"
+  );
   
   // Estados de navegación y UI
   const [vistaActiva, setVistaActiva] = useState("inicio");
@@ -30,7 +34,7 @@ export default function StudentDashboard({ alumno, onActualizarDatos }) {
   const [procesando, setProcesando] = useState(false);
   const [mensajeAccion, setMensajeAccion] = useState(null);
 
-  // Identificador único del alumno (puede ser matrícula, id o correo según tu backend)
+  // Identificador único del alumno
   const identifier = alumno?.id || alumno?.matricula || alumno?.correo;
 
   // Función para cargar los datos del estudiante desde el backend
@@ -43,14 +47,15 @@ export default function StudentDashboard({ alumno, onActualizarDatos }) {
         setCoinsDisponibles(data.coinsDisponibles || 0);
         setCoinsAhorro(data.coinsAhorro || 0);
         setCoinsTotales((data.coinsDisponibles || 0) + (data.coinsAhorro || 0));
-        setNombreAlumno(data.nombre || alumno?.nombre || "Estudiante");
+        if (data.nombre) {
+          setNombreAlumno(data.nombre);
+        }
       }
 
       // Cargar movimientos
       const resMovs = await fetch(`https://banco-ceesuv-backend.vercel.app/api/movimientos`);
       if (resMovs.ok) {
         const allMovs = await resMovs.json();
-        // Filtramos los movimientos que correspondan al alumno actual
         const movsAlumno = allMovs.filter(m => 
           m.matricula === identifier || m.alumnoId === identifier || m.correo === identifier
         );
@@ -65,7 +70,7 @@ export default function StudentDashboard({ alumno, onActualizarDatos }) {
     cargarDatosEstudiante();
   }, [identifier]);
 
-  // Efecto para el carrusel de la tienda escolar
+  // Efecto para el carrusel automático de la tienda escolar
   useEffect(() => {
     const intervalo = setInterval(() => {
       setIndiceActivo((prevIndex) => (prevIndex + 1) % productosTienda.length);
