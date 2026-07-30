@@ -279,7 +279,7 @@ app.get(["/api/alumno-dashboard/:alumnoId", "/api/alumnos/:identifier", "/alumno
   }
 });
 
-// Obtener todos los alumnos (Solo activos)
+// Obtener todos los alumnos (Activos e Inactivos)
 app.get(["/alumnos", "/api/alumnos"], async (req, res) => {
   try {
     const resultado = await pool.query(
@@ -294,7 +294,6 @@ app.get(["/alumnos", "/api/alumnos"], async (req, res) => {
         COALESCE(u.estado, 'Activo') AS estado
        FROM alumnos a
        LEFT JOIN usuarios u ON a.id = u.alumno_id
-       WHERE COALESCE(u.estado, 'Activo') = 'Activo'
        ORDER BY a.id`
     );
 
