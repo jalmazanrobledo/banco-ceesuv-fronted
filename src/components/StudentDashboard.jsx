@@ -193,7 +193,7 @@ export default function StudentDashboard() {
           tipo: tipoAccion,
           cantidad: Number(montoAhorro),
           motivo: tipoAccion === "AHORRO_DEPOSITO" ? "Depósito a cuenta de ahorro" : "Retiro desde cuenta de ahorro",
-          usuario: alumno?.nombre || "Estudiante"
+          usuario: nombreCompletoAlumno
         })
       });
 
@@ -241,7 +241,7 @@ export default function StudentDashboard() {
           alumno_id: Number(alumnoId),
           producto_nombre: producto.nombre,
           costo: producto.costo,
-          usuario: alumno?.nombre || "Estudiante"
+          usuario: nombreCompletoAlumno
         })
       });
 
@@ -318,7 +318,12 @@ export default function StudentDashboard() {
     );
   }
 
-  const nombreAlumno = alumno?.nombre || alumno?.usuario || "Estudiante";
+  // Nombre completo unificado para saludo y tarjetas
+  const nombreCompletoAlumno = (
+    alumno?.nombre_completo ||
+    `${alumno?.nombre || ""} ${alumno?.apellidos || alumno?.apellido || ""}`
+  ).trim().toUpperCase() || alumno?.usuario || "ESTUDIANTE";
+
   const coinsDisponibles = Number(alumno?.coins ?? 0);
   const coinsAhorro = Number(alumno?.coins_ahorro ?? 0);
   const coinsTotales = coinsDisponibles + coinsAhorro;
@@ -733,7 +738,7 @@ export default function StudentDashboard() {
           <div className="user-info-bar">
             <div style={{ textAlign: "right" }}>
               <p style={{ margin: 0, fontWeight: "bold", fontSize: "14px" }}>
-                {nombreAlumno}
+                {nombreCompletoAlumno}
               </p>
               <p style={{ margin: 0, color: "#94a3b8", fontSize: "12px" }}>
                 Matrícula: {matricula}
@@ -748,7 +753,7 @@ export default function StudentDashboard() {
         <main className="portal-container">
           <div className="card-dark">
             <h2 style={{ margin: 0, fontSize: "22px" }}>
-              ¡Bienvenido, {nombreAlumno}!
+              ¡Bienvenido, {nombreCompletoAlumno}!
             </h2>
             <p style={{ margin: "8px 0 0 0", color: "#94a3b8", fontSize: "14px" }}>
               Consulta tus saldos disponibles, gestiona tus ahorros, compra en la tienda escolar y revisa tus movimientos.
@@ -837,19 +842,20 @@ export default function StudentDashboard() {
                 </button>
 
                 {mostrarTransferencia && (
-                  <div style={{ marginTop: "20px", borderTop: "1px solid #1e3250", paddingTop: "20px" }}>
-                    {/* INDICADOR DE SALDO DISPONIBLE PARA EVITAR CONFUSIONES */}
-                    <div style={{
-                      backgroundColor: "rgba(16, 185, 129, 0.15)",
-                      border: "1px solid #10b981",
-                      borderRadius: "10px",
-                      padding: "12px",
-                      marginBottom: "15px",
-                      color: "#10b981",
-                      fontWeight: "bold",
-                      fontSize: "14px"
-                    }}>
-                      💰 Saldo disponible para transferir: {coinsDisponibles} COINS
+                  <div className="card-dark" style={{ marginTop: "25px", textAlign: "left", border: "1px solid #1e3250" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "15px", flexWrap: "wrap", gap: "10px" }}>
+                      <h4 style={{ margin: 0, fontSize: "16px", color: "#f59e0b" }}>🔄 Transferir CEESUV Coins</h4>
+                      <div style={{
+                        background: "rgba(16, 185, 129, 0.15)",
+                        border: "1px solid #10b981",
+                        borderRadius: "8px",
+                        padding: "6px 12px",
+                        color: "#10b981",
+                        fontSize: "13px",
+                        fontWeight: "bold"
+                      }}>
+                        🪙 Saldo disponible: {coinsDisponibles} COINS
+                      </div>
                     </div>
 
                     <TransferenciaCoins
