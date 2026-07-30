@@ -4,9 +4,13 @@ import logoCeesuvHorizontal from "/ceesuv.png";
 function TarjetaDebito({ alumno }) {
   const [volteada, setVolteada] = useState(false);
 
-// Extraer el nombre completo directamente del campo 'nombre' de la base de datos
-  const nombre = (alumno?.nombre || "NOMBRE DEL ALUMNO").toUpperCase();
-  const idAlumno = alumno?.id || alumno?.id_alumno || 1;
+// Extraer el nombre completo combinando nombre y apellidos de forma segura
+  const nombreCompleto = (
+    alumno?.nombre_completo ||
+    `${alumno?.nombre || ""} ${alumno?.apellidos || alumno?.apellido || ""}`
+  ).trim();
+
+  const nombre = (nombreCompleto || "NOMBRE DEL ALUMNO").toUpperCase();
 
   // GENERAR NÚMERO DE TARJETA ÚNICO (16 DÍGITOS)
   const idFormateado = idAlumno.toString().padStart(8, "0");
