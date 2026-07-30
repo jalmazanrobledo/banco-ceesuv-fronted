@@ -4,7 +4,9 @@ const { Pool } = require("pg");
 
 const app = express();
 
-// ✅ Corrección para Express moderno (usa /(.*)/ en lugar de solo '*')
+// =====================================
+// Configuración de CORS y Seguridad
+// =====================================
 app.options(/(.*)/, cors({
   origin: true,
   credentials: true,
@@ -21,42 +23,13 @@ app.use(
   })
 );
 
-// =====================================
 // Middleware Anti-Cache Global
-// =====================================
 app.use((req, res, next) => {
   res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
   res.setHeader('Pragma', 'no-cache');
   res.setHeader('Expires', '0');
   next();
 });
-
-// ==========================================
-// Configuración de CORS para Vercel
-// ==========================================
-app.use(
-  cors({
-    origin: true, // Permite automáticamente el origen actual del frontend
-    credentials: true,
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "Cache-Control", "Pragma", "Expires"]
-  })
-);
-
-app.use(
-  cors({
-    origin: function (origin, callback) {
-      if (!origin || allowedOrigins.indexOf(origin) !== -1) {
-        callback(null, true);
-      } else {
-        callback(new Error("Bloqueado por la política de CORS"));   
-      }
-    },
-    credentials: true,
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "Cache-Control", "Pragma", "Expires"]
-  })
-);
 
 // Responder explícitamente a solicitudes preflight (OPTIONS)
 app.use((req, res, next) => {
@@ -69,7 +42,7 @@ app.use((req, res, next) => {
 app.use(express.json());
 
 // =====================================
-// Configuración de Base de Datos (Optimizado para Vercel Serverless)
+// Configuración de Base de Datos (PostgreSQL)
 // =====================================
 const pool = new Pool(
   process.env.DATABASE_URL
@@ -83,7 +56,7 @@ const pool = new Pool(
     : {
         user: "postgres",
         host: "localhost",
-        database: "banco_ceesuv", // <-- Corregido aquí para coincidir con tu base de datos real
+        database: "banco_ceesuv",
         password: "2026",
         port: 5432
       }
@@ -92,6 +65,7 @@ const pool = new Pool(
 pool.on('error', (err) => {
   console.error('❌ Error inesperado en el cliente inactivo de PostgreSQL', err);
 });
+
 // =====================================
 // Funciones Auxiliares
 // =====================================
@@ -114,7 +88,6 @@ const asegurarUsuarioAlumno = async (alumnoId, nombreCompleto) => {
   const primerNombre = partes[0] ? partes[0].toLowerCase() : "alumno";
   const primerApellido = partes.length >= 2 ? partes[partes.length - 1].toLowerCase() : "";
 
-  // Añadimos el alumnoId al final para garantizar que nunca se repita el campo usuario
   let usuarioBase = primerApellido ? `${primerNombre}.${primerApellido}${alumnoId}` : `${primerNombre}${alumnoId}`;
   const nombreMostrado = `${partes[0] || ""} ${partes[1] || ""}`.trim();
 
@@ -124,7 +97,6 @@ const asegurarUsuarioAlumno = async (alumnoId, nombreCompleto) => {
   );
 
   if (checkUser.rows.length > 0) {
-    // BLINDADO: Omitimos el estado en este UPDATE para que NUNCA se reactive solo si tú lo habías inactivado
     await pool.query(
       "UPDATE usuarios SET nombre = $1, usuario = $2 WHERE alumno_id = $3",
       [nombreMostrado, usuarioBase, alumnoId]
@@ -298,7 +270,7 @@ app.get(["/api/alumno-dashboard/:alumnoId", "/api/alumnos/:identifier", "/alumno
   }
 });
 
-// Obtener todos los alumnos (Activos e Inactivos)
+// Obtener todos los alumnos
 app.get(["/alumnos", "/api/alumnos"], async (req, res) => {
   try {
     const resultado = await pool.query(
@@ -346,7 +318,7 @@ app.post(["/alumnos", "/api/alumnos"], async (req, res) => {
   }
 });
 
-// Sincronizar/Generar usuarios y PINs para alumnos existentes
+// Sincronizar usuarios y PINs
 app.post(["/alumnos/generar-usuarios", "/api/alumnos/generar-usuarios"], async (req, res) => {
   try {
     const alumnos = await pool.query("SELECT id, nombre FROM alumnos");
@@ -413,7 +385,7 @@ app.delete(["/alumnos/:id", "/api/alumnos/:id"], async (req, res) => {
   }
 });
 
-// Movimientos de saldo (Solo alumnos activos)
+// Movimientos
 app.get(["/movimientos", "/api/movimientos"], async (req, res) => {
   try {
     const resultado = await pool.query(`
@@ -501,7 +473,7 @@ app.post(["/movimientos", "/api/movimientos"], async (req, res) => {
   }
 });
 
-// Dashboard General (Filtrando solo alumnos activos)
+// Dashboard General
 app.get(["/dashboard", "/api/dashboard"], async (req, res) => {
   try {
     const alumnos = await pool.query(`
@@ -545,7 +517,7 @@ app.get(["/dashboard", "/api/dashboard"], async (req, res) => {
   }
 });
 
-// Obtener usuarios
+// Usuarios
 app.get(["/usuarios", "/api/usuarios"], async (req, res) => {
   try {
     const resultado = await pool.query(
@@ -558,7 +530,6 @@ app.get(["/usuarios", "/api/usuarios"], async (req, res) => {
   }
 });
 
-// Agregar usuario administrativo
 app.post(["/usuarios", "/api/usuarios"], async (req, res) => {
   try {
     const { nombre, usuario, password, rol } = req.body;
@@ -647,63 +618,11 @@ app.post(["/login", "/api/login"], async (req, res) => {
   }
 });
 
-// RESETEO DE BASE DE DATOS
-app.get(['/reset-db-directo', '/api/reset-db-directo'], async (req, res) => {
-  try {
-    await pool.query(`
-      DROP TABLE IF EXISTS movimientos CASCADE;
-      DROP TABLE IF EXISTS alumnos CASCADE;
-      DROP TABLE IF EXISTS usuarios CASCADE;
-
-      CREATE TABLE usuarios (
-          id SERIAL PRIMARY KEY,
-          nombre VARCHAR(100) NOT NULL,
-          usuario VARCHAR(50) UNIQUE NOT NULL,
-          password VARCHAR(100) NOT NULL,
-          rol VARCHAR(20) NOT NULL DEFAULT 'Admin',
-          estado VARCHAR(20) NOT NULL DEFAULT 'Activo',
-          pin VARCHAR(10) UNIQUE,
-          alumno_id INT UNIQUE,
-          fecha_registro TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      );
-
-      CREATE TABLE alumnos (
-          id SERIAL PRIMARY KEY,
-          nombre VARCHAR(100) NOT NULL,
-          grado VARCHAR(50) NOT NULL,
-          coins INT DEFAULT 0,
-          coins_ahorro INT DEFAULT 0,
-          token_qr VARCHAR(100) UNIQUE NOT NULL
-      );
-
-      CREATE TABLE movimientos (
-          id SERIAL PRIMARY KEY,
-          alumno_id INT REFERENCES alumnos(id) ON DELETE CASCADE,
-          tipo VARCHAR(30) NOT NULL,
-          cantidad INT NOT NULL,
-          motivo VARCHAR(255),
-          usuario VARCHAR(50),
-          fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      );
-
-      INSERT INTO usuarios (nombre, usuario, password, rol, estado)
-      VALUES ('Administrador', 'admin', 'admin123', 'Admin', 'Activo');
-    `);
-    
-    return res.status(200).send("<h1 style='color:green; font-family:sans-serif;'>¡BASE DE DATOS REPARADA Y ESTRUCTURADA CORRECTAMENTE!</h1><p>Usuario: <b>admin</b> | Contraseña: <b>admin123</b></p>");
-  } catch (error) {
-    return res.status(500).send("<h1>Error al resetear la base de datos:</h1> <pre>" + error.message + "</pre>");
-  }
-});
-
-// =====================================
-// Ruta para realizar compras en la tienda
-// =====================================
+// Compras
 app.post(["/api/compras", "/compras"], async (req, res) => {
   try {
     const { alumno_id, producto_nombre, costo, usuario } = req.body;
 
-    // Verificar que el alumno exista y tenga sus saldos actuales
     const alumnoQuery = await pool.query(
       "SELECT coins, COALESCE(coins_ahorro, 0) AS coins_ahorro FROM alumnos WHERE id = $1",
       [alumno_id]
@@ -716,21 +635,17 @@ app.post(["/api/compras", "/compras"], async (req, res) => {
     let coinsDisponibles = Number(alumnoQuery.rows[0].coins);
     const precioProducto = Number(costo);
 
-    // Validar saldo suficiente
     if (coinsDisponibles < precioProducto) {
       return res.status(400).json({ mensaje: "Saldo insuficiente para realizar la compra." });
     }
 
-    // Restar los coins disponibles
     coinsDisponibles -= precioProducto;
 
-    // Actualizar saldo del alumno
     await pool.query(
       "UPDATE alumnos SET coins = $1 WHERE id = $2",
       [coinsDisponibles, alumno_id]
     );
 
-    // Registrar el movimiento en la tabla
     await pool.query(
       `INSERT INTO movimientos (alumno_id, tipo, cantidad, motivo, usuario)
        VALUES ($1, $2, $3, $4, $5)`,
@@ -748,14 +663,8 @@ app.post(["/api/compras", "/compras"], async (req, res) => {
   }
 });
 
-// =====================================
-// RUTAS PUT (Actualizar y Estado de Usuarios)
-// =====================================
-
-app.put(["/usuarios/:id", "/api/usuarios/:id"], actualizarUsuarioLogica);
-
-async function actualizarUsuarioLogica(req, res) {
-  console.log("⚡ [PUT] Actualizando usuario ID:", req.params.id);
+// Actualizar usuario
+app.put(["/usuarios/:id", "/api/usuarios/:id"], async (req, res) => {
   try {
     const { id } = req.params;
     const { nombre, usuario, rol } = req.body;
@@ -777,31 +686,19 @@ async function actualizarUsuarioLogica(req, res) {
     console.error("Error al actualizar usuario:", error);
     return res.status(500).json({ mensaje: "Error al actualizar el usuario." });
   }
-}
+});
 
-// Rutas amplias para atrapar solicitudes de estado sin importar si el frontend usa /usuarios o /alumnos
+// Cambiar estado
 app.put([
   "/usuarios/:id/estado", 
   "/api/usuarios/:id/estado", 
   "/alumnos/:id/estado", 
   "/api/alumnos/:id/estado"
-], cambiarEstadoLogica);
-
-// Rutas amplias para atrapar solicitudes de estado sin importar si el frontend usa /usuarios o /alumnos
-app.put([
-  "/usuarios/:id/estado", 
-  "/api/usuarios/:id/estado", 
-  "/alumnos/:id/estado", 
-  "/api/alumnos/:id/estado"
-], cambiarEstadoLogica);
-
-async function cambiarEstadoLogica(req, res) {
-  console.log("⚡ [PUT] Cambiando estado de usuario/alumno ID:", req.params.id, "Nuevo estado:", req.body.estado);
+], async (req, res) => {
   try {
     const { id } = req.params;
     const { estado } = req.body;
 
-    // 1. Actualizar el estado SÍ y SOLO SÍ es un usuario de tipo Alumno (evita tocar al Administrador)
     const resultado = await pool.query(
       `UPDATE usuarios 
        SET estado = $1 
@@ -813,7 +710,6 @@ async function cambiarEstadoLogica(req, res) {
       return res.status(404).json({ mensaje: "Usuario o alumno no encontrado." });
     }
 
-    // 2. Buscar la información completa combinada del alumno para responder al frontend
     const alumnoCompletoRes = await pool.query(
       `SELECT 
         a.id, 
@@ -839,11 +735,12 @@ async function cambiarEstadoLogica(req, res) {
     console.error("Error al cambiar estado de usuario:", error);
     return res.status(500).json({ mensaje: "Error al cambiar el estado." });
   }
-}
+});
+
+// Análisis IA con Groq
 const { Groq } = require("groq-sdk");
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
-// Endpoint para generar el análisis de reportes con Groq
 app.post("/api/analisis-ia", async (req, res) => {
   try {
     const { datosAlumnos, resumenMovimientos } = req.body;
@@ -877,63 +774,79 @@ app.post("/api/analisis-ia", async (req, res) => {
   }
 });
 
-// ENDPOINT PARA TRANSFERENCIAS ENTRE ALUMNOS MEDIANTE TARJETA DE DÉBITO
-app.post('/api/transferir-por-tarjeta', async (req, res) => {
+// Transferencia por Tarjeta (Corregido a PostgreSQL)
+app.post(['/api/transferir-por-tarjeta', '/transferir-por-tarjeta'], async (req, res) => {
     const { remitenteId, numeroTarjetaDestino, monto } = req.body;
 
-    // Validar que el monto sea válido
     const cantidad = Number(monto);
     if (!cantidad || cantidad <= 0) {
         return res.status(400).json({ error: "El monto debe ser mayor a cero." });
     }
 
-    // Limpiar espacios o guiones del número de tarjeta ingresado
     const tarjetaLimpia = numeroTarjetaDestino ? numeroTarjetaDestino.replace(/\s+/g, '') : '';
 
-    // Validar formato y prefijo de Banco CEESUV (48200000 + 8 dígitos de ID)
     if (!tarjetaLimpia.startsWith("48200000") || tarjetaLimpia.length !== 16) {
         return res.status(400).json({ error: "Número de tarjeta de destino inválido." });
     }
 
-    // Extraer el ID del destinatario de los últimos 8 dígitos
     const idDestinatarioStr = tarjetaLimpia.slice(8);
     const destinatarioId = parseInt(idDestinatarioStr, 10);
 
-    // Evitar que se transfieran a sí mismos
     if (Number(remitenteId) === Number(destinatarioId)) {
         return res.status(400).json({ error: "No puedes transferir coins a tu propia tarjeta." });
     }
 
     try {
-        // Buscar al remitente y al destinatario en la base de datos
-        // (Nota: Ajusta la consulta según si buscas por 'id' numérico o '_id' de MongoDB)
-        const remitente = await Alumno.findOne({ id: remitenteId });
-        const destinatario = await Alumno.findOne({ id: destinatarioId });
+        const client = await pool.connect();
+        try {
+            await client.query('BEGIN');
 
-        if (!remitente) {
-            return res.status(404).json({ error: "No se encontró la cuenta del remitente." });
+            const remitenteRes = await client.query("SELECT id, nombre, coins FROM alumnos WHERE id = $1 FOR UPDATE", [remitenteId]);
+            if (remitenteRes.rows.length === 0) {
+                await client.query('ROLLBACK');
+                return res.status(404).json({ error: "No se encontró la cuenta del remitente." });
+            }
+
+            const remitente = remitenteRes.rows[0];
+            if (Number(remitente.coins) < cantidad) {
+                await client.query('ROLLBACK');
+                return res.status(400).json({ error: "Saldo insuficiente para realizar la transferencia." });
+            }
+
+            const destinatarioRes = await client.query("SELECT id, nombre, coins FROM alumnos WHERE id = $1 FOR UPDATE", [destinatarioId]);
+            if (destinatarioRes.rows.length === 0) {
+                await client.query('ROLLBACK');
+                return res.status(404).json({ error: "La tarjeta ingresada no corresponde a ningún alumno activo." });
+            }
+
+            const destinatario = destinatarioRes.rows[0];
+
+            // Actualizar saldos
+            await client.query("UPDATE alumnos SET coins = coins - $1 WHERE id = $2", [cantidad, remitenteId]);
+            await client.query("UPDATE alumnos SET coins = coins + $1 WHERE id = $2", [cantidad, destinatarioId]);
+
+            // Registrar movimientos
+            await client.query(
+                "INSERT INTO movimientos (alumno_id, tipo, cantidad, motivo, usuario) VALUES ($1, 'SALIDA', $2, $3, $4)",
+                [remitenteId, cantidad, `Transferencia enviada a ${destinatario.nombre}`, remitente.nombre]
+            );
+            await client.query(
+                "INSERT INTO movimientos (alumno_id, tipo, cantidad, motivo, usuario) VALUES ($1, 'ENTRADA', $2, $3, $4)",
+                [destinatarioId, cantidad, `Transferencia recibida de ${remitente.nombre}`, remitente.nombre]
+            );
+
+            await client.query('COMMIT');
+
+            res.json({ 
+                success: true, 
+                mensaje: `¡Transferencia exitosa! Enviaste ${cantidad} coins a ${destinatario.nombre}.` 
+            });
+        } catch (err) {
+            await client.query('ROLLBACK');
+            throw err;
+        } finally {
+            client.release();
         }
-
-        if (remitente.coins < cantidad) {
-            return res.status(400).json({ error: "Saldo insuficiente para realizar la transferencia." });
-        }
-
-        if (!destinatario) {
-            return res.status(404).json({ error: "La tarjeta ingresada no corresponde a ningún alumno activo." });
-        }
-
-        // Realizar la transacción
-        remitente.coins -= cantidad;
-        destinatario.coins += cantidad;
-
-        await remitente.save();
-        await destinatario.save();
-
-        res.json({ 
-            success: true, 
-            mensaje: `¡Transferencia exitosa! Enviaste ${cantidad} coins a ${destinatario.nombre}.` 
-        });
-
     } catch (error) {
         console.error("Error al procesar la transferencia:", error);
         res.status(500).json({ error: "Error interno del servidor al procesar la transferencia." });
@@ -941,12 +854,13 @@ app.post('/api/transferir-por-tarjeta', async (req, res) => {
 });
 
 // ==========================================
-// Inicialización del Servidor
+// Inicialización Segura para Vercel y Local
 // ==========================================
-const PORT = process.env.PORT || 5000;
-
-app.listen(PORT, () => {
-  console.log(`Servidor corriendo en el puerto ${PORT}`);
-});
+if (process.env.NODE_ENV !== 'production') {
+  const PORT = process.env.PORT || 5000;
+  app.listen(PORT, () => {
+    console.log(`Servidor corriendo en el puerto ${PORT}`);
+  });
+}
 
 module.exports = app;
