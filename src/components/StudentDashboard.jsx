@@ -318,13 +318,11 @@ export default function StudentDashboard() {
     );
   }
 
-// Extraer el nombre completo combinando nombre y apellidos de forma segura
-  const nombreCompleto = (
+  // Nombre completo unificado para saludo y tarjetas
+  const nombreCompletoAlumno = (
     alumno?.nombre_completo ||
     `${alumno?.nombre || ""} ${alumno?.apellidos || alumno?.apellido || ""}`
-  ).trim();
-
-  const nombre = (nombreCompleto || "NOMBRE DEL ALUMNO").toUpperCase();
+  ).trim().toUpperCase() || alumno?.usuario || "ESTUDIANTE";
 
   const coinsDisponibles = Number(alumno?.coins ?? 0);
   const coinsAhorro = Number(alumno?.coins_ahorro ?? 0);
