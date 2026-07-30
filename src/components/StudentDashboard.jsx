@@ -9,29 +9,21 @@ export default function StudentDashboard() {
   const [movimientos, setMovimientos] = useState([]);
   const [cargando, setCargando] = useState(true);
   
-  // Estado para controlar la pestaña activa ('tarjeta', 'tienda', 'ahorro', 'historial')
   const [activeTab, setActiveTab] = useState("tarjeta");
   
-  // Estados para el Ticker de Divisas Dinámico
   const [tasas, setTasas] = useState(null);
   const [cargandoDivisas, setCargandoDivisas] = useState(true);
 
-  // Estados para la gestión de ahorros
   const [montoAhorro, setMontoAhorro] = useState("");
   const [mensajeAccion, setMensajeAccion] = useState(null);
   const [procesando, setProcesando] = useState(false);
 
-  // Estados para la Tienda / Compras
   const [procesandoCompra, setProcesandoCompra] = useState(null);
   const [mensajeTienda, setMensajeTienda] = useState(null);
 
-  // Estado para el índice activo del carrusel de la tienda
   const [indiceActivo, setIndiceActivo] = useState(0);
-
-  // Estado para desplegar o cerrar la sección de transferencias por tarjeta
   const [mostrarTransferencia, setMostrarTransferencia] = useState(false);
 
-  // Catálogo de productos de ejemplo
   const productosTienda = [
     { id: 1, nombre: "Lápiz CEESUV", costo: 5, icono: "✏️" },
     { id: 2, nombre: "Libreta Profesional", costo: 15, icono: "📓" },
@@ -39,7 +31,6 @@ export default function StudentDashboard() {
     { id: 4, nombre: "Goma y Sacapuntas", costo: 8, icono: "📐" }
   ];
 
-  // Obtener tasas de cambio en vivo
   useEffect(() => {
     async function obtenerTiposCambio() {
       try {
@@ -67,7 +58,6 @@ export default function StudentDashboard() {
     obtenerTiposCambio();
   }, []);
 
-  // Rotación automática del carrusel cada 3.5 segundos
   useEffect(() => {
     const intervalo = setInterval(() => {
       setIndiceActivo((prev) => (prev + 1) % productosTienda.length);
@@ -481,7 +471,6 @@ export default function StudentDashboard() {
           margin-bottom: 20px;
         }
 
-        /* Barra de Pestañas Moderna Estilo Banco Abajo del Ticker / Cabecera */
         .modern-tabs-bar {
           display: flex;
           gap: 10px;
@@ -849,6 +838,20 @@ export default function StudentDashboard() {
 
                 {mostrarTransferencia && (
                   <div style={{ marginTop: "20px", borderTop: "1px solid #1e3250", paddingTop: "20px" }}>
+                    {/* INDICADOR DE SALDO DISPONIBLE PARA EVITAR CONFUSIONES */}
+                    <div style={{
+                      backgroundColor: "rgba(16, 185, 129, 0.15)",
+                      border: "1px solid #10b981",
+                      borderRadius: "10px",
+                      padding: "12px",
+                      marginBottom: "15px",
+                      color: "#10b981",
+                      fontWeight: "bold",
+                      fontSize: "14px"
+                    }}>
+                      💰 Saldo disponible para transferir: {coinsDisponibles} COINS
+                    </div>
+
                     <TransferenciaCoins
                       alumnoActual={alumno}
                       onTransferenciaExitosa={() => {
