@@ -836,8 +836,8 @@ app.post("/api/analisis-ia", async (req, res) => {
       Actúa como un analista de datos escolares experto para la institución "Centro de Estudios Elementales y Superiores de Valles (CEESUV)".
       Analiza la siguiente información de los alumnos y el banco escolar:
       
-      - Datos de alumnos activos: ${JSON.stringify(datosAlumnos)}
-      - Resumen de movimientos/ahorros: ${JSON.stringify(resumenMovimientos)}
+      - Datos de alumnos activos: ${JSON.stringify(datosAlumnos || [])}
+      - Resumen de movimientos/ahorros: ${JSON.stringify(resumenMovimientos || {})}
 
       Por favor, genera un informe ejecutivo profesional, motivador y claro en español que incluya:
       1. Un resumen general del estado del banco escolar y comportamiento.
@@ -853,7 +853,21 @@ app.post("/api/analisis-ia", async (req, res) => {
       contents: prompt,
     });
 
-    res.json({ analisis: response.text });
+    // Extracción segura del texto de la respuesta (maneja propiedad o método)
+    let textoAnalisis = "";
+    if (typeof response.text === 'function') {
+      textoAnalisis = response.text();
+    } else if (typeof response.text === 'string') {
+      textoAnalisis = response.text;
+    } else if (response.candidates && response.candidates[0]?.content?.parts[0]?.text) {
+      textoAnalisis = response.candidates[0].content.parts[0].text;
+    }
+
+    if (!textoAnalisis) {
+      textoAnalisis = "No se pudo extraer el texto de la respuesta de la IA.";
+    }
+
+    res.json({ analisis: textoAnalisis });
   } catch (error) {
     console.error("Error al generar análisis con Gemini:", error);
     res.status(500).json({ error: "No se pudo generar el análisis inteligente." });
