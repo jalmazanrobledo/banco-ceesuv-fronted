@@ -62,9 +62,9 @@ function Alumnos() {
   };
 
 // 🔄 Lógica para cambiar estatus (Activo / Inactivo) de forma correcta
- const handleCambiarEstatus = async (alumno) => {
-    // Si el estado actual es "Activo", el nuevo estado debe ser "Inactivo" (y viceversa)
-    const nuevoEstado = alumno.estado === "Inactivo" ? "Activo" : "Inactivo";
+  const handleCambiarEstatus = async (alumno) => {
+    const estatusActual = alumno.estatus || "Activo";
+    const nuevoEstado = estatusActual === "Inactivo" ? "Activo" : "Inactivo";
     
     const mensaje = nuevoEstado === "Inactivo" 
       ? `¿Estás seguro de inactivar a ${alumno.nombre}? No contará para los totales, pero conservará su historial y coins.`
@@ -86,9 +86,9 @@ function Alumnos() {
           throw new Error("No se pudo cambiar el estatus en el servidor");
         }
 
-        // Actualización optimista inmediata
+        // Actualización optimista inmediata usando 'estatus'
         setAlumnos(prevAlumnos => 
-          prevAlumnos.map(a => ((a.id === idAlumno || a._id === idAlumno) ? { ...a, estado: nuevoEstado } : a))
+          prevAlumnos.map(a => ((a.id === idAlumno || a._id === idAlumno) ? { ...a, estatus: nuevoEstado } : a))
         );
 
         if (typeof cargarAlumnos === "function") {
@@ -362,9 +362,9 @@ function Alumnos() {
                           </button>
                           <button
                             onClick={() => handleCambiarEstatus(a)}
-                            style={{ marginRight: "6px", padding: "8px 12px", background: a.estado === "Inactivo" ? "#28a745" : "#ffc107", color: a.estado === "Inactivo" ? "white" : "#0f2341", border: "none", borderRadius: "6px", cursor: "pointer", fontWeight: "bold" }}
+                            style={{ marginRight: "6px", padding: "8px 12px", background: a.estatus === "Inactivo" ? "#28a745" : "#ffc107", color: a.estatus === "Inactivo" ? "white" : "#0f2341", border: "none", borderRadius: "6px", cursor: "pointer", fontWeight: "bold" }}
 >
-                            {a.estado === "Inactivo" ? "🟢 Activar" : "🟡 Inactivar"}
+                            {a.estatus === "Inactivo" ? "🟢 Activar" : "🟡 Inactivar"}
                           </button>
                           <button
                             onClick={() => handleEliminar(alumnoId)}
