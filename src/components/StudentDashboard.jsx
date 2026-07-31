@@ -29,6 +29,16 @@ export default function StudentDashboard() {
 
   const [indiceActivo, setIndiceActivo] = useState(0);
 
+  // Estado para Notificaciones Flotantes (Toast)
+  const [notificacionToast, setNotificacionToast] = useState(null);
+
+  const mostrarToast = (mensaje, tipo = "success") => {
+    setNotificacionToast({ mensaje, tipo });
+    setTimeout(() => {
+      setNotificacionToast(null);
+    }, 4000);
+  };
+
   const productosTienda = [
     { id: 1, nombre: "Lápiz CEESUV", costo: 5, icono: "✏️" },
     { id: 2, nombre: "Libreta Profesional", costo: 15, icono: "📓" },
@@ -180,13 +190,17 @@ export default function StudentDashboard() {
 
   const handleOperacionAhorro = async (tipoAccion) => {
     if (!montoAhorro || isNaN(montoAhorro) || Number(montoAhorro) <= 0) {
-      setMensajeAccion({ tipo: "error", texto: "Ingresa una cantidad válida." });
+      const msg = "Ingresa una cantidad válida.";
+      setMensajeAccion({ tipo: "error", texto: msg });
+      mostrarToast(msg, "error");
       return;
     }
 
     const alumnoId = alumno?.alumno_id || alumno?.id;
     if (!alumnoId) {
-      setMensajeAccion({ tipo: "error", texto: "No se identificó el ID del alumno." });
+      const msg = "No se identificó el ID del alumno.";
+      setMensajeAccion({ tipo: "error", texto: msg });
+      mostrarToast(msg, "error");
       return;
     }
 
@@ -207,7 +221,9 @@ export default function StudentDashboard() {
       });
 
       if (response.ok) {
-        setMensajeAccion({ tipo: "success", texto: "¡Operación realizada con éxito!" });
+        const exitoMsg = "¡Operación de ahorro realizada con éxito!";
+        setMensajeAccion({ tipo: "success", texto: exitoMsg });
+        mostrarToast(exitoMsg, "success");
         setMontoAhorro("");
         await cargarDatosEstudiante();
       } else {
@@ -217,9 +233,12 @@ export default function StudentDashboard() {
           if (data && data.mensaje) mensajeError = data.mensaje;
         } catch (e) {}
         setMensajeAccion({ tipo: "error", texto: mensajeError });
+        mostrarToast(mensajeError, "error");
       }
     } catch (error) {
-      setMensajeAccion({ tipo: "error", texto: "Error de conexión con el servidor." });
+      const errNet = "Error de conexión con el servidor.";
+      setMensajeAccion({ tipo: "error", texto: errNet });
+      mostrarToast(errNet, "error");
     } finally {
       setProcesando(false);
     }
@@ -231,15 +250,21 @@ export default function StudentDashboard() {
     const disponibles = Number(alumno?.coins || 0);
 
     if (!monto || monto <= 0) {
-      setMensajeCreditoPago({ tipo: "error", texto: "Ingresa una cantidad válida para abonar." });
+      const msg = "Ingresa una cantidad válida para abonar.";
+      setMensajeCreditoPago({ tipo: "error", texto: msg });
+      mostrarToast(msg, "error");
       return;
     }
     if (monto > utilizado) {
-      setMensajeCreditoPago({ tipo: "error", texto: "El monto supera tu crédito utilizado actual." });
+      const msg = "El monto supera tu crédito utilizado actual.";
+      setMensajeCreditoPago({ tipo: "error", texto: msg });
+      mostrarToast(msg, "error");
       return;
     }
     if (monto > disponibles) {
-      setMensajeCreditoPago({ tipo: "error", texto: "No tienes suficientes Coins disponibles para este pago." });
+      const msg = "No tienes suficientes Coins disponibles para este pago.";
+      setMensajeCreditoPago({ tipo: "error", texto: msg });
+      mostrarToast(msg, "error");
       return;
     }
 
@@ -259,7 +284,9 @@ export default function StudentDashboard() {
       });
 
       if (response.ok) {
-        setMensajeCreditoPago({ tipo: "success", texto: "¡Crédito pagado exitosamente con tus Coins!" });
+        const exitoMsg = "¡Crédito pagado exitosamente con tus Coins!";
+        setMensajeCreditoPago({ tipo: "success", texto: exitoMsg });
+        mostrarToast(exitoMsg, "success");
         setMontoCreditoPago("");
         await cargarDatosEstudiante();
       } else {
@@ -269,9 +296,12 @@ export default function StudentDashboard() {
           if (data && (data.mensaje || data.error)) msg = data.mensaje || data.error;
         } catch (e) {}
         setMensajeCreditoPago({ tipo: "error", texto: msg });
+        mostrarToast(msg, "error");
       }
     } catch (err) {
-      setMensajeCreditoPago({ tipo: "error", texto: "Error de conexión con el servidor." });
+      const errNet = "Error de conexión con el servidor.";
+      setMensajeCreditoPago({ tipo: "error", texto: errNet });
+      mostrarToast(errNet, "error");
     } finally {
       setProcesandoPagoCredito(false);
     }
@@ -281,7 +311,9 @@ export default function StudentDashboard() {
     const alumnoId = alumno?.alumno_id || alumno?.id;
 
     if (!alumnoId) {
-      setMensajeTienda({ tipo: "error", texto: "No se identificó el ID del alumno." });
+      const msg = "No se identificó el ID del alumno.";
+      setMensajeTienda({ tipo: "error", texto: msg });
+      mostrarToast(msg, "error");
       return;
     }
 
@@ -297,10 +329,9 @@ export default function StudentDashboard() {
         const disponibleCredito = limite - utilizado;
 
         if (producto.costo > disponibleCredito) {
-          setMensajeTienda({ 
-            tipo: "error", 
-            texto: `Crédito insuficiente. Disponible: $${disponibleCredito.toFixed(2)}` 
-          });
+          const msg = `Crédito insuficiente. Disponible: $${disponibleCredito.toFixed(2)}`;
+          setMensajeTienda({ tipo: "error", texto: msg });
+          mostrarToast(msg, "error");
           setProcesandoCompra(null);
           return;
         }
@@ -317,7 +348,9 @@ export default function StudentDashboard() {
 
       } else {
         if (Number(alumno?.coins || 0) < producto.costo) {
-          setMensajeTienda({ tipo: "error", texto: `Saldo insuficiente de coins para comprar ${producto.nombre}.` });
+          const msg = `Saldo insuficiente de coins para comprar ${producto.nombre}.`;
+          setMensajeTienda({ tipo: "error", texto: msg });
+          mostrarToast(msg, "error");
           setProcesandoCompra(null);
           return;
         }
@@ -340,6 +373,7 @@ export default function StudentDashboard() {
           : `¡Has adquirido ${producto.nombre} con éxito!`;
 
         setMensajeTienda({ tipo: "success", texto: mensajeExito });
+        mostrarToast(mensajeExito, "success");
         await cargarDatosEstudiante();
       } else {
         let mensajeError = "Error al procesar la compra.";
@@ -348,9 +382,12 @@ export default function StudentDashboard() {
           if (data && (data.mensaje || data.error)) mensajeError = data.mensaje || data.error;
         } catch (e) {}
         setMensajeTienda({ tipo: "error", texto: mensajeError });
+        mostrarToast(mensajeError, "error");
       }
     } catch (error) {
-      setMensajeTienda({ tipo: "error", texto: "Error de conexión con el servidor." });
+      const errNet = "Error de conexión con el servidor.";
+      setMensajeTienda({ tipo: "error", texto: errNet });
+      mostrarToast(errNet, "error");
     } finally {
       setProcesandoCompra(null);
     }
@@ -358,7 +395,7 @@ export default function StudentDashboard() {
 
   const obtenerColorTipo = (tipo) => {
     if (tipo === "ENTRADA" || tipo === "AHORRO_RENDIMIENTO") return "#10B981";
-    if (tipo === "SALIDA" || tipo === "COMPRA" || tipo === "PAGO_CREDITO") return "#EF4444";
+    if (tipo === "SALIDA" || tipo === "COMPRA" || tipo === "PAGO_CREDITO" || tipo === "COMPRA_CREDITO") return "#EF4444";
     if (tipo === "AHORRO_DEPOSITO") return "#3B82F6";
     if (tipo === "AHORRO_RETIRO") return "#F59E0B";
     return "#333";
@@ -366,7 +403,7 @@ export default function StudentDashboard() {
 
   const obtenerSignoMonto = (tipo, cantidad) => {
     if (tipo === "ENTRADA" || tipo === "AHORRO_RENDIMIENTO" || tipo === "AHORRO_RETIRO") return `+${cantidad}`;
-    if (tipo === "SALIDA" || tipo === "AHORRO_DEPOSITO" || tipo === "COMPRA" || tipo === "PAGO_CREDITO") return `-${cantidad}`;
+    if (tipo === "SALIDA" || tipo === "AHORRO_DEPOSITO" || tipo === "COMPRA" || tipo === "PAGO_CREDITO" || tipo === "COMPRA_CREDITO") return `-${cantidad}`;
     return `${cantidad}`;
   };
 
@@ -390,6 +427,11 @@ export default function StudentDashboard() {
   const eurMxn = tasas?.eur || "19.05";
   const cadMxn = tasas?.cad || "12.80";
 
+  // Filtrar específicamente los movimientos de ahorro y rendimientos para su historial dedicado
+  const movimientosAhorro = movimientos.filter(m => 
+    m.tipo === "AHORRO_DEPOSITO" || m.tipo === "AHORRO_RETIRO" || m.tipo === "AHORRO_RENDIMIENTO"
+  );
+
   return (
     <>
       <style>{`
@@ -406,6 +448,30 @@ export default function StudentDashboard() {
           background-size: cover;
           background-position: center;
           background-attachment: fixed;
+        }
+
+        .toast-notif {
+          position: fixed;
+          top: 20px;
+          right: 20px;
+          z-index: 9999;
+          padding: 14px 20px;
+          border-radius: 12px;
+          color: white;
+          font-weight: bold;
+          font-size: 14px;
+          box-shadow: 0 6px 20px rgba(0,0,0,0.4);
+          animation: slideInDown 0.3s ease-out forwards;
+          backdrop-filter: blur(10px);
+          border: 1px solid rgba(255,255,255,0.2);
+        }
+
+        .toast-success { background: rgba(16, 185, 129, 0.9); }
+        .toast-error { background: rgba(239, 68, 68, 0.9); }
+
+        @keyframes slideInDown {
+          from { transform: translateY(-30px); opacity: 0; }
+          to { transform: translateY(0); opacity: 1; }
         }
 
         .portal-header {
@@ -677,11 +743,18 @@ export default function StudentDashboard() {
 
         @media print {
           body { background: white !important; color: black !important; }
-          .portal-header, .modern-tabs-bar, .btn-logout, .btn-accion, button { display: none !important; }
+          .portal-header, .modern-tabs-bar, .btn-logout, .btn-accion, button, .toast-notif { display: none !important; }
           .card-dark { background: white !important; color: black !important; border: 1px solid #ccc !important; box-shadow: none !important; }
           .tabla-movs th, .tabla-movs td { color: black !important; border-bottom: 1px solid #ddd !important; }
         }
       `}</style>
+
+      {/* NOTIFICACIÓN TOAST FLOTANTE */}
+      {notificacionToast && (
+        <div className={`toast-notif ${notificacionToast.tipo === "error" ? "toast-error" : "toast-success"}`}>
+          {notificacionToast.tipo === "error" ? "⚠️ " : "✅ "} {notificacionToast.mensaje}
+        </div>
+      )}
 
       <div className="dashboard-wrapper">
         <header className="portal-header">
@@ -782,15 +855,16 @@ export default function StudentDashboard() {
                   </div>
                 </div>
                 <p style={{ color: "#94a3b8", fontSize: "14px", marginBottom: "20px" }}>Envía coins a compañeros usando el número de tarjeta.</p>
-                <TransferenciaCoins alumnoActual={alumno} onTransferenciaExitosa={() => cargarDatosEstudiante()} />
+                <TransferenciaCoins alumnoActual={alumno} onTransferenciaExitosa={() => { cargarDatosEstudiante(); mostrarToast("¡Transferencia realizada con éxito!", "success"); }} />
               </div>
             )}
 
             {activeTab === 'ahorro' && (
               <div className="card-dark">
-                <h3 style={{ margin: "0 0 10px 0", fontSize: "18px" }}>📥 Gestión de Caja de Ahorro</h3>
-                <p style={{ color: "#94a3b8", fontSize: "14px", marginBottom: "15px" }}>Mueve coins de tu saldo disponible a tu alcancía o retíralos.</p>
-                <div className="ahorro-acciones">
+                <h3 style={{ margin: "0 0 10px 0", fontSize: "18px" }}>📥 Gestión de Caja de Ahorro e Intereses</h3>
+                <p style={{ color: "#94a3b8", fontSize: "14px", marginBottom: "15px" }}>Mueve coins de tu saldo disponible a tu alcancía o consulta tus rendimientos generados.</p>
+                
+                <div className="ahorro-acciones" style={{ marginBottom: "20px" }}>
                   <input type="number" placeholder="Cantidad de coins" className="input-ahorro" value={montoAhorro} onChange={(e) => setMontoAhorro(e.target.value)} min="1" />
                   <button className="btn-accion btn-guardar" onClick={() => handleOperacionAhorro("AHORRO_DEPOSITO")} disabled={procesando}>
                     {procesando ? "Procesando..." : "➡️ Depositar a Ahorro"}
@@ -799,10 +873,41 @@ export default function StudentDashboard() {
                     {procesando ? "Procesando..." : "⬅️ Retirar de Ahorro"}
                   </button>
                 </div>
+
                 {mensajeAccion && (
                   <p style={{ marginTop: "12px", fontSize: "14px", color: mensajeAccion.tipo === "error" ? "#ef4444" : "#10b981", fontWeight: "bold" }}>
                     {mensajeAccion.texto}
                   </p>
+                )}
+
+                <hr style={{ borderColor: "#1e3250", margin: "25px 0" }} />
+
+                <h4 style={{ margin: "0 0 10px 0", fontSize: "16px", color: "#3b82f6" }}>📈 Historial de Ahorro e Intereses / Rendimientos</h4>
+                {movimientosAhorro && movimientosAhorro.length > 0 ? (
+                  <div style={{ overflowX: "auto" }}>
+                    <table className="tabla-movs">
+                      <thead>
+                        <tr>
+                          <th>Fecha</th>
+                          <th>Tipo de Operación</th>
+                          <th>Monto</th>
+                          <th>Detalle / Motivo</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {movimientosAhorro.map((m, idx) => (
+                          <tr key={m.id || idx}>
+                            <td style={{ color: "#cbd5e1" }}>{m.fecha ? new Date(m.fecha).toLocaleString() : "N/A"}</td>
+                            <td style={{ color: obtenerColorTipo(m.tipo), fontWeight: "bold" }}>{m.tipo}</td>
+                            <td style={{ color: obtenerColorTipo(m.tipo), fontWeight: "bold" }}>🪙 {obtenerSignoMonto(m.tipo, m.cantidad)}</td>
+                            <td style={{ color: "#cbd5e1" }}>{m.motivo || "-"}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <p style={{ color: "#94a3b8", textAlign: "center", padding: "15px 0", fontSize: "13px" }}>Aún no hay movimientos registrados en tu caja de ahorro o rendimientos.</p>
                 )}
               </div>
             )}
