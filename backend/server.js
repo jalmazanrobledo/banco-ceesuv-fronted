@@ -776,16 +776,20 @@ app.post("/api/analisis-ia", async (req, res) => {
   }
 });
 
-// Transferencia por Tarjeta (Corregido a PostgreSQL)
-app.post(['/api/transferir-por-tarjeta', '/transferir-por-tarjeta'], async (req, res) => {
-    const { remitenteId, numeroTarjetaDestino, monto } = req.body;
+// Transferencia por Tarjeta (Actualizado para soportar concepto, referencia y ruta /api/transferencias)
+app.post(['/api/transferencias', '/api/transferir-por-tarjeta', '/transferir-por-tarjeta'], async (req, res) => {
+    const { remitente_id, remitenteId, tarjeta_destino, numeroTarjetaDestino, cantidad, monto, concepto, referencia } = req.body;
 
-    const cantidad = Number(monto);
-    if (!cantidad || cantidad <= 0) {
+    const idRemitente = remitente_id || remitenteId;
+    const tarjetaDest = tarjeta_destino || numeroTarjetaDestino;
+    const montoTransferir = cantidad || monto;
+
+    const valCantidad = Number(montoTransferir);
+    if (!valCantidad || valCantidad <= 0) {
         return res.status(400).json({ error: "El monto debe ser mayor a cero." });
     }
 
-    const tarjetaLimpia = numeroTarjetaDestino ? numeroTarjetaDestino.replace(/\s+/g, '') : '';
+    const tarjetaLimpia = tarjetaDest ? tarjetaDest.replace(/\s+/g, '') : '';
 
     if (!tarjetaLimpia.startsWith("48200000") || tarjetaLimpia.length !== 16) {
         return res.status(400).json({ error: "Número de tarjeta de destino inválido." });
@@ -794,23 +798,26 @@ app.post(['/api/transferir-por-tarjeta', '/transferir-por-tarjeta'], async (req,
     const idDestinatarioStr = tarjetaLimpia.slice(8);
     const destinatarioId = parseInt(idDestinatarioStr, 10);
 
-    if (Number(remitenteId) === Number(destinatarioId)) {
+    if (Number(idRemitente) === Number(destinatarioId)) {
         return res.status(400).json({ error: "No puedes transferir coins a tu propia tarjeta." });
     }
+
+    const textoConcepto = concepto ? concepto.trim() : "Transferencia CEESUV Coins";
+    const textoReferencia = referencia ? referencia.trim() : String(Math.floor(100000 + Math.random() * 900000));
 
     try {
         const client = await pool.connect();
         try {
             await client.query('BEGIN');
 
-            const remitenteRes = await client.query("SELECT id, nombre, coins FROM alumnos WHERE id = $1 FOR UPDATE", [remitenteId]);
+            const remitenteRes = await client.query("SELECT id, nombre, coins FROM alumnos WHERE id = $1 FOR UPDATE", [idRemitente]);
             if (remitenteRes.rows.length === 0) {
                 await client.query('ROLLBACK');
                 return res.status(404).json({ error: "No se encontró la cuenta del remitente." });
             }
 
             const remitente = remitenteRes.rows[0];
-            if (Number(remitente.coins) < cantidad) {
+            if (Number(remitente.coins) < valCantidad) {
                 await client.query('ROLLBACK');
                 return res.status(400).json({ error: "Saldo insuficiente para realizar la transferencia." });
             }
@@ -824,24 +831,27 @@ app.post(['/api/transferir-por-tarjeta', '/transferir-por-tarjeta'], async (req,
             const destinatario = destinatarioRes.rows[0];
 
             // Actualizar saldos
-            await client.query("UPDATE alumnos SET coins = coins - $1 WHERE id = $2", [cantidad, remitenteId]);
-            await client.query("UPDATE alumnos SET coins = coins + $1 WHERE id = $2", [cantidad, destinatarioId]);
+            await client.query("UPDATE alumnos SET coins = coins - $1 WHERE id = $2", [valCantidad, idRemitente]);
+            await client.query("UPDATE alumnos SET coins = coins + $1 WHERE id = $2", [valCantidad, destinatarioId]);
 
-            // Registrar movimientos
+            // Registrar movimientos incluyendo concepto y referencia (si tu tabla tiene esas columnas, o ajustarlas al motivo)
+            const motivoSalida = `Envío a ${destinatario.nombre} | Concepto: ${textoConcepto} | Ref: ${textoReferencia}`;
+            const motivoEntrada = `Recepción de ${remitente.nombre} | Concepto: ${textoConcepto} | Ref: ${textoReferencia}`;
+
             await client.query(
                 "INSERT INTO movimientos (alumno_id, tipo, cantidad, motivo, usuario) VALUES ($1, 'SALIDA', $2, $3, $4)",
-                [remitenteId, cantidad, `Transferencia enviada a ${destinatario.nombre}`, remitente.nombre]
+                [idRemitente, valCantidad, motivoSalida, remitente.nombre]
             );
             await client.query(
                 "INSERT INTO movimientos (alumno_id, tipo, cantidad, motivo, usuario) VALUES ($1, 'ENTRADA', $2, $3, $4)",
-                [destinatarioId, cantidad, `Transferencia recibida de ${remitente.nombre}`, remitente.nombre]
+                [destinatarioId, valCantidad, motivoEntrada, remitente.nombre]
             );
 
             await client.query('COMMIT');
 
             res.json({ 
                 success: true, 
-                mensaje: `¡Transferencia exitosa! Enviaste ${cantidad} coins a ${destinatario.nombre}.` 
+                mensaje: `¡Transferencia exitosa! Enviaste ${valCantidad} coins a ${destinatario.nombre}.` 
             });
         } catch (err) {
             await client.query('ROLLBACK');
