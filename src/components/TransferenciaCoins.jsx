@@ -33,12 +33,32 @@ export default function TransferenciaCoins({ alumnoActual, onTransferenciaExitos
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          remitente_id: Number(alumnoActual?.id || alumnoActual?.alumno_id),
-          tarjeta_destino: tarjetaDestino,
-          cantidad: Number(monto),
-          usuario: `${alumnoActual?.nombre || ""} ${alumnoActual?.apellidos || ""}`.trim()
+          remitenteId: Number(alumnoActual?.id || alumnoActual?.alumno_id),
+          numeroTarjetaDestino: tarjetaDestino,
+          monto: Number(monto)
         })
       });
+
+      const data = await respuesta.json().catch(() => ({}));
+
+      if (!respuesta.ok) {
+        throw new Error(data.error || data.mensaje || "Error al realizar la transferencia.");
+      }
+
+      setMensaje({ texto: data.mensaje || "¡Transferencia realizada con éxito!", tipo: "exito" });
+      setTarjetaDestino("");
+      setMonto("");
+
+      if (onTransferenciaExitosa) {
+        onTransferenciaExitosa();
+      }
+
+    } catch (error) {
+      setMensaje({ texto: error.message, tipo: "error" });
+    } finally {
+      setCargando(false);
+    }
+  };
 
       const data = await respuesta.json().catch(() => ({}));
 
