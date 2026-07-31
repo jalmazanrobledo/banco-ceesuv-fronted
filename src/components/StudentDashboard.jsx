@@ -18,7 +18,11 @@ export default function StudentDashboard() {
   const [montoAhorro, setMontoAhorro] = useState("");
   const [mensajeAccion, setMensajeAccion] = useState(null);
   const [procesando, setProcesando] = useState(false);
-  const [metodoPago, setMetodoPago] = useState("coins"); // "coins" o "credito"
+  const [metodoPago, setMetodoPago] = useState("coins");
+
+  const [montoCreditoPago, setMontoCreditoPago] = useState("");
+  const [mensajeCreditoPago, setMensajeCreditoPago] = useState(null);
+  const [procesandoPagoCredito, setProcesandoPagoCredito] = useState(false);
 
   const [procesandoCompra, setProcesandoCompra] = useState(null);
   const [mensajeTienda, setMensajeTienda] = useState(null);
@@ -115,7 +119,7 @@ export default function StudentDashboard() {
             }
           }
         } catch (err) {
-          console.warn("Consulta individual omitida o no disponible:", err);
+          console.warn("Consulta individual omitida:", err);
         }
       }
 
@@ -149,7 +153,7 @@ export default function StudentDashboard() {
           }
         }
       } catch (err) {
-        console.warn("Consulta a /api/movimientos no disponible:", err);
+        console.warn("Consulta de movimientos no disponible:", err);
       }
 
       setMovimientos(listaMovimientos);
@@ -181,7 +185,6 @@ export default function StudentDashboard() {
     }
 
     const alumnoId = alumno?.alumno_id || alumno?.id;
-    
     if (!alumnoId) {
       setMensajeAccion({ tipo: "error", texto: "No se identificó el ID del alumno." });
       return;
@@ -216,10 +219,61 @@ export default function StudentDashboard() {
         setMensajeAccion({ tipo: "error", texto: mensajeError });
       }
     } catch (error) {
-      console.error("Error de red:", error);
       setMensajeAccion({ tipo: "error", texto: "Error de conexión con el servidor." });
     } finally {
       setProcesando(false);
+    }
+  };
+
+  const handlePagarCredito = async () => {
+    const monto = Number(montoCreditoPago);
+    const utilizado = Number(alumno?.credito_utilizado || 0);
+    const disponibles = Number(alumno?.coins || 0);
+
+    if (!monto || monto <= 0) {
+      setMensajeCreditoPago({ tipo: "error", texto: "Ingresa una cantidad válida para abonar." });
+      return;
+    }
+    if (monto > utilizado) {
+      setMensajeCreditoPago({ tipo: "error", texto: "El monto supera tu crédito utilizado actual." });
+      return;
+    }
+    if (monto > disponibles) {
+      setMensajeCreditoPago({ tipo: "error", texto: "No tienes suficientes Coins disponibles para este pago." });
+      return;
+    }
+
+    const alumnoId = alumno?.alumno_id || alumno?.id;
+    setProcesandoPagoCredito(true);
+    setMensajeCreditoPago(null);
+
+    try {
+      const response = await fetch("https://banco-ceesuv-backend.onrender.com/api/pagar-credito", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          alumno_id: Number(alumnoId),
+          monto_pago: monto,
+          usuario: nombreCompletoAlumno
+        })
+      });
+
+      if (response.ok) {
+        setMensajeCreditoPago({ tipo: "success", texto: "¡Crédito pagado exitosamente con tus Coins!" });
+        setMontoCreditoPago("");
+        await cargarDatosEstudiante();
+      } else {
+        let msg = "Error al procesar el pago de crédito.";
+        try {
+          const data = await response.json();
+          if (data && (data.mensaje || data.error)) msg = data.mensaje || data.error;
+        } catch (e) {}
+        setMensajeCreditoPago({ tipo: "error", texto: msg });
+      }
+    } catch (err) {
+      setMensajeCreditoPago({ tipo: "error", texto: "Error de conexión con el servidor." });
+    } finally {
+      setProcesandoPagoCredito(false);
     }
   };
 
@@ -238,7 +292,6 @@ export default function StudentDashboard() {
       let response;
 
       if (metodoPago === "credito") {
-        // --- FLUJO EXCLUSIVO DE CRÉDITO ---
         const limite = Number(alumno?.limite_credito || 200);
         const utilizado = Number(alumno?.credito_utilizado || 0);
         const disponibleCredito = limite - utilizado;
@@ -263,7 +316,6 @@ export default function StudentDashboard() {
         });
 
       } else {
-        // --- FLUJO EXCLUSIVO DE COINS ---
         if (Number(alumno?.coins || 0) < producto.costo) {
           setMensajeTienda({ tipo: "error", texto: `Saldo insuficiente de coins para comprar ${producto.nombre}.` });
           setProcesandoCompra(null);
@@ -288,10 +340,7 @@ export default function StudentDashboard() {
           : `¡Has adquirido ${producto.nombre} con éxito!`;
 
         setMensajeTienda({ tipo: "success", texto: mensajeExito });
-        
-        if (typeof cargarDatosEstudiante === "function") {
-          await cargarDatosEstudiante();
-        }
+        await cargarDatosEstudiante();
       } else {
         let mensajeError = "Error al procesar la compra.";
         try {
@@ -301,7 +350,6 @@ export default function StudentDashboard() {
         setMensajeTienda({ tipo: "error", texto: mensajeError });
       }
     } catch (error) {
-      console.error("Error de red en compra:", error);
       setMensajeTienda({ tipo: "error", texto: "Error de conexión con el servidor." });
     } finally {
       setProcesandoCompra(null);
@@ -310,7 +358,7 @@ export default function StudentDashboard() {
 
   const obtenerColorTipo = (tipo) => {
     if (tipo === "ENTRADA" || tipo === "AHORRO_RENDIMIENTO") return "#10B981";
-    if (tipo === "SALIDA" || tipo === "COMPRA") return "#EF4444";
+    if (tipo === "SALIDA" || tipo === "COMPRA" || tipo === "PAGO_CREDITO") return "#EF4444";
     if (tipo === "AHORRO_DEPOSITO") return "#3B82F6";
     if (tipo === "AHORRO_RETIRO") return "#F59E0B";
     return "#333";
@@ -318,53 +366,24 @@ export default function StudentDashboard() {
 
   const obtenerSignoMonto = (tipo, cantidad) => {
     if (tipo === "ENTRADA" || tipo === "AHORRO_RENDIMIENTO" || tipo === "AHORRO_RETIRO") return `+${cantidad}`;
-    if (tipo === "SALIDA" || tipo === "AHORRO_DEPOSITO" || tipo === "COMPRA") return `-${cantidad}`;
+    if (tipo === "SALIDA" || tipo === "AHORRO_DEPOSITO" || tipo === "COMPRA" || tipo === "PAGO_CREDITO") return `-${cantidad}`;
     return `${cantidad}`;
   };
 
   if (cargando) {
     return (
-      <>
-        <style>{`
-          @keyframes girar {
-            from { transform: rotate(0deg); }
-            to { transform: rotate(360deg); }
-          }
-          .loader-icon {
-            display: inline-block;
-            animation: girar 2s linear infinite;
-            font-size: 40px;
-            margin-bottom: 15px;
-          }
-        `}</style>
-        <div
-          style={{
-            minHeight: "100vh",
-            background: "#0c1527",
-            color: "white",
-            display: "flex",
-            flexDirection: "column",
-            justifyContent: "center",
-            alignItems: "center",
-            padding: "40px",
-            textAlign: "center",
-            fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif"
-          }}
-        >
-          <div>
-            <span className="loader-icon">⏳</span>
-            <p style={{ margin: 0, fontSize: "16px", fontWeight: "500", color: "#94a3b8" }}>
-              Cargando información del estudiante...
-            </p>
-          </div>
-        </div>
-      </>
+      <div style={{ minHeight: "100vh", background: "#0c1527", color: "white", display: "flex", justifyContent: "center", alignItems: "center" }}>
+        <p>Cargando información del estudiante...</p>
+      </div>
     );
   }
 
   const coinsDisponibles = Number(alumno?.coins ?? 0);
   const coinsAhorro = Number(alumno?.coins_ahorro ?? 0);
   const coinsTotales = coinsDisponibles + coinsAhorro;
+  const creditoUtilizado = Number(alumno?.credito_utilizado ?? 0);
+  const limiteCredito = Number(alumno?.limite_credito ?? 200);
+  const creditoDisponible = limiteCredito - creditoUtilizado;
   const matricula = alumno?.matricula || alumno?.id || "N/A";
 
   const usdMxn = tasas?.usd || "17.50";
@@ -379,7 +398,6 @@ export default function StudentDashboard() {
           background-color: #0c1527;
           font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
           color: white;
-          -webkit-text-size-adjust: 100%;
         }
 
         .dashboard-wrapper {
@@ -416,7 +434,6 @@ export default function StudentDashboard() {
           display: flex;
           align-items: center;
           justify-content: center;
-          box-shadow: 0 2px 8px rgba(0,0,0,0.4);
           overflow: hidden;
         }
 
@@ -431,7 +448,6 @@ export default function StudentDashboard() {
           font-weight: bold;
           color: #f59e0b;
           margin: 0;
-          letter-spacing: 0.5px;
         }
 
         .badge-envivo {
@@ -484,11 +500,6 @@ export default function StudentDashboard() {
           font-weight: bold;
           cursor: pointer;
           font-size: 13px;
-          transition: 0.2s;
-        }
-
-        .btn-logout:hover {
-          background-color: #dc2626;
         }
 
         .portal-container {
@@ -516,7 +527,7 @@ export default function StudentDashboard() {
 
         .modern-tabs-bar {
           display: flex;
-          gap: 10px;
+          gap: 8px;
           background: rgba(12, 21, 39, 0.75);
           backdrop-filter: blur(12px);
           padding: 6px;
@@ -524,7 +535,6 @@ export default function StudentDashboard() {
           border: 1px solid rgba(255, 255, 255, 0.08);
           margin-bottom: 25px;
           overflow-x: auto;
-          box-shadow: 0 4px 20px rgba(0,0,0,0.3);
         }
 
         .modern-tab-btn {
@@ -532,17 +542,17 @@ export default function StudentDashboard() {
           display: flex;
           align-items: center;
           justify-content: center;
-          gap: 8px;
-          padding: 12px 16px;
+          gap: 6px;
+          padding: 10px 12px;
           border-radius: 10px;
           font-weight: 600;
-          font-size: 13px;
+          font-size: 12px;
           border: none;
           cursor: pointer;
           white-space: nowrap;
-          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
           color: #94a3b8;
           background: transparent;
+          transition: 0.2s;
         }
 
         .modern-tab-btn:hover {
@@ -554,76 +564,16 @@ export default function StudentDashboard() {
           background: linear-gradient(135deg, #f59e0b, #d97706);
           color: #0c1527;
           font-weight: bold;
-          box-shadow: 0 4px 15px rgba(245, 158, 11, 0.35);
-        }
-
-        @keyframes fadeIn {
-          from {
-            opacity: 0;
-            transform: translateY(8px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-
-        .view-transition {
-          animation: fadeIn 0.35s ease-out forwards;
-        }
-
-        .carrusel-contenedor {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          overflow: hidden;
-          position: relative;
-          width: 100%;
-          height: 240px;
-          margin-top: 15px;
-        }
-
-        .tarjeta-producto {
-          transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
-          background: rgba(12, 21, 39, 0.85);
-          border: 1px solid #1e3250;
-          border-radius: 16px;
-          padding: 16px;
-          margin: 0 8px;
-          text-align: center;
-          display: flex;
-          flex-direction: column;
-          justify-content: space-between;
-          box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
-          flex-shrink: 0;
-          width: 180px;
-          box-sizing: border-box;
-        }
-
-        .tarjeta-inactiva {
-          transform: scale(0.85);
-          opacity: 0.4;
-          filter: brightness(0.7);
-        }
-
-        .tarjeta-activa {
-          transform: scale(1.1);
-          opacity: 1;
-          filter: brightness(1);
-          border-color: #10b981;
-          z-index: 10;
         }
 
         .card-stat {
           background-color: rgba(19, 34, 56, 0.88);
-          backdrop-filter: blur(6px);
           border: 1px solid #1e3250;
           border-radius: 16px;
           padding: 18px;
           display: flex;
           justify-content: space-between;
           align-items: center;
-          box-shadow: 0 4px 12px rgba(0,0,0,0.3);
         }
 
         .stat-title {
@@ -674,7 +624,6 @@ export default function StudentDashboard() {
           border-radius: 8px;
           font-size: 14px;
           width: 100%;
-          max-width: 100%;
         }
 
         .ahorro-acciones {
@@ -691,68 +640,46 @@ export default function StudentDashboard() {
           cursor: pointer;
           font-size: 14px;
           width: 100%;
-          transition: 0.2s;
         }
 
-        .btn-guardar {
-          background-color: #2563eb;
-          color: white;
-        }
-        .btn-guardar:hover { background-color: #1d4ed8; }
+        .btn-guardar { background-color: #2563eb; color: white; }
+        .btn-retirar { background-color: #d97706; color: white; }
+        .btn-comprar { background-color: #10b981; color: white; margin-top: 8px; font-size: 12px; }
 
-        .btn-retirar {
-          background-color: #d97706;
-          color: white;
-        }
-        .btn-retirar:hover { background-color: #b45309; }
-
-        .btn-comprar {
-          background-color: #10b981;
-          color: white;
+        .carrusel-contenedor {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          overflow: hidden;
+          position: relative;
           width: 100%;
-          margin-top: 8px;
-          padding: 7px;
-          font-size: 12px;
+          height: 240px;
+          margin-top: 15px;
         }
-        .btn-comprar:hover { background-color: #059669; }
 
-        @media (min-width: 768px) {
-          .portal-header {
-            padding: 12px 40px;
-          }
-          .portal-container {
-            margin: 30px auto;
-            padding: 0 20px;
-          }
-          .card-dark {
-            padding: 24px;
-            margin-bottom: 24px;
-          }
-          .card-stat {
-            padding: 20px;
-          }
-          .stat-title {
-            font-size: 14px;
-          }
-          .stat-value {
-            font-size: 24px;
-          }
-          .input-ahorro {
-            max-width: 200px;
-            width: auto;
-            margin-right: 10px;
-          }
-          .ahorro-acciones {
-            flex-direction: row;
-            align-items: center;
-          }
-          .btn-accion:not(.btn-comprar) {
-            width: auto;
-          }
-          .tabla-movs th, .tabla-movs td {
-            padding: 14px 12px;
-            font-size: 14px;
-          }
+        .tarjeta-producto {
+          transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+          background: rgba(12, 21, 39, 0.85);
+          border: 1px solid #1e3250;
+          border-radius: 16px;
+          padding: 16px;
+          text-align: center;
+          display: flex;
+          flex-direction: column;
+          justify-content: space-between;
+          width: 180px;
+          box-sizing: border-box;
+          margin: 0 8px;
+        }
+
+        .tarjeta-inactiva { transform: scale(0.85); opacity: 0.4; filter: brightness(0.7); }
+        .tarjeta-activa { transform: scale(1.1); opacity: 1; filter: brightness(1); border-color: #10b981; z-index: 10; }
+
+        @media print {
+          body { background: white !important; color: black !important; }
+          .portal-header, .modern-tabs-bar, .btn-logout, .btn-accion, button { display: none !important; }
+          .card-dark { background: white !important; color: black !important; border: 1px solid #ccc !important; box-shadow: none !important; }
+          .tabla-movs th, .tabla-movs td { color: black !important; border-bottom: 1px solid #ddd !important; }
         }
       `}</style>
 
@@ -775,26 +702,18 @@ export default function StudentDashboard() {
 
           <div className="user-info-bar">
             <div style={{ textAlign: "right" }}>
-              <p style={{ margin: 0, fontWeight: "bold", fontSize: "14px" }}>
-                {nombreCompletoAlumno}
-              </p>
-              <p style={{ margin: 0, color: "#94a3b8", fontSize: "12px" }}>
-                Matrícula: {matricula}
-              </p>
+              <p style={{ margin: 0, fontWeight: "bold", fontSize: "14px" }}>{nombreCompletoAlumno}</p>
+              <p style={{ margin: 0, color: "#94a3b8", fontSize: "12px" }}>Matrícula: {matricula}</p>
             </div>
-            <button onClick={handleLogout} className="btn-logout">
-              🚪 Cerrar Sesión
-            </button>
+            <button onClick={handleLogout} className="btn-logout">🚪 Salir</button>
           </div>
         </header>
 
         <main className="portal-container">
           <div className="card-dark">
-            <h2 style={{ margin: 0, fontSize: "22px" }}>
-              ¡Bienvenido, {nombreCompletoAlumno}!
-            </h2>
+            <h2 style={{ margin: 0, fontSize: "22px" }}>¡Bienvenido, {nombreCompletoAlumno}!</h2>
             <p style={{ margin: "8px 0 0 0", color: "#94a3b8", fontSize: "14px" }}>
-              Consulta tus saldos disponibles, gestiona tus ahorros, compra en la tienda escolar y revisa tus movimientos.
+              Portal financiero institucional CEESUV. Administra tus cuentas, tarjetas, ahorros, pagos de crédito y estado de cuenta.
             </p>
           </div>
 
@@ -802,9 +721,7 @@ export default function StudentDashboard() {
             <div className="card-stat">
               <div>
                 <p className="stat-title">Saldo Disponible</p>
-                <p className="stat-value" style={{ color: "#f59e0b" }}>
-                  {coinsDisponibles} <span style={{ fontSize: "12px", color: "#94a3b8" }}>COINS</span>
-                </p>
+                <p className="stat-value" style={{ color: "#f59e0b" }}>{coinsDisponibles} <span style={{ fontSize: "12px", color: "#94a3b8" }}>COINS</span></p>
               </div>
               <div className="badge-icon">🪙</div>
             </div>
@@ -812,75 +729,44 @@ export default function StudentDashboard() {
             <div className="card-stat">
               <div>
                 <p className="stat-title">Saldo en Ahorro</p>
-                <p className="stat-value" style={{ color: "#3b82f6" }}>
-                  {coinsAhorro} <span style={{ fontSize: "12px", color: "#94a3b8" }}>COINS</span>
-                </p>
+                <p className="stat-value" style={{ color: "#3b82f6" }}>{coinsAhorro} <span style={{ fontSize: "12px", color: "#94a3b8" }}>COINS</span></p>
               </div>
               <div className="badge-icon">🏦</div>
             </div>
 
             <div className="card-stat">
               <div>
-                <p className="stat-title">Total Acumulado</p>
-                <p className="stat-value" style={{ color: "#10b981" }}>
-                  {coinsTotales} <span style={{ fontSize: "12px", color: "#94a3b8" }}>COINS</span>
-                </p>
+                <p className="stat-title">Crédito Utilizado</p>
+                <p className="stat-value" style={{ color: "#ef4444" }}>${creditoUtilizado.toFixed(2)} <span style={{ fontSize: "12px", color: "#94a3b8" }}>/ ${limiteCredito}</span></p>
               </div>
-              <div className="badge-icon">💰</div>
+              <div className="badge-icon">💳</div>
             </div>
           </div>
 
-          {/* BARRA DE PESTAÑAS MODERNA Y FLOTANTE */}
+          {/* BARRA DE PESTAÑAS */}
           <nav className="modern-tabs-bar">
-            <button
-              onClick={() => setActiveTab('tarjetas')}
-              className={`modern-tab-btn ${activeTab === 'tarjetas' ? 'active' : ''}`}
-            >
-              💳 Mis Tarjetas
-            </button>
-            <button
-              onClick={() => setActiveTab('transferencias')}
-              className={`modern-tab-btn ${activeTab === 'transferencias' ? 'active' : ''}`}
-            >
-              🔄 Transferencias
-            </button>
-            <button
-              onClick={() => setActiveTab('ahorro')}
-              className={`modern-tab-btn ${activeTab === 'ahorro' ? 'active' : ''}`}
-            >
-              🏛️ Caja de Ahorro
-            </button>
-            <button
-              onClick={() => setActiveTab('tienda')}
-              className={`modern-tab-btn ${activeTab === 'tienda' ? 'active' : ''}`}
-            >
-              🛒 Tienda Escolar
-            </button>
-            <button
-              onClick={() => setActiveTab('historial')}
-              className={`modern-tab-btn ${activeTab === 'historial' ? 'active' : ''}`}
-            >
-              🕒 Historial de Movimientos
-            </button>
+            <button onClick={() => setActiveTab('tarjetas')} className={`modern-tab-btn ${activeTab === 'tarjetas' ? 'active' : ''}`}>💳 Tarjetas</button>
+            <button onClick={() => setActiveTab('transferencias')} className={`modern-tab-btn ${activeTab === 'transferencias' ? 'active' : ''}`}>🔄 Transferir</button>
+            <button onClick={() => setActiveTab('ahorro')} className={`modern-tab-btn ${activeTab === 'ahorro' ? 'active' : ''}`}>🏛️ Ahorro</button>
+            <button onClick={() => setActiveTab('credito')} className={`modern-tab-btn ${activeTab === 'credito' ? 'active' : ''}`}>💳 Pagar Crédito</button>
+            <button onClick={() => setActiveTab('tienda')} className={`modern-tab-btn ${activeTab === 'tienda' ? 'active' : ''}`}>🛒 Tienda</button>
+            <button onClick={() => setActiveTab('estadocuenta')} className={`modern-tab-btn ${activeTab === 'estadocuenta' ? 'active' : ''}`}>📄 Estado de Cuenta</button>
+            <button onClick={() => setActiveTab('historial')} className={`modern-tab-btn ${activeTab === 'historial' ? 'active' : ''}`}>🕒 Movimientos</button>
           </nav>
 
-          {/* CONTENEDOR DE VISTAS CON TRANSICIÓN SUAVE */}
-          <div className="view-transition" key={activeTab}>
+          {/* CONTENEDOR DE VISTAS */}
+          <div>
             {activeTab === 'tarjetas' && (
               <div className="card-dark" style={{ textAlign: "center" }}>
                 <h3 style={{ margin: "0 0 10px 0", fontSize: "18px" }}>💳 Mis Tarjetas CEESUV</h3>
-                <p style={{ color: "#94a3b8", fontSize: "14px", marginBottom: "20px" }}>
-                  Consulta tus tarjetas digitales oficiales institucionales de débito y crédito.
-                </p>
-
-                <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: "25px", marginBottom: "15px" }}>
-                  <div style={{ textAlign: "center" }}>
-                    <h4 style={{ color: "#FFF", marginBottom: "10px", fontSize: "14px" }}>💳 Tarjeta de Débito</h4>
+                <p style={{ color: "#94a3b8", fontSize: "14px", marginBottom: "20px" }}>Consulta tus tarjetas digitales oficiales.</p>
+                <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: "25px" }}>
+                  <div>
+                    <h4 style={{ color: "#FFF", marginBottom: "10px", fontSize: "14px" }}>Débito</h4>
                     <TarjetaDebito alumno={alumno} />
                   </div>
-
-                  <div style={{ textAlign: "center" }}>
-                    <h4 style={{ color: "#d4af37", marginBottom: "10px", fontSize: "14px" }}>💳 Tarjeta de Crédito</h4>
+                  <div>
+                    <h4 style={{ color: "#d4af37", marginBottom: "10px", fontSize: "14px" }}>Crédito</h4>
                     <TarjetaCredito alumno={alumno} />
                   </div>
                 </div>
@@ -888,76 +774,72 @@ export default function StudentDashboard() {
             )}
 
             {activeTab === 'transferencias' && (
-              <div className="card-dark" style={{ textAlign: "left" }}>
+              <div className="card-dark">
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "15px", flexWrap: "wrap", gap: "10px" }}>
                   <h3 style={{ margin: 0, fontSize: "18px", color: "#f59e0b" }}>🔄 Módulo de Transferencias</h3>
-                  <div style={{
-                    background: "rgba(16, 185, 129, 0.15)",
-                    border: "1px solid #10b981",
-                    borderRadius: "8px",
-                    padding: "6px 12px",
-                    color: "#10b981",
-                    fontSize: "13px",
-                    fontWeight: "bold"
-                  }}>
+                  <div style={{ background: "rgba(16, 185, 129, 0.15)", border: "1px solid #10b981", borderRadius: "8px", padding: "6px 12px", color: "#10b981", fontSize: "13px", fontWeight: "bold" }}>
                     🪙 Saldo disponible: {coinsDisponibles} COINS
                   </div>
                 </div>
-                <p style={{ color: "#94a3b8", fontSize: "14px", marginBottom: "20px" }}>
-                  Envía coins a tus compañeros de forma rápida y segura usando el número de su tarjeta de 16 dígitos.
-                </p>
-
-                <TransferenciaCoins
-                  alumnoActual={alumno}
-                  onTransferenciaExitosa={() => {
-                    cargarDatosEstudiante();
-                  }}
-                />
+                <p style={{ color: "#94a3b8", fontSize: "14px", marginBottom: "20px" }}>Envía coins a compañeros usando el número de tarjeta.</p>
+                <TransferenciaCoins alumnoActual={alumno} onTransferenciaExitosa={() => cargarDatosEstudiante()} />
               </div>
             )}
 
             {activeTab === 'ahorro' && (
               <div className="card-dark">
                 <h3 style={{ margin: "0 0 10px 0", fontSize: "18px" }}>📥 Gestión de Caja de Ahorro</h3>
-                <p style={{ color: "#94a3b8", fontSize: "14px", marginBottom: "15px" }}>
-                  Mueve coins de tu saldo disponible a tu alcancía de ahorro o retíralos cuando los necesites.
-                </p>
-
+                <p style={{ color: "#94a3b8", fontSize: "14px", marginBottom: "15px" }}>Mueve coins de tu saldo disponible a tu alcancía o retíralos.</p>
                 <div className="ahorro-acciones">
-                  <input
-                    type="number"
-                    placeholder="Cantidad de coins"
-                    className="input-ahorro"
-                    value={montoAhorro}
-                    onChange={(e) => setMontoAhorro(e.target.value)}
-                    min="1"
-                  />
-                  <button
-                    className="btn-accion btn-guardar"
-                    onClick={() => handleOperacionAhorro("AHORRO_DEPOSITO")}
-                    disabled={procesando}
-                  >
+                  <input type="number" placeholder="Cantidad de coins" className="input-ahorro" value={montoAhorro} onChange={(e) => setMontoAhorro(e.target.value)} min="1" />
+                  <button className="btn-accion btn-guardar" onClick={() => handleOperacionAhorro("AHORRO_DEPOSITO")} disabled={procesando}>
                     {procesando ? "Procesando..." : "➡️ Depositar a Ahorro"}
                   </button>
-                  <button
-                    className="btn-accion btn-retirar"
-                    onClick={() => handleOperacionAhorro("AHORRO_RETIRO")}
-                    disabled={procesando}
-                  >
+                  <button className="btn-accion btn-retirar" onClick={() => handleOperacionAhorro("AHORRO_RETIRO")} disabled={procesando}>
                     {procesando ? "Procesando..." : "⬅️ Retirar de Ahorro"}
                   </button>
                 </div>
-
                 {mensajeAccion && (
-                  <p
-                    style={{
-                      marginTop: "12px",
-                      fontSize: "14px",
-                      color: mensajeAccion.tipo === "error" ? "#ef4444" : "#10b981",
-                      fontWeight: "bold"
-                    }}
-                  >
+                  <p style={{ marginTop: "12px", fontSize: "14px", color: mensajeAccion.tipo === "error" ? "#ef4444" : "#10b981", fontWeight: "bold" }}>
                     {mensajeAccion.texto}
+                  </p>
+                )}
+              </div>
+            )}
+
+            {activeTab === 'credito' && (
+              <div className="card-dark">
+                <h3 style={{ margin: "0 0 10px 0", fontSize: "18px" }}>💳 Pagar Crédito con Coins</h3>
+                <p style={{ color: "#94a3b8", fontSize: "14px", marginBottom: "15px" }}>
+                  Utiliza tus Coins disponibles para abonar a tu deuda de tarjeta de crédito y liberar línea de crédito.
+                </p>
+                
+                <div style={{ background: "rgba(12, 21, 39, 0.6)", padding: "15px", borderRadius: "10px", marginBottom: "15px", border: "1px solid #1e3250" }}>
+                  <p style={{ margin: "0 0 5px 0", fontSize: "13px", color: "#94a3b8" }}>Crédito Utilizado: <strong style={{ color: "#ef4444" }}>${creditoUtilizado.toFixed(2)}</strong></p>
+                  <p style={{ margin: 0, fontSize: "13px", color: "#94a3b8" }}>Coins Disponibles para Pago: <strong style={{ color: "#10b981" }}>{coinsDisponibles} COINS</strong></p>
+                </div>
+
+                <div className="ahorro-acciones">
+                  <input 
+                    type="number" 
+                    placeholder="Cantidad a pagar" 
+                    className="input-ahorro" 
+                    value={montoCreditoPago} 
+                    onChange={(e) => setMontoCreditoPago(e.target.value)} 
+                    min="1" 
+                  />
+                  <button 
+                    className="btn-accion btn-guardar" 
+                    onClick={handlePagarCredito} 
+                    disabled={procesandoPagoCredito}
+                  >
+                    {procesandoPagoCredito ? "Procesando pago..." : "💳 Pagar Crédito con Coins"}
+                  </button>
+                </div>
+
+                {mensajeCreditoPago && (
+                  <p style={{ marginTop: "12px", fontSize: "14px", color: mensajeCreditoPago.tipo === "error" ? "#ef4444" : "#10b981", fontWeight: "bold" }}>
+                    {mensajeCreditoPago.texto}
                   </p>
                 )}
               </div>
@@ -966,44 +848,14 @@ export default function StudentDashboard() {
             {activeTab === 'tienda' && (
               <div className="card-dark">
                 <h3 style={{ margin: "0 0 5px 0", fontSize: "18px" }}>🛒 Tienda Escolar</h3>
-                <p style={{ color: "#94a3b8", fontSize: "14px", margin: "0 0 15px 0" }}>
-                  Canjea tus coins o utiliza tu línea de crédito institucional para adquirir artículos.
-                </p>
+                <p style={{ color: "#94a3b8", fontSize: "14px", margin: "0 0 15px 0" }}>Canjea tus coins o usa crédito institucional.</p>
 
-                {/* SELECTOR DE MÉTODO DE PAGO */}
                 <div style={{ display: "flex", gap: "10px", marginBottom: "20px" }}>
-                  <button
-                    onClick={() => setMetodoPago("coins")}
-                    style={{
-                      flex: 1,
-                      padding: "10px",
-                      borderRadius: "8px",
-                      border: metodoPago === "coins" ? "2px solid #10b981" : "1px solid #1e3250",
-                      background: metodoPago === "coins" ? "rgba(16, 185, 129, 0.15)" : "rgba(12, 21, 39, 0.6)",
-                      color: "white",
-                      fontWeight: "bold",
-                      cursor: "pointer",
-                      fontSize: "13px"
-                    }}
-                  >
-                    🪙 Pagar con Coins (Saldo: {coinsDisponibles})
+                  <button onClick={() => setMetodoPago("coins")} style={{ flex: 1, padding: "10px", borderRadius: "8px", border: metodoPago === "coins" ? "2px solid #10b981" : "1px solid #1e3250", background: metodoPago === "coins" ? "rgba(16, 185, 129, 0.15)" : "rgba(12, 21, 39, 0.6)", color: "white", fontWeight: "bold", cursor: "pointer", fontSize: "13px" }}>
+                    🪙 Pagar con Coins ({coinsDisponibles})
                   </button>
-
-                  <button
-                    onClick={() => setMetodoPago("credito")}
-                    style={{
-                      flex: 1,
-                      padding: "10px",
-                      borderRadius: "8px",
-                      border: metodoPago === "credito" ? "2px solid #d4af37" : "1px solid #1e3250",
-                      background: metodoPago === "credito" ? "rgba(212, 175, 55, 0.15)" : "rgba(12, 21, 39, 0.6)",
-                      color: "white",
-                      fontWeight: "bold",
-                      cursor: "pointer",
-                      fontSize: "13px"
-                    }}
-                  >
-                    💳 Tarjeta de Crédito (Disp: ${(Number(alumno?.limite_credito || 200) - Number(alumno?.credito_utilizado || 0)).toFixed(2)})
+                  <button onClick={() => setMetodoPago("credito")} style={{ flex: 1, padding: "10px", borderRadius: "8px", border: metodoPago === "credito" ? "2px solid #d4af37" : "1px solid #1e3250", background: metodoPago === "credito" ? "rgba(212, 175, 55, 0.15)" : "rgba(12, 21, 39, 0.6)", color: "white", fontWeight: "bold", cursor: "pointer", fontSize: "13px" }}>
+                    💳 Tarjeta de Crédito (Disp: ${creditoDisponible.toFixed(2)})
                   </button>
                 </div>
 
@@ -1011,20 +863,13 @@ export default function StudentDashboard() {
                   {productosTienda.map((prod, index) => {
                     const esActivo = index === indiceActivo;
                     return (
-                      <div
-                        key={prod.id}
-                        className={`tarjeta-producto ${esActivo ? "tarjeta-activa" : "tarjeta-inactiva"}`}
-                      >
+                      <div key={prod.id} className={`tarjeta-producto ${esActivo ? "tarjeta-activa" : "tarjeta-inactiva"}`}>
                         <div>
                           <div style={{ fontSize: "28px", marginBottom: "6px" }}>{prod.icono}</div>
                           <p style={{ margin: "0 0 4px 0", fontWeight: "bold", fontSize: "13px" }}>{prod.nombre}</p>
                           <p style={{ margin: 0, color: "#f59e0b", fontSize: "12px", fontWeight: "bold" }}>{prod.costo} COINS</p>
                         </div>
-                        <button
-                          className="btn-accion btn-comprar"
-                          onClick={() => handleComprar(prod)}
-                          disabled={procesandoCompra === prod.id}
-                        >
+                        <button className="btn-accion btn-comprar" onClick={() => handleComprar(prod)} disabled={procesandoCompra === prod.id}>
                           {procesandoCompra === prod.id ? "Comprando..." : "Comprar"}
                         </button>
                       </div>
@@ -1032,36 +877,84 @@ export default function StudentDashboard() {
                   })}
                 </div>
 
-                <div style={{ display: "flex", justifyContent: "center", alignItems: "center", marginTop: "12px", gap: "6px" }}>
-                  {productosTienda.map((_, index) => (
-                    <button
-                      key={index}
-                      onClick={() => setIndiceActivo(index)}
-                      style={{
-                        border: "none",
-                        height: "8px",
-                        borderRadius: "4px",
-                        cursor: "pointer",
-                        transition: "all 0.3s",
-                        width: index === indiceActivo ? "24px" : "8px",
-                        background: index === indiceActivo ? "#10b981" : "#334155"
-                      }}
-                    />
-                  ))}
-                </div>
-
                 {mensajeTienda && (
-                  <p
-                    style={{
-                      marginTop: "12px",
-                      fontSize: "14px",
-                      color: mensajeTienda.tipo === "error" ? "#ef4444" : "#10b981",
-                      fontWeight: "bold",
-                      textAlign: "center"
-                    }}
-                  >
+                  <p style={{ marginTop: "12px", fontSize: "14px", color: mensajeTienda.tipo === "error" ? "#ef4444" : "#10b981", fontWeight: "bold", textAlign: "center" }}>
                     {mensajeTienda.texto}
                   </p>
+                )}
+              </div>
+            )}
+
+            {activeTab === 'estadocuenta' && (
+              <div className="card-dark">
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px", flexWrap: "wrap", gap: "10px" }}>
+                  <div>
+                    <h3 style={{ margin: 0, fontSize: "20px", color: "#f59e0b" }}>📄 Estado de Cuenta Institucional</h3>
+                    <p style={{ margin: "4px 0 0 0", color: "#94a3b8", fontSize: "13px" }}>Banco CEESUV - Reporte Oficial de Movimientos y Saldos</p>
+                  </div>
+                  <button onClick={() => window.print()} className="btn-accion btn-guardar" style={{ width: "auto" }}>
+                    🖨️ Imprimir / Descargar PDF
+                  </button>
+                </div>
+
+                <div style={{ background: "rgba(12, 21, 39, 0.7)", padding: "16px", borderRadius: "12px", marginBottom: "20px", border: "1px solid #1e3250" }}>
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "15px" }}>
+                    <div>
+                      <p style={{ margin: 0, color: "#94a3b8", fontSize: "12px" }}>Titular:</p>
+                      <p style={{ margin: "2px 0 0 0", fontWeight: "bold", fontSize: "14px" }}>{nombreCompletoAlumno}</p>
+                    </div>
+                    <div>
+                      <p style={{ margin: 0, color: "#94a3b8", fontSize: "12px" }}>Matrícula / ID:</p>
+                      <p style={{ margin: "2px 0 0 0", fontWeight: "bold", fontSize: "14px" }}>{matricula}</p>
+                    </div>
+                    <div>
+                      <p style={{ margin: 0, color: "#94a3b8", fontSize: "12px" }}>Fecha de Emisión:</p>
+                      <p style={{ margin: "2px 0 0 0", fontWeight: "bold", fontSize: "14px" }}>{new Date().toLocaleDateString()}</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "12px", marginBottom: "20px" }}>
+                  <div style={{ background: "rgba(12, 21, 39, 0.5)", padding: "12px", borderRadius: "8px", border: "1px solid #1e3250" }}>
+                    <p style={{ margin: 0, color: "#94a3b8", fontSize: "12px" }}>Saldo Coins:</p>
+                    <p style={{ margin: "4px 0 0 0", fontSize: "16px", fontWeight: "bold", color: "#f59e0b" }}>{coinsDisponibles} COINS</p>
+                  </div>
+                  <div style={{ background: "rgba(12, 21, 39, 0.5)", padding: "12px", borderRadius: "8px", border: "1px solid #1e3250" }}>
+                    <p style={{ margin: 0, color: "#94a3b8", fontSize: "12px" }}>Ahorro:</p>
+                    <p style={{ margin: "4px 0 0 0", fontSize: "16px", fontWeight: "bold", color: "#3b82f6" }}>{coinsAhorro} COINS</p>
+                  </div>
+                  <div style={{ background: "rgba(12, 21, 39, 0.5)", padding: "12px", borderRadius: "8px", border: "1px solid #1e3250" }}>
+                    <p style={{ margin: 0, color: "#94a3b8", fontSize: "12px" }}>Crédito Usado:</p>
+                    <p style={{ margin: "4px 0 0 0", fontSize: "16px", fontWeight: "bold", color: "#ef4444" }}>${creditoUtilizado.toFixed(2)}</p>
+                  </div>
+                </div>
+
+                <h4 style={{ margin: "0 0 10px 0", fontSize: "15px" }}>Detalle de Transacciones del Periodo</h4>
+                {movimientos && movimientos.length > 0 ? (
+                  <div style={{ overflowX: "auto" }}>
+                    <table className="tabla-movs">
+                      <thead>
+                        <tr>
+                          <th>Fecha</th>
+                          <th>Tipo</th>
+                          <th>Monto</th>
+                          <th>Motivo / Concepto</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {movimientos.map((m, idx) => (
+                          <tr key={m.id || idx}>
+                            <td style={{ color: "#cbd5e1" }}>{m.fecha ? new Date(m.fecha).toLocaleString() : "N/A"}</td>
+                            <td style={{ color: obtenerColorTipo(m.tipo), fontWeight: "bold" }}>{m.tipo}</td>
+                            <td style={{ color: obtenerColorTipo(m.tipo), fontWeight: "bold" }}>🪙 {obtenerSignoMonto(m.tipo, m.cantidad)}</td>
+                            <td style={{ color: "#cbd5e1" }}>{m.motivo || "-"}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <p style={{ color: "#94a3b8", textAlign: "center", padding: "20px 0" }}>No hay transacciones registradas en este estado de cuenta.</p>
                 )}
               </div>
             )}
@@ -1069,7 +962,6 @@ export default function StudentDashboard() {
             {activeTab === 'historial' && (
               <div className="card-dark">
                 <h3 style={{ margin: 0, fontSize: "18px" }}>🕒 Mis Últimos Movimientos</h3>
-
                 {movimientos && movimientos.length > 0 ? (
                   <div style={{ overflowX: "auto" }}>
                     <table className="tabla-movs">
@@ -1084,15 +976,9 @@ export default function StudentDashboard() {
                       <tbody>
                         {movimientos.map((m, idx) => (
                           <tr key={m.id || idx}>
-                            <td style={{ color: "#cbd5e1" }}>
-                              {m.fecha ? new Date(m.fecha).toLocaleString() : "N/A"}
-                            </td>
-                            <td style={{ color: obtenerColorTipo(m.tipo), fontWeight: "bold" }}>
-                              {m.tipo}
-                            </td>
-                            <td style={{ color: obtenerColorTipo(m.tipo), fontWeight: "bold" }}>
-                              🪙 {obtenerSignoMonto(m.tipo, m.cantidad)}
-                            </td>
+                            <td style={{ color: "#cbd5e1" }}>{m.fecha ? new Date(m.fecha).toLocaleString() : "N/A"}</td>
+                            <td style={{ color: obtenerColorTipo(m.tipo), fontWeight: "bold" }}>{m.tipo}</td>
+                            <td style={{ color: obtenerColorTipo(m.tipo), fontWeight: "bold" }}>🪙 {obtenerSignoMonto(m.tipo, m.cantidad)}</td>
                             <td style={{ color: "#cbd5e1" }}>{m.motivo || "-"}</td>
                           </tr>
                         ))}
@@ -1102,9 +988,6 @@ export default function StudentDashboard() {
                 ) : (
                   <div style={{ textAlign: "center", padding: "30px 0", color: "#94a3b8" }}>
                     <p style={{ margin: 0, fontSize: "15px" }}>Aún no tienes movimientos registrados.</p>
-                    <p style={{ margin: "5px 0 0 0", fontSize: "12px", color: "#64748b" }}>
-                      Tus abonos, ahorros y canjes aparecerán reflejados en esta sección.
-                    </p>
                   </div>
                 )}
               </div>
