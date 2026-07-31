@@ -307,9 +307,7 @@ export default function StudentDashboard() {
       setProcesandoCompra(null);
     }
   
-  
-  
-
+    
     try {
       const response = await fetch("https://banco-ceesuv-backend.onrender.com/api/compras", {
         method: "POST",
