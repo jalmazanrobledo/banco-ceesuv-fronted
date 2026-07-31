@@ -29,16 +29,15 @@ export default function TransferenciaCoins({ alumnoActual, onTransferenciaExitos
     setCargando(true);
 
     try {
-      const respuesta = await fetch("https://banco-ceesuv-backend.vercel.app/api/transferencias", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          remitente_id: Number(alumnoActual?.id || alumnoActual?.alumno_id),
-          tarjeta_destino: tarjetaDestino,
-          cantidad: Number(monto),
-          usuario: `${alumnoActual?.nombre || ""} ${alumnoActual?.apellidos || ""}`.trim()
-        })
-      });
+     const respuesta = await fetch("https://banco-ceesuv-backend.vercel.app/api/transferir-por-tarjeta", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({
+    remitenteId: Number(alumnoActual?.id || alumnoActual?.alumno_id),
+    numeroTarjetaDestino: tarjetaDestino,
+    monto: Number(monto)
+  })
+});
 
       const data = await respuesta.json().catch(() => ({}));
 
