@@ -2,128 +2,199 @@ import React, { useState } from "react";
 
 export default function TransferenciaCoins({ alumnoActual, onTransferenciaExitosa }) {
   const [tarjetaDestino, setTarjetaDestino] = useState("");
-  const [monto, setMonto] = useState("");
-  const [cargando, setCargando] = useState(false);
-  const [mensaje, setMensaje] = useState({ texto: "", tipo: "" });
+  const [cantidad, setCantidad] = useState("");
+  const [concepto, setConcepto] = useState("");
+  const [referencia, setReferencia] = useState("");
+  
+  const [procesando, setProcesando] = useState(false);
+  const [mensaje, setMensaje] = useState(null);
 
-  const manejarCambioTarjeta = (e) => {
-    let valor = e.target.value.replace(/\D/g, "");
-    if (valor.length > 16) valor = valor.slice(0, 16);
-    setTarjetaDestino(valor);
-  };
-
-  const handleSubmit = async (e) => {
+  const handleTransferir = async (e) => {
     e.preventDefault();
-    setMensaje({ texto: "", tipo: "" });
+    setMensaje(null);
 
     if (!tarjetaDestino || tarjetaDestino.length !== 16) {
-      setMensaje({ texto: "El número de tarjeta debe tener 16 dígitos.", tipo: "error" });
+      setMensaje({ tipo: "error", texto: "Ingresa un número de tarjeta válido de 16 dígitos." });
       return;
     }
 
-    if (!monto || Number(monto) <= 0) {
-      setMensaje({ texto: "Ingresa un monto válido a transferir.", tipo: "error" });
+    if (!cantidad || isNaN(cantidad) || Number(cantidad) <= 0) {
+      setMensaje({ tipo: "error", texto: "Ingresa una cantidad válida de coins a enviar." });
       return;
     }
 
-    setCargando(true);
+    const remitenteId = alumnoActual?.alumno_id || alumnoActual?.id;
+
+    if (!remitenteId) {
+      setMensaje({ tipo: "error", texto: "No se identificó la sesión del remitente." });
+      return;
+    }
+
+    setProcesando(true);
 
     try {
-      const respuesta = await fetch("https://banco-ceesuv-backend.onrender.com/api/transferir-por-tarjeta", {
+      const response = await fetch("https://banco-ceesuv-backend.onrender.com/api/transferencias", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          remitenteId: Number(alumnoActual?.id || alumnoActual?.alumno_id),
-          numeroTarjetaDestino: tarjetaDestino,
-          monto: Number(monto)
+          remitente_id: Number(remitenteId),
+          tarjeta_destino: tarjetaDestino.trim(),
+          cantidad: Number(cantidad),
+          concepto: concepto.trim() || "Transferencia CEESUV Coins",
+          referencia: referencia.trim() || String(Math.floor(100000 + Math.random() * 900000))
         })
       });
 
-      const data = await respuesta.json().catch(() => ({}));
+      const data = await response.json();
 
-      if (!respuesta.ok) {
-        throw new Error(data.error || data.mensaje || "Error al realizar la transferencia.");
+      if (response.ok) {
+        setMensaje({ tipo: "success", texto: "¡Transferencia realizada con éxito!" });
+        setTarjetaDestino("");
+        setCantidad("");
+        setConcepto("");
+        setReferencia("");
+        if (onTransferenciaExitosa) {
+          onTransferenciaExitosa();
+        }
+      } else {
+        setMensaje({ tipo: "error", texto: data.mensaje || "Error al procesar la transferencia." });
       }
-
-      setMensaje({ texto: data.mensaje || "¡Transferencia realizada con éxito!", tipo: "exito" });
-      setTarjetaDestino("");
-      setMonto("");
-
-      if (onTransferenciaExitosa) {
-        onTransferenciaExitosa();
-      }
-
     } catch (error) {
-      setMensaje({ texto: error.message, tipo: "error" });
+      console.error("Error de red:", error);
+      setMensaje({ tipo: "error", texto: "Error de conexión con el servidor." });
     } finally {
-      setCargando(false);
+      setProcesando(false);
     }
   };
 
   return (
-    <div style={{ maxWidth: "600px", margin: "20px auto", padding: "20px", background: "#ffffff", borderRadius: "12px", boxShadow: "0 4px 15px rgba(0,0,0,0.08)", color: "#0f172a" }}>
-      <h3 style={{ textAlign: "center", color: "#0B2341", marginBottom: "15px" }}>🔄 Transferir CEESUV Coins</h3>
+    <div style={{
+      background: "#ffffff",
+      borderRadius: "16px",
+      padding: "24px",
+      color: "#0c1527",
+      boxShadow: "0 10px 25px rgba(0,0,0,0.2)",
+      maxWidth: "500px",
+      margin: "0 auto"
+    }}>
+      <h3 style={{ margin: "0 0 15px 0", fontSize: "18px", textAlign: "center", color: "#0c1527" }}>
+        🔄 Transferir CEESUV Coins
+      </h3>
 
-      <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "15px" }}>
+      <form onSubmit={handleTransferir} style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
         <div>
-          <label style={{ display: "block", fontSize: "13px", fontWeight: "600", color: "#475569", marginBottom: "5px" }}>
+          <label style={{ display: "block", fontSize: "12px", fontWeight: "bold", marginBottom: "5px", color: "#475569" }}>
             Número de Tarjeta Destino (16 dígitos)
           </label>
           <input
             type="text"
+            maxLength="16"
+            placeholder="4820000XXXXXXXXX"
             value={tarjetaDestino}
-            onChange={manejarCambioTarjeta}
-            placeholder="48200000XXXXXXXX"
-            style={{ width: "100%", padding: "10px", borderRadius: "8px", border: "1px solid #cbd5e1", fontSize: "15px", fontFamily: "monospace", boxSizing: "border-box" }}
+            onChange={(e) => setTarjetaDestino(e.target.value)}
+            style={{
+              width: "100%",
+              padding: "10px 12px",
+              borderRadius: "8px",
+              border: "1px solid #cbd5e1",
+              fontSize: "14px",
+              boxSizing: "border-box"
+            }}
           />
         </div>
 
         <div>
-          <label style={{ display: "block", fontSize: "13px", fontWeight: "600", color: "#475569", marginBottom: "5px" }}>
+          <label style={{ display: "block", fontSize: "12px", fontWeight: "bold", marginBottom: "5px", color: "#475569" }}>
             Cantidad de Coins a Enviar
           </label>
           <input
             type="number"
-            min="1"
-            value={monto}
-            onChange={(e) => setMonto(e.target.value)}
             placeholder="Ej. 50"
-            style={{ width: "100%", padding: "10px", borderRadius: "8px", border: "1px solid #cbd5e1", fontSize: "15px", boxSizing: "border-box" }}
+            min="1"
+            value={cantidad}
+            onChange={(e) => setCantidad(e.target.value)}
+            style={{
+              width: "100%",
+              padding: "10px 12px",
+              borderRadius: "8px",
+              border: "1px solid #cbd5e1",
+              fontSize: "14px",
+              boxSizing: "border-box"
+            }}
+          />
+        </div>
+
+        <div>
+          <label style={{ display: "block", fontSize: "12px", fontWeight: "bold", marginBottom: "5px", color: "#475569" }}>
+            Concepto
+          </label>
+          <input
+            type="text"
+            placeholder="Ej. Pago de proyecto, Apuntes..."
+            value={concepto}
+            onChange={(e) => setConcepto(e.target.value)}
+            style={{
+              width: "100%",
+              padding: "10px 12px",
+              borderRadius: "8px",
+              border: "1px solid #cbd5e1",
+              fontSize: "14px",
+              boxSizing: "border-box"
+            }}
+          />
+        </div>
+
+        <div>
+          <label style={{ display: "block", fontSize: "12px", fontWeight: "bold", marginBottom: "5px", color: "#475569" }}>
+            Número de Referencia (Opcional)
+          </label>
+          <input
+            type="text"
+            placeholder="Ej. REF-001"
+            value={referencia}
+            onChange={(e) => setReferencia(e.target.value)}
+            style={{
+              width: "100%",
+              padding: "10px 12px",
+              borderRadius: "8px",
+              border: "1px solid #cbd5e1",
+              fontSize: "14px",
+              boxSizing: "border-box"
+            }}
           />
         </div>
 
         <button
           type="submit"
-          disabled={cargando}
+          disabled={procesando}
           style={{
-            backgroundColor: cargando ? "#94a3b8" : "#0B2341",
-            color: "#ffffff",
+            background: "#0c1527",
+            color: "white",
+            border: "none",
             padding: "12px",
             borderRadius: "8px",
-            border: "none",
             fontWeight: "bold",
-            fontSize: "15px",
-            cursor: cargando ? "not-allowed" : "pointer",
+            fontSize: "14px",
+            cursor: "pointer",
+            marginTop: "6px",
             transition: "background 0.2s"
           }}
         >
-          {cargando ? "Procesando..." : "Realizar Transferencia"}
+          {procesando ? "Procesando..." : "Realizar Transferencia"}
         </button>
-
-        {mensaje.texto && (
-          <div style={{
-            padding: "10px",
-            borderRadius: "6px",
-            fontSize: "13px",
-            textAlign: "center",
-            backgroundColor: mensaje.tipo === "exito" ? "#dcfce7" : "#fee2e2",
-            color: mensaje.tipo === "exito" ? "#166534" : "#991b1b",
-            border: `1px solid ${mensaje.tipo === "exito" ? "#bbf7d0" : "#fca5a5"}`
-          }}>
-            {mensaje.texto}
-          </div>
-        )}
       </form>
+
+      {mensaje && (
+        <p style={{
+          marginTop: "15px",
+          textAlign: "center",
+          fontSize: "13px",
+          fontWeight: "bold",
+          color: mensaje.tipo === "error" ? "#ef4444" : "#10b981"
+        }}>
+          {mensaje.texto}
+        </p>
+      )}
     </div>
   );
 }
