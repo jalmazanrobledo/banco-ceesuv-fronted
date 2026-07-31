@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import TarjetaDebito from "./TarjetaDebito";
+import TarjetaCredito from "./TarjetaCredito";
 import TransferenciaCoins from "./TransferenciaCoins";
 
 export default function StudentDashboard() {
@@ -830,11 +831,19 @@ export default function StudentDashboard() {
               <div className="card-dark" style={{ textAlign: "center" }}>
                 <h3 style={{ margin: "0 0 10px 0", fontSize: "18px" }}>💳 Mis Tarjetas CEESUV</h3>
                 <p style={{ color: "#94a3b8", fontSize: "14px", marginBottom: "20px" }}>
-                  Consulta tu tarjeta de débito digital oficial y gestiona tus futuros plásticos.
+                  Consulta tus tarjetas digitales oficiales institucionales de débito y crédito.
                 </p>
 
-                <div style={{ display: "flex", justifyContent: "center", marginBottom: "15px" }}>
-                  <TarjetaDebito alumno={alumno} />
+                <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: "25px", marginBottom: "15px" }}>
+                  <div style={{ textAlign: "center" }}>
+                    <h4 style={{ color: "#FFF", marginBottom: "10px", fontSize: "14px" }}>💳 Tarjeta de Débito</h4>
+                    <TarjetaDebito alumno={alumno} />
+                  </div>
+
+                  <div style={{ textAlign: "center" }}>
+                    <h4 style={{ color: "#d4af37", marginBottom: "10px", fontSize: "14px" }}>💳 Tarjeta de Crédito</h4>
+                    <TarjetaCredito alumno={alumno} />
+                  </div>
                 </div>
               </div>
             )}
