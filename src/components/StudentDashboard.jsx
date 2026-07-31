@@ -3,6 +3,101 @@ import { useNavigate } from "react-router-dom";
 import TarjetaDebito from "./TarjetaDebito";
 import TransferenciaCoins from "./TransferenciaCoins";
 
+// Componente Tarjeta de Crédito CEESUV (Exclusivo Secundaria y Semestres permitidos)
+function TarjetaCreditoCEESUV({ alumno }) {
+  if (!alumno) {
+    return <p style={{ textAlign: "center", color: "#64748b" }}>Cargando información de la tarjeta...</p>;
+  }
+
+  const gradoStr = String(alumno.grado || alumno.semestre || "").trim().toLowerCase();
+  const nivelesPermitidos = ["1", "2", "3", "1er", "3er", "5to", "primero", "segundo", "tercero"];
+  const esPermitido = nivelesPermitidos.some(nivel => gradoStr.includes(nivel));
+
+  if (!esPermitido) {
+    return (
+      <div style={{
+        background: "rgba(19, 34, 56, 0.9)",
+        borderRadius: "16px",
+        padding: "30px",
+        textAlign: "center",
+        maxWidth: "450px",
+        margin: "0 auto",
+        border: "1px solid #1e3250"
+      }}>
+        <h3 style={{ color: "#f59e0b", marginBottom: "10px" }}>💳 Tarjeta de Crédito CEESUV</h3>
+        <p style={{ color: "#94a3b8", fontSize: "14px", lineHeight: "1.5" }}>
+          Este módulo de tarjeta de crédito está disponible exclusivamente para alumnos de **Secundaria (1°, 2°, 3°)** y **Bachillerato (1°, 3° y 5° Semestre)**.
+        </p>
+      </div>
+    );
+  }
+
+  const idAlumno = String(alumno.alumno_id || alumno.id || "0000").padStart(8, "0");
+  const numeroTarjeta = `48200000${idAlumno}`;
+  const numeroFormateado = numeroTarjeta.match(/.{1,4}/g).join(" ");
+  const nombreTitular = alumno.nombre || "ALUMNO CEESUV";
+  const fechaVencimiento = "12/28";
+
+  return (
+    <div style={{
+      display: "flex",
+      flexDirection: "column",
+      alignItems: "center",
+      gap: "20px"
+    }}>
+      <div style={{
+        width: "100%",
+        maxWidth: "420px",
+        height: "230px",
+        background: "linear-gradient(135deg, #d4af37 0%, #aa7c11 50%, #f3e5ab 100%)",
+        borderRadius: "16px",
+        padding: "24px",
+        boxSizing: "border-box",
+        color: "#0c1527",
+        boxShadow: "0 12px 30px rgba(0,0,0,0.4)",
+        display: "flex",
+        flexDirection: "column",
+        justifyContent: "space-between",
+        position: "relative",
+        overflow: "hidden",
+        border: "1px solid #f1c40f"
+      }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <span style={{ fontWeight: "900", fontSize: "16px", letterSpacing: "1px", color: "#0c1527" }}>
+            BANCO CEESUV
+          </span>
+          <span style={{ background: "#0c1527", color: "#d4af37", padding: "4px 10px", borderRadius: "6px", fontSize: "11px", fontWeight: "bold", letterSpacing: "0.5px" }}>
+            CRÉDITO
+          </span>
+        </div>
+
+        <div style={{
+          width: "45px",
+          height: "35px",
+          background: "linear-gradient(135deg, #bdc3c7 0%, #2c3e50 100%)",
+          borderRadius: "6px",
+          border: "1px solid #7f8c8d"
+        }}></div>
+
+        <div style={{ fontSize: "20px", fontWeight: "bold", letterSpacing: "2px", color: "#0c1527", fontFamily: "monospace" }}>
+          {numeroFormateado}
+        </div>
+
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
+          <div>
+            <div style={{ fontSize: "9px", textTransform: "uppercase", color: "#334155", fontWeight: "bold" }}>Titular de la cuenta</div>
+            <div style={{ fontSize: "14px", fontWeight: "bold", color: "#0c1527", textTransform: "uppercase" }}>{nombreTitular}</div>
+          </div>
+          <div>
+            <div style={{ fontSize: "9px", textTransform: "uppercase", color: "#334155", fontWeight: "bold" }}>Vence</div>
+            <div style={{ fontSize: "14px", fontWeight: "bold", color: "#0c1527", fontFamily: "monospace" }}>{fechaVencimiento}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function StudentDashboard() {
   const navigate = useNavigate();
   const [alumno, setAlumno] = useState(null);
@@ -829,12 +924,12 @@ export default function StudentDashboard() {
             {activeTab === 'tarjetas' && (
               <div className="card-dark" style={{ textAlign: "center" }}>
                 <h3 style={{ margin: "0 0 10px 0", fontSize: "18px" }}>💳 Mis Tarjetas CEESUV</h3>
-                <p style={{ color: "#94a3b8", fontSize: "14px", marginBottom: "20px" }}>
-                  Consulta tu tarjeta de débito digital oficial y gestiona tus futuros plásticos.
+                <p style={{ color: "#94a3b8", fontSize: "14px", marginBottom: "25px" }}>
+                  Tu tarjeta de crédito oficial con diseño exclusivo institucional.
                 </p>
 
                 <div style={{ display: "flex", justifyContent: "center", marginBottom: "15px" }}>
-                  <TarjetaDebito alumno={alumno} />
+                  <TarjetaCreditoCEESUV alumno={alumno} />
                 </div>
               </div>
             )}
