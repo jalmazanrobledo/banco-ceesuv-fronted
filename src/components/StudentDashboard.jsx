@@ -9,7 +9,7 @@ export default function StudentDashboard() {
   const [movimientos, setMovimientos] = useState([]);
   const [cargando, setCargando] = useState(true);
   
-  const [activeTab, setActiveTab] = useState("tarjeta");
+  const [activeTab, setActiveTab] = useState("tarjetas");
   
   const [tasas, setTasas] = useState(null);
   const [cargandoDivisas, setCargandoDivisas] = useState(true);
@@ -22,7 +22,6 @@ export default function StudentDashboard() {
   const [mensajeTienda, setMensajeTienda] = useState(null);
 
   const [indiceActivo, setIndiceActivo] = useState(0);
-  const [mostrarTransferencia, setMostrarTransferencia] = useState(false);
 
   const productosTienda = [
     { id: 1, nombre: "Lápiz CEESUV", costo: 5, icono: "✏️" },
@@ -167,6 +166,11 @@ export default function StudentDashboard() {
     localStorage.clear();
     navigate("/login");
   };
+
+  const nombreCompletoAlumno = (
+    alumno?.nombre_completo ||
+    `${alumno?.nombre || ""} ${alumno?.apellidos || alumno?.apellido || ""}`
+  ).trim().toUpperCase() || alumno?.usuario || "ESTUDIANTE";
 
   const handleOperacionAhorro = async (tipoAccion) => {
     if (!montoAhorro || isNaN(montoAhorro) || Number(montoAhorro) <= 0) {
@@ -317,12 +321,6 @@ export default function StudentDashboard() {
       </>
     );
   }
-
-  // Nombre completo unificado para saludo y tarjetas
-  const nombreCompletoAlumno = (
-    alumno?.nombre_completo ||
-    `${alumno?.nombre || ""} ${alumno?.apellidos || alumno?.apellido || ""}`
-  ).trim().toUpperCase() || alumno?.usuario || "ESTUDIANTE";
 
   const coinsDisponibles = Number(alumno?.coins ?? 0);
   const coinsAhorro = Number(alumno?.coins_ahorro ?? 0);
@@ -795,22 +793,28 @@ export default function StudentDashboard() {
           {/* BARRA DE PESTAÑAS MODERNA Y FLOTANTE */}
           <nav className="modern-tabs-bar">
             <button
-              onClick={() => setActiveTab('tarjeta')}
-              className={`modern-tab-btn ${activeTab === 'tarjeta' ? 'active' : ''}`}
+              onClick={() => setActiveTab('tarjetas')}
+              className={`modern-tab-btn ${activeTab === 'tarjetas' ? 'active' : ''}`}
             >
-              💳 Mi Tarjeta y Transferencias
+              💳 Mis Tarjetas
             </button>
             <button
-              onClick={() => setActiveTab('tienda')}
-              className={`modern-tab-btn ${activeTab === 'tienda' ? 'active' : ''}`}
+              onClick={() => setActiveTab('transferencias')}
+              className={`modern-tab-btn ${activeTab === 'transferencias' ? 'active' : ''}`}
             >
-              🛒 Tienda Escolar
+              🔄 Transferencias
             </button>
             <button
               onClick={() => setActiveTab('ahorro')}
               className={`modern-tab-btn ${activeTab === 'ahorro' ? 'active' : ''}`}
             >
               🏛️ Caja de Ahorro
+            </button>
+            <button
+              onClick={() => setActiveTab('tienda')}
+              className={`modern-tab-btn ${activeTab === 'tienda' ? 'active' : ''}`}
+            >
+              🛒 Tienda Escolar
             </button>
             <button
               onClick={() => setActiveTab('historial')}
@@ -822,49 +826,91 @@ export default function StudentDashboard() {
 
           {/* CONTENEDOR DE VISTAS CON TRANSICIÓN SUAVE */}
           <div className="view-transition" key={activeTab}>
-            {activeTab === 'tarjeta' && (
+            {activeTab === 'tarjetas' && (
               <div className="card-dark" style={{ textAlign: "center" }}>
-                <h3 style={{ margin: "0 0 10px 0", fontSize: "18px" }}>💳 Tarjeta de Débito y Transferencias CEESUV</h3>
+                <h3 style={{ margin: "0 0 10px 0", fontSize: "18px" }}>💳 Mis Tarjetas CEESUV</h3>
                 <p style={{ color: "#94a3b8", fontSize: "14px", marginBottom: "20px" }}>
-                  Consulta tu tarjeta digital oficial y envía coins a tus compañeros usando su número de tarjeta.
+                  Consulta tu tarjeta de débito digital oficial y gestiona tus futuros plásticos.
                 </p>
 
                 <div style={{ display: "flex", justifyContent: "center", marginBottom: "15px" }}>
                   <TarjetaDebito alumno={alumno} />
                 </div>
+              </div>
+            )}
 
-                <button
-                  onClick={() => setMostrarTransferencia(!mostrarTransferencia)}
-                  className="btn-accion btn-guardar"
-                  style={{ maxWidth: "260px", margin: "0 auto", display: "block" }}
-                >
-                  {mostrarTransferencia ? "Ocultar Transferencias" : "🔄 Realizar Transferencia a Compañero"}
-                </button>
-
-                {mostrarTransferencia && (
-                  <div className="card-dark" style={{ marginTop: "25px", textAlign: "left", border: "1px solid #1e3250" }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "15px", flexWrap: "wrap", gap: "10px" }}>
-                      <h4 style={{ margin: 0, fontSize: "16px", color: "#f59e0b" }}>🔄 Transferir CEESUV Coins</h4>
-                      <div style={{
-                        background: "rgba(16, 185, 129, 0.15)",
-                        border: "1px solid #10b981",
-                        borderRadius: "8px",
-                        padding: "6px 12px",
-                        color: "#10b981",
-                        fontSize: "13px",
-                        fontWeight: "bold"
-                      }}>
-                        🪙 Saldo disponible: {coinsDisponibles} COINS
-                      </div>
-                    </div>
-
-                    <TransferenciaCoins
-                      alumnoActual={alumno}
-                      onTransferenciaExitosa={() => {
-                        cargarDatosEstudiante();
-                      }}
-                    />
+            {activeTab === 'transferencias' && (
+              <div className="card-dark" style={{ textAlign: "left" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "15px", flexWrap: "wrap", gap: "10px" }}>
+                  <h3 style={{ margin: 0, fontSize: "18px", color: "#f59e0b" }}>🔄 Módulo de Transferencias</h3>
+                  <div style={{
+                    background: "rgba(16, 185, 129, 0.15)",
+                    border: "1px solid #10b981",
+                    borderRadius: "8px",
+                    padding: "6px 12px",
+                    color: "#10b981",
+                    fontSize: "13px",
+                    fontWeight: "bold"
+                  }}>
+                    🪙 Saldo disponible: {coinsDisponibles} COINS
                   </div>
+                </div>
+                <p style={{ color: "#94a3b8", fontSize: "14px", marginBottom: "20px" }}>
+                  Envía coins a tus compañeros de forma rápida y segura usando el número de su tarjeta de 16 dígitos.
+                </p>
+
+                <TransferenciaCoins
+                  alumnoActual={alumno}
+                  onTransferenciaExitosa={() => {
+                    cargarDatosEstudiante();
+                  }}
+                />
+              </div>
+            )}
+
+            {activeTab === 'ahorro' && (
+              <div className="card-dark">
+                <h3 style={{ margin: "0 0 10px 0", fontSize: "18px" }}>📥 Gestión de Caja de Ahorro</h3>
+                <p style={{ color: "#94a3b8", fontSize: "14px", marginBottom: "15px" }}>
+                  Mueve coins de tu saldo disponible a tu alcancía de ahorro o retíralos cuando los necesites.
+                </p>
+
+                <div className="ahorro-acciones">
+                  <input
+                    type="number"
+                    placeholder="Cantidad de coins"
+                    className="input-ahorro"
+                    value={montoAhorro}
+                    onChange={(e) => setMontoAhorro(e.target.value)}
+                    min="1"
+                  />
+                  <button
+                    className="btn-accion btn-guardar"
+                    onClick={() => handleOperacionAhorro("AHORRO_DEPOSITO")}
+                    disabled={procesando}
+                  >
+                    {procesando ? "Procesando..." : "➡️ Depositar a Ahorro"}
+                  </button>
+                  <button
+                    className="btn-accion btn-retirar"
+                    onClick={() => handleOperacionAhorro("AHORRO_RETIRO")}
+                    disabled={procesando}
+                  >
+                    {procesando ? "Procesando..." : "⬅️ Retirar de Ahorro"}
+                  </button>
+                </div>
+
+                {mensajeAccion && (
+                  <p
+                    style={{
+                      marginTop: "12px",
+                      fontSize: "14px",
+                      color: mensajeAccion.tipo === "error" ? "#ef4444" : "#10b981",
+                      fontWeight: "bold"
+                    }}
+                  >
+                    {mensajeAccion.texto}
+                  </p>
                 )}
               </div>
             )}
@@ -930,53 +976,6 @@ export default function StudentDashboard() {
                     }}
                   >
                     {mensajeTienda.texto}
-                  </p>
-                )}
-              </div>
-            )}
-
-            {activeTab === 'ahorro' && (
-              <div className="card-dark">
-                <h3 style={{ margin: "0 0 10px 0", fontSize: "18px" }}>📥 Gestión de Caja de Ahorro</h3>
-                <p style={{ color: "#94a3b8", fontSize: "14px", marginBottom: "15px" }}>
-                  Mueve coins de tu saldo disponible a tu alcancía de ahorro o retíralos cuando los necesites.
-                </p>
-
-                <div className="ahorro-acciones">
-                  <input
-                    type="number"
-                    placeholder="Cantidad de coins"
-                    className="input-ahorro"
-                    value={montoAhorro}
-                    onChange={(e) => setMontoAhorro(e.target.value)}
-                    min="1"
-                  />
-                  <button
-                    className="btn-accion btn-guardar"
-                    onClick={() => handleOperacionAhorro("AHORRO_DEPOSITO")}
-                    disabled={procesando}
-                  >
-                    {procesando ? "Procesando..." : "➡️ Depositar a Ahorro"}
-                  </button>
-                  <button
-                    className="btn-accion btn-retirar"
-                    onClick={() => handleOperacionAhorro("AHORRO_RETIRO")}
-                    disabled={procesando}
-                  >
-                    {procesando ? "Procesando..." : "⬅️ Retirar de Ahorro"}
-                  </button>
-                </div>
-
-                {mensajeAccion && (
-                  <p
-                    style={{
-                      marginTop: "12px",
-                      fontSize: "14px",
-                      color: mensajeAccion.tipo === "error" ? "#ef4444" : "#10b981",
-                      fontWeight: "bold"
-                    }}
-                  >
-                    {mensajeAccion.texto}
                   </p>
                 )}
               </div>
