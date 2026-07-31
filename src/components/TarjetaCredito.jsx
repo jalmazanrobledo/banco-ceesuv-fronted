@@ -8,14 +8,18 @@ function TarjetaCredito({ alumno }) {
     return <p style={{ textAlign: "center", color: "#64748b" }}>Cargando información de la tarjeta...</p>;
   }
 
-  // 1. Obtener y normalizar el grado/semestre del alumno
-  const gradoStr = String(alumno.grado || alumno.semestre || "").trim().toLowerCase();
+  // 1. Obtener el grado/semestre desde la base de datos (ej. "1░ Secundaria", "3░ Semestre")
+  const gradoStr = String(alumno?.grado || "").trim().toLowerCase();
 
-  // 2. Definir los niveles permitidos: Secundaria (1, 2, 3) y Semestres (1, 3, 5)
-  const nivelesPermitidos = ["1", "2", "3", "1er", "3er", "5to", "primero", "segundo", "tercero"];
-  const esPermitido = nivelesPermitidos.some(nivel => gradoStr.includes(nivel));
+  // 2. Definir los niveles y grados exactos autorizados para Crédito:
+  // - Secundaria: 1, 2, 3
+  // - Semestre: 1, 3, 5
+  const esSecundariaPermitida = (gradoStr.includes("secundaria") && (gradoStr.startsWith("1") || gradoStr.startsWith("2") || gradoStr.startsWith("3")));
+  const esSemestrePermitido = (gradoStr.includes("semestre") && (gradoStr.startsWith("1") || gradoStr.startsWith("3") || gradoStr.startsWith("5")));
 
-  // Si no pertenece a los grados/semestres autorizados, mostramos aviso elegante
+  const esPermitido = esSecundariaPermitida || esSemestrePermitido;
+
+  // Si no pertenece a los grados autorizados, mostramos aviso elegante
   if (!esPermitido) {
     return (
       <div style={{
