@@ -360,11 +360,20 @@ function Alumnos() {
                           >
                             ✏️ Editar
                           </button>
-                          <button
+                         <button
                             onClick={() => handleCambiarEstatus(a)}
-                            style={{ marginRight: "6px", padding: "8px 12px", background: a.estatus === "Inactivo" ? "#28a745" : "#ffc107", color: a.estatus === "Inactivo" ? "white" : "#0f2341", border: "none", borderRadius: "6px", cursor: "pointer", fontWeight: "bold" }}
+                           style={{ 
+                          marginRight: "6px", 
+                          padding: "8px 12px", 
+                          background: a.estatus === "Inactivo" ? "#28a745" : "rgb(255, 139, 7)", 
+                          color: a.estatus === "Inactivo" ? "white" : "#0f2341", 
+                          border: "none", 
+                          borderRadius: "6px", 
+                          cursor: "pointer", 
+                          fontWeight: "bold" 
+                        }}
 >
-                            {a.estatus === "Inactivo" ? "🟢 Activar" : "🟡 Inactivar"}
+                        {a.estatus === "Inactivo" ? "🟢 Activar" : "🟠 Inactivar"}
                           </button>
                           <button
                             onClick={() => handleEliminar(alumnoId)}
