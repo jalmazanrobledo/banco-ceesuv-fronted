@@ -223,7 +223,7 @@ export default function StudentDashboard() {
     }
   };
 
- const handleComprar = async (producto) => {
+  const handleComprar = async (producto) => {
     const alumnoId = alumno?.alumno_id || alumno?.id;
 
     if (!alumnoId) {
@@ -297,37 +297,6 @@ export default function StudentDashboard() {
         try {
           const data = await response.json();
           if (data && (data.mensaje || data.error)) mensajeError = data.mensaje || data.error;
-        } catch (e) {}
-        setMensajeTienda({ tipo: "error", texto: mensajeError });
-      }
-    } catch (error) {
-      console.error("Error de red en compra:", error);
-      setMensajeTienda({ tipo: "error", texto: "Error de conexión con el servidor." });
-    } finally {
-      setProcesandoCompra(null);
-    }
-  
-    
-    try {
-      const response = await fetch("https://banco-ceesuv-backend.onrender.com/api/compras", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          alumno_id: Number(alumnoId),
-          producto_nombre: producto.nombre,
-          costo: producto.costo,
-          usuario: nombreCompletoAlumno
-        })
-      });
-
-      if (response.ok) {
-        setMensajeTienda({ tipo: "success", texto: `¡Has adquirido ${producto.nombre} con éxito!` });
-        await cargarDatosEstudiante();
-      } else {
-        let mensajeError = "Error al procesar la compra.";
-        try {
-          const data = await response.json();
-          if (data && data.mensaje) mensajeError = data.mensaje;
         } catch (e) {}
         setMensajeTienda({ tipo: "error", texto: mensajeError });
       }
@@ -995,48 +964,48 @@ export default function StudentDashboard() {
             )}
 
             {activeTab === 'tienda' && (
-  <div className="card-dark">
-    <h3 style={{ margin: "0 0 5px 0", fontSize: "18px" }}>🛒 Tienda Escolar</h3>
-    <p style={{ color: "#94a3b8", fontSize: "14px", margin: "0 0 15px 0" }}>
-      Canjea tus coins o utiliza tu línea de crédito institucional para adquirir artículos.
-    </p>
+              <div className="card-dark">
+                <h3 style={{ margin: "0 0 5px 0", fontSize: "18px" }}>🛒 Tienda Escolar</h3>
+                <p style={{ color: "#94a3b8", fontSize: "14px", margin: "0 0 15px 0" }}>
+                  Canjea tus coins o utiliza tu línea de crédito institucional para adquirir artículos.
+                </p>
 
-    {/* SELECTOR DE MÉTODO DE PAGO */}
-    <div style={{ display: "flex", gap: "10px", marginBottom: "20px" }}>
-      <button
-        onClick={() => setMetodoPago("coins")}
-        style={{
-          flex: 1,
-          padding: "10px",
-          borderRadius: "8px",
-          border: metodoPago === "coins" ? "2px solid #10b981" : "1px solid #1e3250",
-          background: metodoPago === "coins" ? "rgba(16, 185, 129, 0.15)" : "rgba(12, 21, 39, 0.6)",
-          color: "white",
-          fontWeight: "bold",
-          cursor: "pointer",
-          fontSize: "13px"
-        }}
-      >
-        🪙 Pagar con Coins (Saldo: {coinsDisponibles})
-      </button>
+                {/* SELECTOR DE MÉTODO DE PAGO */}
+                <div style={{ display: "flex", gap: "10px", marginBottom: "20px" }}>
+                  <button
+                    onClick={() => setMetodoPago("coins")}
+                    style={{
+                      flex: 1,
+                      padding: "10px",
+                      borderRadius: "8px",
+                      border: metodoPago === "coins" ? "2px solid #10b981" : "1px solid #1e3250",
+                      background: metodoPago === "coins" ? "rgba(16, 185, 129, 0.15)" : "rgba(12, 21, 39, 0.6)",
+                      color: "white",
+                      fontWeight: "bold",
+                      cursor: "pointer",
+                      fontSize: "13px"
+                    }}
+                  >
+                    🪙 Pagar con Coins (Saldo: {coinsDisponibles})
+                  </button>
 
-      <button
-        onClick={() => setMetodoPago("credito")}
-        style={{
-          flex: 1,
-          padding: "10px",
-          borderRadius: "8px",
-          border: metodoPago === "credito" ? "2px solid #d4af37" : "1px solid #1e3250",
-          background: metodoPago === "credito" ? "rgba(212, 175, 55, 0.15)" : "rgba(12, 21, 39, 0.6)",
-          color: "white",
-          fontWeight: "bold",
-          cursor: "pointer",
-          fontSize: "13px"
-        }}
-      >
-        💳 Tarjeta de Crédito (Disp: ${(Number(alumno?.limite_credito || 200) - Number(alumno?.credito_utilizado || 0)).toFixed(2)})
-      </button>
-    </div>
+                  <button
+                    onClick={() => setMetodoPago("credito")}
+                    style={{
+                      flex: 1,
+                      padding: "10px",
+                      borderRadius: "8px",
+                      border: metodoPago === "credito" ? "2px solid #d4af37" : "1px solid #1e3250",
+                      background: metodoPago === "credito" ? "rgba(212, 175, 55, 0.15)" : "rgba(12, 21, 39, 0.6)",
+                      color: "white",
+                      fontWeight: "bold",
+                      cursor: "pointer",
+                      fontSize: "13px"
+                    }}
+                  >
+                    💳 Tarjeta de Crédito (Disp: ${(Number(alumno?.limite_credito || 200) - Number(alumno?.credito_utilizado || 0)).toFixed(2)})
+                  </button>
+                </div>
 
                 <div className="carrusel-contenedor">
                   {productosTienda.map((prod, index) => {
