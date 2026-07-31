@@ -60,27 +60,6 @@ export default function TransferenciaCoins({ alumnoActual, onTransferenciaExitos
     }
   };
 
-      const data = await respuesta.json().catch(() => ({}));
-
-      if (!respuesta.ok) {
-        throw new Error(data.mensaje || "Error al realizar la transferencia.");
-      }
-
-      setMensaje({ texto: "¡Transferencia realizada con éxito!", tipo: "exito" });
-      setTarjetaDestino("");
-      setMonto("");
-
-      if (onTransferenciaExitosa) {
-        onTransferenciaExitosa();
-      }
-
-    } catch (error) {
-      setMensaje({ texto: error.message, tipo: "error" });
-    } finally {
-      setCargando(false);
-    }
-  };
-
   return (
     <div style={{ maxWidth: "600px", margin: "20px auto", padding: "20px", background: "#ffffff", borderRadius: "12px", boxShadow: "0 4px 15px rgba(0,0,0,0.08)", color: "#0f172a" }}>
       <h3 style={{ textAlign: "center", color: "#0B2341", marginBottom: "15px" }}>🔄 Transferir CEESUV Coins</h3>
