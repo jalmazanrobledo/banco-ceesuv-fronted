@@ -235,23 +235,10 @@ export default function StudentDashboard() {
     setMensajeTienda(null);
 
     try {
-      let endpoint = "https://banco-ceesuv-backend.onrender.com/api/compras";
-      let payload = {
-        alumno_id: Number(alumnoId),
-        producto_nombre: producto.nombre,
-        costo: producto.costo,
-        usuario: nombreCompletoAlumno
-      };
+      let response;
 
-      // Validar según el método de pago activo
       if (metodoPago === "credito") {
-        endpoint = "https://banco-ceesuv-backend.onrender.com/api/comprar-credito";
-        payload = {
-          alumno_id: Number(alumnoId),
-          monto_compra: producto.costo,
-          concepto: `Compra en Tienda: ${producto.nombre}`
-        };
-
+        // --- FLUJO EXCLUSIVO DE CRÉDITO ---
         const limite = Number(alumno?.limite_credito || 200);
         const utilizado = Number(alumno?.credito_utilizado || 0);
         const disponibleCredito = limite - utilizado;
@@ -264,28 +251,44 @@ export default function StudentDashboard() {
           setProcesandoCompra(null);
           return;
         }
+
+        response = await fetch("https://banco-ceesuv-backend.onrender.com/api/comprar-credito", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            alumno_id: Number(alumnoId),
+            monto_compra: producto.costo,
+            concepto: `Compra en Tienda: ${producto.nombre}`
+          })
+        });
+
       } else {
-        // Validación exclusiva para Coins
+        // --- FLUJO EXCLUSIVO DE COINS ---
         if (Number(alumno?.coins || 0) < producto.costo) {
           setMensajeTienda({ tipo: "error", texto: `Saldo insuficiente de coins para comprar ${producto.nombre}.` });
           setProcesandoCompra(null);
           return;
         }
+
+        response = await fetch("https://banco-ceesuv-backend.onrender.com/api/compras", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            alumno_id: Number(alumnoId),
+            producto_nombre: producto.nombre,
+            costo: producto.costo,
+            usuario: nombreCompletoAlumno
+          })
+        });
       }
 
-      const response = await fetch(endpoint, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload)
-      });
-
       if (response.ok) {
-        const data = await response.json();
         const mensajeExito = metodoPago === "credito" 
-          ? `¡Compra a crédito exitosa!` 
+          ? `¡Compra a crédito de ${producto.nombre} exitosa!` 
           : `¡Has adquirido ${producto.nombre} con éxito!`;
 
         setMensajeTienda({ tipo: "success", texto: mensajeExito });
+        
         if (typeof cargarDatosEstudiante === "function") {
           await cargarDatosEstudiante();
         }
@@ -303,6 +306,7 @@ export default function StudentDashboard() {
     } finally {
       setProcesandoCompra(null);
     }
+  
   
   
 
