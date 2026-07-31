@@ -18,6 +18,7 @@ export default function StudentDashboard() {
   const [montoAhorro, setMontoAhorro] = useState("");
   const [mensajeAccion, setMensajeAccion] = useState(null);
   const [procesando, setProcesando] = useState(false);
+  const [metodoPago, setMetodoPago] = useState("coins"); // "coins" o "credito"
 
   const [procesandoCompra, setProcesandoCompra] = useState(null);
   const [mensajeTienda, setMensajeTienda] = useState(null);
@@ -230,13 +231,75 @@ export default function StudentDashboard() {
       return;
     }
 
-    if (Number(alumno?.coins || 0) < producto.costo) {
-      setMensajeTienda({ tipo: "error", texto: `Saldo insuficiente para comprar ${producto.nombre}.` });
-      return;
-    }
-
     setProcesandoCompra(producto.id);
     setMensajeTienda(null);
+
+    try {
+      let endpoint = "https://banco-ceesuv-backend.onrender.com/api/compras";
+      let payload = {
+        alumno_id: Number(alumnoId),
+        producto_nombre: producto.nombre,
+        costo: producto.costo,
+        usuario: nombreCompletoAlumno
+      };
+
+      if (metodoPago === "credito") {
+        endpoint = "https://banco-ceesuv-backend.onrender.com/api/comprar-credito";
+        payload = {
+          alumno_id: Number(alumnoId),
+          monto_compra: producto.costo,
+          concepto: `Compra en Tienda: ${producto.nombre}`
+        };
+
+        const limite = Number(alumno?.limite_credito || 200);
+        const utilizado = Number(alumno?.credito_utilizado || 0);
+        const disponibleCredito = limite - utilizado;
+
+        if (producto.costo > disponibleCredito) {
+          setMensajeTienda({ 
+            tipo: "error", 
+            texto: `Crédito insuficiente. Disponible: $${disponibleCredito.toFixed(2)}` 
+          });
+          setProcesandoCompra(null);
+          return;
+        }
+      } else {
+        if (Number(alumno?.coins || 0) < producto.costo) {
+          setMensajeTienda({ tipo: "error", texto: `Saldo insuficiente para comprar ${producto.nombre}.` });
+          setProcesandoCompra(null);
+          return;
+        }
+      }
+
+      const response = await fetch(endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        const mensajeExito = metodoPago === "credito" 
+          ? `¡Compra a crédito exitosa! Nuevo disponible: $${data.nuevo_disponible}` 
+          : `¡Has adquirido ${producto.nombre} con éxito!`;
+
+        setMensajeTienda({ tipo: "success", texto: mensajeExito });
+        await cargarDatosEstudiante();
+      } else {
+        let mensajeError = "Error al procesar la compra.";
+        try {
+          const data = await response.json();
+          if (data && (data.mensaje || data.error)) mensajeError = data.mensaje || data.error;
+        } catch (e) {}
+        setMensajeTienda({ tipo: "error", texto: mensajeError });
+      }
+    } catch (error) {
+      console.error("Error de red en compra:", error);
+      setMensajeTienda({ tipo: "error", texto: "Error de conexión con el servidor." });
+    } finally {
+      setProcesandoCompra(null);
+    }
+  
 
     try {
       const response = await fetch("https://banco-ceesuv-backend.onrender.com/api/compras", {
