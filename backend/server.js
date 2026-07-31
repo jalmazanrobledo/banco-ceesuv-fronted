@@ -139,7 +139,9 @@ const inicializarBaseDeDatos = async () => {
         grado VARCHAR(50) NOT NULL,
         coins INT DEFAULT 0,
         coins_ahorro INT DEFAULT 0,
-        token_qr VARCHAR(100) UNIQUE NOT NULL
+        token_qr VARCHAR(100) UNIQUE NOT NULL,
+        limite_credito NUMERIC(10,2) DEFAULT 200.00,
+        credito_utilizado NUMERIC(10,2) DEFAULT 0.00
       );
 
       CREATE TABLE IF NOT EXISTS movimientos (
@@ -155,6 +157,8 @@ const inicializarBaseDeDatos = async () => {
 
     await pool.query(`
       ALTER TABLE alumnos ADD COLUMN IF NOT EXISTS coins_ahorro INT DEFAULT 0;
+      ALTER TABLE alumnos ADD COLUMN IF NOT EXISTS limite_credito NUMERIC(10,2) DEFAULT 200.00;
+      ALTER TABLE alumnos ADD COLUMN IF NOT EXISTS credito_utilizado NUMERIC(10,2) DEFAULT 0.00;
       ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS pin VARCHAR(10) UNIQUE;
       ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS alumno_id INT UNIQUE;
     `);
@@ -230,12 +234,12 @@ app.get(["/api/alumno-dashboard/:alumnoId", "/api/alumnos/:identifier", "/alumno
 
     if (!isNaN(identifier)) {
       alumnoRes = await pool.query(
-        "SELECT id, nombre, grado, coins, COALESCE(coins_ahorro, 0) AS coins_ahorro FROM alumnos WHERE id = $1",
+        "SELECT id, nombre, grado, coins, COALESCE(coins_ahorro, 0) AS coins_ahorro, COALESCE(limite_credito, 200.00) AS limite_credito, COALESCE(credito_utilizado, 0.00) AS credito_utilizado FROM alumnos WHERE id = $1",
         [parseInt(identifier, 10)]
       );
     } else {
       alumnoRes = await pool.query(
-        `SELECT a.id, a.nombre, a.grado, a.coins, COALESCE(a.coins_ahorro, 0) AS coins_ahorro 
+        `SELECT a.id, a.nombre, a.grado, a.coins, COALESCE(a.coins_ahorro, 0) AS coins_ahorro, COALESCE(a.limite_credito, 200.00) AS limite_credito, COALESCE(a.credito_utilizado, 0.00) AS credito_utilizado 
          FROM alumnos a
          JOIN usuarios u ON u.alumno_id = a.id
          WHERE LOWER(u.usuario) = LOWER($1)`,
@@ -664,6 +668,58 @@ app.post(["/api/compras", "/compras"], async (req, res) => {
     return res.status(500).json({ mensaje: "Error interno al procesar la compra." });
   }
 });
+
+// Compras con Tarjeta de Crédito
+app.post(["/api/comprar-credito", "/comprar-credito"], async (req, res) => {
+  try {
+    const { alumno_id, monto_compra, concepto } = req.body;
+
+    const alumnoQuery = await pool.query(
+      "SELECT id, nombre, limite_credito, credito_utilizado FROM alumnos WHERE id = $1",
+      [alumno_id]
+    );
+
+    if (alumnoQuery.rows.length === 0) {
+      return res.status(404).json({ mensaje: "Alumno no encontrado." });
+    }
+
+    const alumno = alumnoQuery.rows[0];
+    const limite = Number(alumno.limite_credito || 200);
+    const utilizado = Number(alumno.credito_utilizado || 0);
+    const disponible = limite - utilizado;
+    const monto = Number(monto_compra);
+
+    if (monto > disponible) {
+      return res.status(400).json({ 
+        mensaje: `Crédito insuficiente. Límite disponible: $${disponible.toFixed(2)}` 
+      });
+    }
+
+    const nuevoCreditoUtilizado = utilizado + monto;
+
+    await pool.query(
+      "UPDATE alumnos SET credito_utilizado = $1 WHERE id = $2",
+      [nuevoCreditoUtilizado, alumno_id]
+    );
+
+    await pool.query(
+      `INSERT INTO movimientos (alumno_id, tipo, cantidad, motivo, usuario)
+       VALUES ($1, $2, $3, $4, $5)`,
+      [alumno_id, 'COMPRA_CREDITO', monto, concepto || 'Compra a crédito en Tienda Escolar', alumno.nombre]
+    );
+
+    return res.status(200).json({
+      exito: true,
+      mensaje: "¡Compra a crédito realizada con éxito!",
+      nuevo_disponible: limite - nuevoCreditoUtilizado
+    });
+
+  } catch (error) {
+    console.error("Error al procesar la compra a crédito:", error);
+    return res.status(500).json({ mensaje: "Error interno al procesar el crédito." });
+  }
+});
+
 
 // Actualizar usuario
 app.put(["/usuarios/:id", "/api/usuarios/:id"], async (req, res) => {
