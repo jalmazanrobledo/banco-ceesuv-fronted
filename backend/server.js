@@ -976,6 +976,50 @@ app.post(['/api/transferencias', '/api/transferir-por-tarjeta', '/transferir-por
     }
 });
 
+const cron = require("node-cron");
+
+// Tarea programada: Se ejecuta cada lunes a las 00:00 horas
+cron.schedule("0 0 * * 1", async () => {
+  console.log("⏰ Ejecutando tarea automática: Aplicando rendimientos de ahorro del 5%...");
+  
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+
+    const alumnosRes = await client.query("SELECT id, nombre, coins_ahorro FROM alumnos WHERE coins_ahorro > 0");
+    const alumnosAhorradores = alumnosRes.rows;
+    let procesados = 0;
+
+    for (const alumno of alumnosAhorradores) {
+      const ahorroActual = Number(alumno.coins_ahorro);
+      const rendimiento = Math.round(ahorroActual * 0.05);
+
+      if (rendimiento > 0) {
+        const nuevoAhorro = ahorroActual + rendimiento;
+
+        await client.query("UPDATE alumnos SET coins_ahorro = $1 WHERE id = $2", [nuevoAhorro, alumno.id]);
+
+        await client.query(
+          `INSERT INTO movimientos (alumno_id, tipo, cantidad, motivo, usuario)
+           VALUES ($1, 'AHORRO_RENDIMIENTO', $2, $3, $4)`,
+          [alumno.id, rendimiento, 'Rendimiento semanal automático (5%)', 'Sistema Banco CEESUV']
+        );
+
+        procesados++;
+      }
+    }
+
+    await client.query('COMMIT');
+    console.log(`✅ Rendimientos aplicados exitosamente a ${procesados} alumnos ahorradores.`);
+  } catch (error) {
+    await client.query('ROLLBACK');
+    console.error("❌ Error al aplicar rendimientos automáticos por cron:", error);
+  } finally {
+    client.release();
+  }
+});
+
+
 // ==========================================
 // Inicialización del Servidor (Local y Render)
 // ==========================================
