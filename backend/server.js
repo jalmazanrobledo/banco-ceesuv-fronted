@@ -720,6 +720,61 @@ app.post(["/api/comprar-credito", "/comprar-credito"], async (req, res) => {
   }
 });
 
+// Pagar Crédito con Coins
+app.post(["/api/pagar-credito", "/pagar-credito"], async (req, res) => {
+  try {
+    const { alumno_id, monto_pago, usuario } = req.body;
+
+    const alumnoQuery = await pool.query(
+      "SELECT id, nombre, coins, credito_utilizado FROM alumnos WHERE id = $1",
+      [alumno_id]
+    );
+
+    if (alumnoQuery.rows.length === 0) {
+      return res.status(404).json({ mensaje: "Alumno no encontrado." });
+    }
+
+    const alumno = alumnoQuery.rows[0];
+    const coinsDisponibles = Number(alumno.coins || 0);
+    const utilizado = Number(alumno.credito_utilizado || 0);
+    const monto = Number(monto_pago);
+
+    if (!monto || monto <= 0) {
+      return res.status(400).json({ mensaje: "Cantidad de pago inválida." });
+    }
+    if (monto > utilizado) {
+      return res.status(400).json({ mensaje: "El monto supera el crédito utilizado actual." });
+    }
+    if (monto > coinsDisponibles) {
+      return res.status(400).json({ mensaje: "No tienes suficientes Coins disponibles." });
+    }
+
+    const nuevoCoins = coinsDisponibles - monto;
+    const nuevoCreditoUtilizado = utilizado - monto;
+
+    await pool.query(
+      "UPDATE alumnos SET coins = $1, credito_utilizado = $2 WHERE id = $3",
+      [nuevoCoins, nuevoCreditoUtilizado, alumno_id]
+    );
+
+    await pool.query(
+      `INSERT INTO movimientos (alumno_id, tipo, cantidad, motivo, usuario)
+       VALUES ($1, $2, $3, $4, $5)`,
+      [alumno_id, 'PAGO_CREDITO', monto, 'Pago de tarjeta de crédito con Coins', usuario || alumno.nombre]
+    );
+
+    return res.status(200).json({
+      exito: true,
+      mensaje: "¡Crédito pagado exitosamente con tus Coins!",
+      coins: nuevoCoins,
+      credito_utilizado: nuevoCreditoUtilizado
+    });
+
+  } catch (error) {
+    console.error("Error al procesar el pago de crédito:", error);
+    return res.status(500).json({ mensaje: "Error interno al procesar el pago de crédito." });
+  }
+});
 
 // Actualizar usuario
 app.put(["/usuarios/:id", "/api/usuarios/:id"], async (req, res) => {
