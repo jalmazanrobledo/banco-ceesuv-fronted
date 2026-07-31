@@ -64,9 +64,9 @@ function Alumnos() {
 // 🔄 Lógica para cambiar estatus (Activo / Inactivo) de forma correcta
   const handleCambiarEstatus = async (alumno) => {
     const estatusActual = alumno.estatus || "Activo";
-    const nuevoEstado = estatusActual === "Inactivo" ? "Activo" : "Inactivo";
+    const nuevoEstatus = estatusActual === "Inactivo" ? "Activo" : "Inactivo";
     
-    const mensaje = nuevoEstado === "Inactivo" 
+    const mensaje = nuevoEstatus === "Inactivo" 
       ? `¿Estás seguro de inactivar a ${alumno.nombre}? No contará para los totales, pero conservará su historial y coins.`
       : `¿Deseas reactivar a ${alumno.nombre}? Volverá a estar activo en el sistema.`;
     
@@ -79,7 +79,7 @@ function Alumnos() {
           headers: {
             "Content-Type": "application/json"
           },
-          body: JSON.stringify({ estado: nuevoEstado })
+          body: JSON.stringify({ estatus: nuevoEstatus }) // ✅ Enviamos "estatus" correctamente
         });
 
         if (!respuesta.ok) {
@@ -88,7 +88,7 @@ function Alumnos() {
 
         // Actualización optimista inmediata usando 'estatus'
         setAlumnos(prevAlumnos => 
-          prevAlumnos.map(a => ((a.id === idAlumno || a._id === idAlumno) ? { ...a, estatus: nuevoEstado } : a))
+          prevAlumnos.map(a => ((a.id === idAlumno || a._id === idAlumno) ? { ...a, estatus: nuevoEstatus } : a)) // ✅ Actualizamos "estatus"
         );
 
         if (typeof cargarAlumnos === "function") {
@@ -101,7 +101,7 @@ function Alumnos() {
       }
     }
   };
-
+  
   const abrirModalQR = (alumno) => {
     setAlumnoSeleccionado(alumno);
     setModalQROpen(true);
