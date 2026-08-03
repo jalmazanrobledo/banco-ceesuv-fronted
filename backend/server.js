@@ -145,7 +145,8 @@ const inicializarBaseDeDatos = async () => {
         estatus VARCHAR(20) DEFAULT 'Activo',
         numero_cuenta VARCHAR(20),
         tarjeta_debito VARCHAR(20),
-        clabe VARCHAR(20)
+        clabe VARCHAR(20),
+        fecha_limite_pago DATE
       );
 
       CREATE TABLE IF NOT EXISTS movimientos (
@@ -169,6 +170,7 @@ const inicializarBaseDeDatos = async () => {
       ALTER TABLE alumnos ADD COLUMN IF NOT EXISTS numero_cuenta VARCHAR(20);
       ALTER TABLE alumnos ADD COLUMN IF NOT EXISTS tarjeta_debito VARCHAR(20);
       ALTER TABLE alumnos ADD COLUMN IF NOT EXISTS clabe VARCHAR(20);
+      ALTER TABLE alumnos ADD COLUMN IF NOT EXISTS fecha_limite_pago DATE;
     `);
 
     await pool.query(`
@@ -309,7 +311,8 @@ app.get(["/api/alumno-dashboard/:alumnoId", "/api/alumnos/:identifier", "/alumno
                 COALESCE(coins_ahorro, 0) AS coins_ahorro, 
                 COALESCE(limite_credito, 200.00) AS limite_credito, 
                 COALESCE(credito_utilizado, 0.00) AS credito_utilizado,
-                numero_cuenta, tarjeta_debito, clabe
+                numero_cuenta, tarjeta_debito, clabe,
+                fecha_limite_pago
          FROM alumnos WHERE id = $1`,
         [parseInt(identifier, 10)]
       );
@@ -319,7 +322,8 @@ app.get(["/api/alumno-dashboard/:alumnoId", "/api/alumnos/:identifier", "/alumno
                 COALESCE(a.coins_ahorro, 0) AS coins_ahorro, 
                 COALESCE(a.limite_credito, 200.00) AS limite_credito, 
                 COALESCE(a.credito_utilizado, 0.00) AS credito_utilizado,
-                a.numero_cuenta, a.tarjeta_debito, a.clabe
+                a.numero_cuenta, a.tarjeta_debito, a.clabe,
+                a.fecha_limite_pago
          FROM alumnos a
          JOIN usuarios u ON u.alumno_id = a.id
          WHERE LOWER(u.usuario) = LOWER($1)`,
@@ -348,7 +352,7 @@ app.get(["/api/alumno-dashboard/:alumnoId", "/api/alumnos/:identifier", "/alumno
       movimientos: movsRes.rows
     });
   } catch (error) {
-    console.error("Error al obtener dashboard del alumno:", error);
+    console.error("Error al obtener dashboard del alumno:", `[cite: 2]`, error);
     return res.status(500).json({ mensaje: "Error al obtener datos del alumno." });
   }
 });
