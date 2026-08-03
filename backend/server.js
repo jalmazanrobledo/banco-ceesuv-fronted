@@ -811,11 +811,10 @@ app.put([
     const { id } = req.params;
     const nuevoValor = req.body.estatus || req.body.estado || "Activo";
 
-    // 1. Actualizamos directamente la tabla alumnos
    const resultadoAlumno = await pool.query(
-      `UPDATE alumnos SET estatus = $1 WHERE id = $2`, // 👈 Debe decir estatus
-      [nuevoValor, id]
-    );
+  `UPDATE alumnos SET estatus = $1 WHERE id = $2`,
+  [nuevoEstatus, id]
+);
 
     if (resultadoAlumno.rowCount === 0) {
       return res.status(404).json({ mensaje: "Alumno no encontrado." });

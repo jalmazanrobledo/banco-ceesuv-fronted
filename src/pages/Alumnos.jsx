@@ -74,12 +74,12 @@ function Alumnos() {
       try {
         const idAlumno = alumno.id || alumno._id;
         
-        const respuesta = await fetch(`https://banco-ceesuv-backend.onrender.com/api/alumnos/${idAlumno}/estado`, {
+        const respuesta = await fetch(`https://banco-ceesuv-backend.onrender.com/api/alumnos/${idAlumno}/estatus`, {
           method: "PUT",
           headers: {
             "Content-Type": "application/json"
           },
-          body: JSON.stringify({ estatus: nuevoEstatus }) // ✅ Enviamos "estatus" correctamente
+          body: JSON.stringify({ estatus: nuevoEstatus })
         });
 
         if (!respuesta.ok) {
