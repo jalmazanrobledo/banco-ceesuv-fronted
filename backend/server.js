@@ -188,12 +188,22 @@ app.get(["/", "/api"], (req, res) => {
 });
 
 // ==========================================
-// RUTA EXPLICITA DE CAMBIO DE ESTATUS (CORREGIDA)
+// RUTA EXPLICITA DE CAMBIO DE ESTATUS (PROTEGIDA)
 // ==========================================
 app.put("/api/alumnos-cambiar-estatus/:id", async (req, res) => {
   try {
     const { id } = req.params;
     const nuevoValor = req.body.estatus || req.body.estado || "Activo";
+
+    // 🛡️ PROTECCIÓN: Verificamos si el alumno está vinculado a un usuario Administrador
+    const verificarAdmin = await pool.query(
+      `SELECT u.rol FROM usuarios u WHERE u.alumno_id = $1 OR (u.id = $1 AND u.rol = 'Admin')`,
+      [id]
+    );
+
+    if (verificarAdmin.rows.length > 0 && verificarAdmin.rows[0].rol === 'Admin') {
+      return res.status(403).json({ mensaje: "No se puede inactivar una cuenta de Administrador." });
+    }
 
     // 1. Actualizamos la tabla alumnos
     const resultadoAlumno = await pool.query(
@@ -205,17 +215,16 @@ app.put("/api/alumnos-cambiar-estatus/:id", async (req, res) => {
       return res.status(404).json({ mensaje: "Alumno no encontrado." });
     }
 
-    // 2. Intentamos actualizar usuarios si existe
+    // 2. Actualizamos usuarios si existe relación
     try {
       await pool.query(
-        `UPDATE usuarios SET estado = $1 WHERE alumno_id = $2 OR id = $2`,
+        `UPDATE usuarios SET estado = $1 WHERE (alumno_id = $2 OR id = $2) AND rol != 'Admin'`,
         [nuevoValor, id]
       );
     } catch (errUser) {
-      console.log("Nota: No se encontró usuario asociado para actualizar estado en tabla usuarios.");
+      console.log("Nota: No se pudo actualizar estado en tabla usuarios.");
     }
 
-    // 3. Devolvemos el alumno actualizado
     const alumnoCompletoRes = await pool.query(
       `SELECT 
         a.id, 
