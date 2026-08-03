@@ -752,7 +752,7 @@ app.post(["/api/comprar-credito", "/comprar-credito"], async (req, res) => {
     const { alumno_id, monto_compra, concepto } = req.body;
 
     const alumnoQuery = await pool.query(
-      "SELECT id, nombre, limite_credito, credito_utilizado FROM alumnos WHERE id = $1",
+      "SELECT id, nombre, limite_credito, credito_utilizado, fecha_limite_pago FROM alumnos WHERE id = $1",
       [alumno_id]
     );
 
@@ -774,9 +774,17 @@ app.post(["/api/comprar-credito", "/comprar-credito"], async (req, res) => {
 
     const nuevoCreditoUtilizado = utilizado + monto;
 
+    // Si el alumno no tenía deuda previa (utilizado === 0), le asignamos automáticamente 15 días de plazo desde hoy.
+    // Si ya tenía una fecha activa, la respetamos.
     await pool.query(
-      "UPDATE alumnos SET credito_utilizado = $1 WHERE id = $2",
-      [nuevoCreditoUtilizado, alumno_id]
+      `UPDATE alumnos 
+       SET credito_utilizado = $1,
+           fecha_limite_pago = CASE 
+             WHEN $2 = 0 OR fecha_limite_pago IS NULL THEN CURRENT_DATE + INTERVAL '15 days'
+             ELSE fecha_limite_pago 
+           END
+       WHERE id = $3`,
+      [nuevoCreditoUtilizado, utilizado, alumno_id]
     );
 
     await pool.query(
@@ -787,7 +795,7 @@ app.post(["/api/comprar-credito", "/comprar-credito"], async (req, res) => {
 
     return res.status(200).json({
       exito: true,
-      mensaje: "¡Compra a crédito realizada con éxito!",
+      mensaje: "¡Compra a crédito realizada con éxito! Tienes 15 días para pagar.",
       nuevo_disponible: limite - nuevoCreditoUtilizado
     });
 
@@ -819,7 +827,9 @@ app.post(["/api/pagar-credito", "/pagar-credito"], async (req, res) => {
     if (!monto || monto <= 0) {
       return res.status(400).json({ mensaje: "Cantidad de pago inválida." });
     }
-    if (monto > utilizado) {
+    
+    // Usamos una pequeña tolerancia para evitar problemas con decimales exactos como 26.25
+    if (monto > (utilizado + 0.01)) {
       return res.status(400).json({ mensaje: "El monto supera el crédito utilizado actual." });
     }
     if (monto > coinsDisponibles) {
@@ -827,12 +837,25 @@ app.post(["/api/pagar-credito", "/pagar-credito"], async (req, res) => {
     }
 
     const nuevoCoins = coinsDisponibles - monto;
-    const nuevoCreditoUtilizado = utilizado - monto;
+    let nuevoCreditoUtilizado = utilizado - monto;
+    
+    // Si la resta deja centavos perdidos o llega a cero, lo ajustamos perfectamente a 0.00
+    if (nuevoCreditoUtilizado < 0.05) {
+      nuevoCreditoUtilizado = 0.00;
+    }
 
-    await pool.query(
-      "UPDATE alumnos SET coins = $1, credito_utilizado = $2 WHERE id = $3",
-      [nuevoCoins, nuevoCreditoUtilizado, alumno_id]
-    );
+    // Si el crédito queda totalmente liquidado (0.00), limpiamos la fecha límite de pago para el próximo ciclo
+    if (nuevoCreditoUtilizado === 0.00) {
+      await pool.query(
+        "UPDATE alumnos SET coins = $1, credito_utilizado = 0.00, fecha_limite_pago = NULL WHERE id = $2",
+        [nuevoCoins, alumno_id]
+      );
+    } else {
+      await pool.query(
+        "UPDATE alumnos SET coins = $1, credito_utilizado = $2 WHERE id = $3",
+        [nuevoCoins, nuevoCreditoUtilizado, alumno_id]
+      );
+    }
 
     await pool.query(
       `INSERT INTO movimientos (alumno_id, tipo, cantidad, motivo, usuario)
@@ -848,7 +871,7 @@ app.post(["/api/pagar-credito", "/pagar-credito"], async (req, res) => {
     });
 
   } catch (error) {
-    console.error("Error al procesar el pago de crédito:", error);
+    console.error("Error al procesar el pago de crédito:",, error);
     return res.status(500).json({ mensaje: "Error interno al procesar el pago de crédito." });
   }
 });
