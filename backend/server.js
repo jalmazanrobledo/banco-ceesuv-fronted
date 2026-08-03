@@ -801,7 +801,7 @@ app.put(["/usuarios/:id", "/api/usuarios/:id"], async (req, res) => {
   }
 });
 
-// Cambiar estado
+// Cambiar estado / estatus
 app.put([
   "/usuarios/:id/estado", 
   "/api/usuarios/:id/estado", 
@@ -810,13 +810,25 @@ app.put([
 ], async (req, res) => {
   try {
     const { id } = req.params;
-    const { estado } = req.body;
+    
+    // ✅ Capturamos tanto 'estatus' como 'estado' por seguridad
+    const nuevoValor = req.body.estatus || req.body.estado || "Activo";
 
+    // ✅ Actualizamos la tabla alumnos (que es la que muestras en la tabla de tu frontend)
+    // Asegúrate de que tu tabla se llame 'alumnos' y la columna sea 'estatus' o 'estado' según tu BD.
     const resultado = await pool.query(
+      `UPDATE alumnos 
+       SET estatus = $1 
+       WHERE id = $2`,
+      [nuevoValor, id]
+    );
+
+    // Opcional: Si también guardas el estado en la tabla usuarios ligada al alumno
+    await pool.query(
       `UPDATE usuarios 
        SET estado = $1 
-       WHERE alumno_id = $2 OR (id = $2 AND rol != 'Admin')`,
-      [estado, id]
+       WHERE alumno_id = $2 OR id = $2`,
+      [nuevoValor, id]
     );
 
     if (resultado.rowCount === 0) {
@@ -832,7 +844,7 @@ app.put([
         COALESCE(a.coins_ahorro, 0) AS coins_ahorro, 
         a.token_qr,
         u.pin,
-        COALESCE(u.estado, 'Activo') AS estado
+        COALESCE(a.estatus, 'Activo') AS estatus
        FROM alumnos a
        LEFT JOIN usuarios u ON u.alumno_id = a.id
        WHERE a.id = $1`,
