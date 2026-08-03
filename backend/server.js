@@ -857,8 +857,9 @@ app.put([
 
     return res.status(200).json({ mensaje: "Estado actualizado correctamente." });
   } catch (error) {
-    console.error("Error al cambiar estado de usuario:", error);
-    return res.status(500).json({ mensaje: "Error al cambiar el estado." });
+    // 🔍 Esto imprimirá el error exacto de PostgreSQL en los logs de Render
+    console.error("ERROR DETALLADO EN RENDER:", error.message, error.stack);
+    return res.status(500).json({ mensaje: "Error al cambiar el estado.", detalle: error.message });
   }
 });
 
