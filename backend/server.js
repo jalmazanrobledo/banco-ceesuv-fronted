@@ -188,41 +188,44 @@ app.get(["/", "/api"], (req, res) => {
 });
 
 // ==========================================
-// RUTA EXPLICITA DE CAMBIO DE ESTATUS (PROTEGIDA)
+// RUTA EXPLICITA DE CAMBIO DE ESTATUS (SEGURA)
 // ==========================================
 app.put("/api/alumnos-cambiar-estatus/:id", async (req, res) => {
   try {
     const { id } = req.params;
     const nuevoValor = req.body.estatus || req.body.estado || "Activo";
 
-    // 🛡️ PROTECCIÓN: Verificamos si el alumno está vinculado a un usuario Administrador
+    // 1. Obtenemos los datos del alumno para asegurar su nombre o identificación real
+    const alumnoRes = await pool.query(`SELECT nombre FROM alumnos WHERE id = $1`, [id]);
+    if (alumnoRes.rows.length === 0) {
+      return res.status(404).json({ mensaje: "Alumno no encontrado." });
+    }
+    const nombreAlumno = alumnoRes.rows[0].nombre;
+
+    // 🛡️ PROTECCIÓN: Verificar si este alumno está vinculado a un usuario Administrador
     const verificarAdmin = await pool.query(
-      `SELECT u.rol FROM usuarios u WHERE u.alumno_id = $1 OR (u.id = $1 AND u.rol = 'Admin')`,
-      [id]
+      `SELECT u.rol FROM usuarios u WHERE u.alumno_id = $1 OR u.nombre ILIKE $2`,
+      [id, nombreAlumno]
     );
 
-    if (verificarAdmin.rows.length > 0 && verificarAdmin.rows[0].rol === 'Admin') {
+    if (verificarAdmin.rows.length > 0 && verificarAdmin.rows.some(u => u.rol === 'Admin')) {
       return res.status(403).json({ mensaje: "No se puede inactivar una cuenta de Administrador." });
     }
 
-    // 1. Actualizamos la tabla alumnos
+    // 2. Actualizamos unívocamente la tabla alumnos por su ID exacto
     const resultadoAlumno = await pool.query(
       `UPDATE alumnos SET estatus = $1 WHERE id = $2`,
       [nuevoValor, id]
     );
 
-    if (resultadoAlumno.rowCount === 0) {
-      return res.status(404).json({ mensaje: "Alumno no encontrado." });
-    }
-
-    // 2. Actualizamos usuarios si existe relación
+    // 3. Actualizamos la tabla usuarios exclusivamente usando 'alumno_id' o coincidencia exacta de nombre, NUNCA por ID cruzado
     try {
       await pool.query(
-        `UPDATE usuarios SET estado = $1 WHERE (alumno_id = $2 OR id = $2) AND rol != 'Admin'`,
+        `UPDATE usuarios SET estado = $1 WHERE alumno_id = $2 AND rol != 'Admin'`,
         [nuevoValor, id]
       );
     } catch (errUser) {
-      console.log("Nota: No se pudo actualizar estado en tabla usuarios.");
+      console.log("Nota: No se pudo actualizar estado en tabla usuarios por ID de alumno.");
     }
 
     const alumnoCompletoRes = await pool.query(
