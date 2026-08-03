@@ -800,7 +800,7 @@ app.put(["/usuarios/:id", "/api/usuarios/:id"], async (req, res) => {
     return res.status(500).json({ mensaje: "Error al actualizar el usuario." });
   }
 });
-// Estado Alumno
+// Estado Alumno (Corregido)
 app.put([
   "/usuarios/:id/estado", 
   "/api/usuarios/:id/estado", 
@@ -809,18 +809,20 @@ app.put([
 ], async (req, res) => {
   try {
     const { id } = req.params;
+    // Capturamos correctamente el estatus enviado desde el frontend
     const nuevoValor = req.body.estatus || req.body.estado || "Activo";
 
-   const resultadoAlumno = await pool.query(
-  `UPDATE alumnos SET estatus = $1 WHERE id = $2`,
-  [nuevoEstatus, id]
-);
+    // 1. Actualizamos la tabla alumnos usando 'nuevoValor'
+    const resultadoAlumno = await pool.query(
+      `UPDATE alumnos SET estatus = $1 WHERE id = $2`,
+      [nuevoValor, id]
+    );
 
     if (resultadoAlumno.rowCount === 0) {
       return res.status(404).json({ mensaje: "Alumno no encontrado." });
     }
 
-    // 2. Intentamos actualizar usuarios solo si existe la vinculación (sin romper si falla)
+    // 2. Intentamos actualizar usuarios solo si existe la vinculación
     try {
       await pool.query(
         `UPDATE usuarios SET estado = $1 WHERE alumno_id = $2 OR id = $2`,
