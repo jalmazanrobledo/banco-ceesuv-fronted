@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 
 export default function TransferenciaCoins({ alumnoActual, onTransferenciaExitosa }) {
-  const [clabeDestino, setClabeDestino] = useState("");
+  const [destino, setDestino] = useState("");
   const [cantidad, setCantidad] = useState("");
   const [concepto, setConcepto] = useState("");
   const [pin, setPin] = useState("");
@@ -13,9 +13,11 @@ export default function TransferenciaCoins({ alumnoActual, onTransferenciaExitos
     e.preventDefault();
     setMensaje(null);
 
-    // Validación de CLABE (18 dígitos)
-    if (!clabeDestino || clabeDestino.length !== 18) {
-      setMensaje({ tipo: "error", texto: "La CLABE interbancaria debe tener exactamente 18 dígitos." });
+    const destinoLimpio = destino.trim();
+
+    // Validar longitudes permitidas: Cuenta (10), Tarjeta (16) o CLABE (18)
+    if (![10, 16, 18].includes(destinoLimpio.length)) {
+      setMensaje({ tipo: "error", texto: "El destino debe ser una Cuenta (10 dígitos), Tarjeta (16 dígitos) o CLABE (18 dígitos)." });
       return;
     }
 
@@ -39,24 +41,23 @@ export default function TransferenciaCoins({ alumnoActual, onTransferenciaExitos
     setProcesando(true);
 
     try {
-      // Ajustado a la ruta SPEI que definimos en el backend
       const response = await fetch("https://banco-ceesuv-backend.onrender.com/api/transferencias/spei", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           emisor_id: Number(remitenteId),
-          clabe_destino: clabeDestino.trim(),
+          clabe_destino: destinoLimpio, // El backend lo leerá sin problemas
           monto: Number(cantidad),
           pin: pin.trim(),
-          concepto: concepto.trim() || "Transferencia SPEI CEESUV"
+          concepto: concepto.trim() || "Transferencia CEESUV Coins"
         })
       });
 
       const data = await response.json();
 
       if (response.ok) {
-        setMensaje({ tipo: "success", texto: "¡Transferencia SPEI realizada con éxito!" });
-        setClabeDestino("");
+        setMensaje({ tipo: "success", texto: "¡Transferencia realizada con éxito!" });
+        setDestino("");
         setCantidad("");
         setConcepto("");
         setPin("");
@@ -85,20 +86,20 @@ export default function TransferenciaCoins({ alumnoActual, onTransferenciaExitos
       margin: "0 auto"
     }}>
       <h3 style={{ margin: "0 0 15px 0", fontSize: "18px", textAlign: "center", color: "#0c1527" }}>
-        🏦 Transferencia SPEI (CLABE Interbancaria)
+        🏦 Módulo de Transferencias
       </h3>
 
       <form onSubmit={handleTransferir} style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
         <div>
           <label style={{ display: "block", fontSize: "12px", fontWeight: "bold", marginBottom: "5px", color: "#475569" }}>
-            CLABE Destino (18 dígitos)
+            Destino (Cuenta 10, Tarjeta 16 o CLABE 18 dígitos)
           </label>
           <input
             type="text"
             maxLength="18"
-            placeholder="6460000000000001"
-            value={clabeDestino}
-            onChange={(e) => setClabeDestino(e.target.value)}
+            placeholder="Ingresa cuenta, tarjeta o CLABE"
+            value={destino}
+            onChange={(e) => setDestino(e.target.value)}
             style={{
               width: "100%",
               padding: "10px 12px",
@@ -188,7 +189,7 @@ export default function TransferenciaCoins({ alumnoActual, onTransferenciaExitos
             transition: "background 0.2s"
           }}
         >
-          {procesando ? "Autorizando SPEI..." : "Enviar Transferencia SPEI"}
+          {procesando ? "Procesando Transferencia..." : "Enviar Transferencia"}
         </button>
       </form>
 
