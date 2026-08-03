@@ -889,8 +889,22 @@ export default function StudentDashboard() {
                     <TarjetaCredito alumno={alumno} />
                   </div>
                 </div>
+{activeTab === 'tarjetas' && (
+              <div className="card-dark" style={{ textAlign: "center" }}>
+                <h3 style={{ margin: "0 0 10px 0", fontSize: "18px" }}>💳 Mis Tarjetas CEESUV</h3>
+                <p style={{ color: "#94a3b8", fontSize: "14px", marginBottom: "20px" }}>Consulta tus tarjetas digitales oficiales.</p>
+                <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: "25px" }}>
+                  <div>
+                    <h4 style={{ color: "#FFF", marginBottom: "10px", fontSize: "14px" }}>Débito</h4>
+                    <TarjetaDebito alumno={alumno} />
+                  </div>
+                  <div>
+                    <h4 style={{ color: "#d4af37", marginBottom: "10px", fontSize: "14px" }}>Crédito</h4>
+                    <TarjetaCredito alumno={alumno} />
+                  </div>
+                </div>
 
-                {/* NUEVO: PANEL DE CREDENCIALES BANCARIAS PARA COPIAR FÁCILMENTE */}
+                {/* PANEL DE CREDENCIALES BANCARIAS UNIFICADO */}
                 <div style={{ 
                   marginTop: "30px", 
                   background: "rgba(12, 21, 39, 0.75)", 
@@ -898,26 +912,28 @@ export default function StudentDashboard() {
                   borderRadius: "14px", 
                   padding: "20px",
                   textAlign: "left",
-                  maxWidth: "705px",
+                  maxWidth: "850px",
                   marginInline: "auto"
                 }}>
                   <h4 style={{ color: "#d4af37", margin: "0 0 15px 0", fontSize: "16px", textAlign: "center" }}>
                     🏦 Datos de Tus Credenciales para Recibir Depósitos
                   </h4>
                   
-                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(210px, 1fr))", gap: "15px" }}>
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: "15px" }}>
                     
-                    {/* Número de Cuenta */}
-                    <div style={{ background: "rgba(255,255,255,0.04)", padding: "12px", borderRadius: "10px", border: "1px solid rgba(255,255,255,0.06)" }}>
-                      <div style={{ fontSize: "11px", color: "#94a3b8", marginBottom: "4px" }}>NÚMERO DE CUENTA (10 DÍGITOS)</div>
-                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                        <span style={{ fontFamily: "monospace", fontSize: "14px", fontWeight: "bold", color: "#fff" }}>
+                    {/* 1. NÚMERO DE CUENTA */}
+                    <div style={{ background: "rgba(255,255,255,0.04)", padding: "16px", borderRadius: "12px", border: "1px solid rgba(255,255,255,0.06)", boxSizing: "border-box" }}>
+                      <div style={{ fontSize: "11px", color: "#94a3b8", marginBottom: "8px", fontWeight: "bold" }}>
+                        NÚMERO DE CUENTA (10 DÍGITOS)
+                      </div>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "8px" }}>
+                        <span style={{ fontFamily: "monospace", fontSize: "14px", fontWeight: "bold", color: "#fff", whiteSpace: "nowrap" }}>
                           {alumno?.numero_cuenta || "No asignado"}
                         </span>
                         {alumno?.numero_cuenta && (
                           <button 
                             onClick={() => copiarAlPortapapeles(alumno.numero_cuenta, "Número de Cuenta")}
-                            style={{ background: "#d4af37", border: "none", padding: "4px 8px", borderRadius: "6px", cursor: "pointer", fontSize: "11px", fontWeight: "bold", color: "#0c1527" }}
+                            style={{ background: "#d4af37", border: "none", padding: "6px 12px", borderRadius: "6px", cursor: "pointer", fontSize: "12px", fontWeight: "bold", color: "#0c1527", whiteSpace: "nowrap" }}
                           >
                             {copiadoTipo === "Número de Cuenta" ? "¡Copiado!" : "Copiar"}
                           </button>
@@ -925,73 +941,37 @@ export default function StudentDashboard() {
                       </div>
                     </div>
 
-{/* --- CORRECCIÓN PARA LA TARJETA DE DÉBITO --- */}
-{(() => {
-  const tarjetaDebitoRaw = alumno?.tarjeta_debito || alumno?.tarjeta || alumno?.numero_tarjeta || "4820000000000001";
-  const tarjetaDebitoFormateada = tarjetaDebitoRaw.replace(/\s+/g, "").match(/.{1,4}/g)?.join(" ") || tarjetaDebitoRaw;
+                    {/* 2. TARJETA DE DÉBITO */}
+                    <div style={{ background: "rgba(255,255,255,0.04)", padding: "16px", borderRadius: "12px", border: "1px solid rgba(255,255,255,0.06)", boxSizing: "border-box" }}>
+                      <div style={{ fontSize: "11px", color: "#94a3b8", marginBottom: "8px", fontWeight: "bold" }}>
+                        TARJETA DE DÉBITO (16 DÍGITOS)
+                      </div>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "8px" }}>
+                        <span style={{ fontFamily: "monospace", fontSize: "13px", fontWeight: "bold", color: "#fff", whiteSpace: "nowrap" }}>
+                          {(alumno?.tarjeta_debito || alumno?.tarjeta || alumno?.numero_tarjeta || "4820000000000001").replace(/\s+/g, "").match(/.{1,4}/g)?.join(" ")}
+                        </span>
+                        <button 
+                          onClick={() => copiarAlPortapapeles(alumno?.tarjeta_debito || alumno?.tarjeta || alumno?.numero_tarjeta || "4820000000000001", "Tarjeta de Débito")}
+                          style={{ background: "#eab308", border: "none", padding: "6px 12px", borderRadius: "6px", cursor: "pointer", fontSize: "12px", fontWeight: "bold", color: "#0c1527", whiteSpace: "nowrap" }}
+                        >
+                          {copiadoTipo === "Tarjeta de Débito" ? "¡Copiado!" : "Copiar"}
+                        </button>
+                      </div>
+                    </div>
 
-  return (
-    <div style={{
-      background: "#1e293b",
-      border: "1px solid #334155",
-      borderRadius: "12px",
-      padding: "16px",
-      flex: "1",
-      minWidth: "280px",
-      boxSizing: "border-box"
-    }}>
-      <div style={{ fontSize: "11px", color: "#94a3b8", marginBottom: "8px", fontWeight: "bold" }}>
-        TARJETA DE DÉBITO (16 DÍGITOS)
-      </div>
-      
-      <div style={{ 
-        display: "flex", 
-        justifyContent: "space-between", 
-        alignItems: "center",
-        gap: "8px" 
-      }}>
-        <span style={{ 
-          fontSize: "15px", 
-          fontWeight: "bold", 
-          color: "#ffffff",
-          fontFamily: "monospace",
-          whiteSpace: "nowrap"
-        }}>
-          {tarjetaDebitoFormateada}
-        </span>
-        
-        <button 
-          onClick={() => copiarAlPortapapeles(tarjetaDebitoRaw, "Tarjeta de Débito")}
-          style={{
-            background: "#eab308",
-            border: "none",
-            borderRadius: "6px",
-            padding: "6px 12px",
-            fontWeight: "bold",
-            cursor: "pointer",
-            fontSize: "12px",
-            whiteSpace: "nowrap",
-            color: "#0c1527"
-          }}
-        >
-          {copiadoTipo === "Tarjeta de Débito" ? "¡Copiado!" : "Copiar"}
-        </button>
-      </div>
-    </div>
-  );
-})()}
-
-                    {/* CLABE Interbancaria */}
-                    <div style={{ background: "rgba(255,255,255,0.04)", padding: "12px", borderRadius: "10px", border: "1px solid rgba(255,255,255,0.06)" }}>
-                      <div style={{ fontSize: "11px", color: "#94a3b8", marginBottom: "4px" }}>CLABE INTERBANCARIA (18 DÍGITOS)</div>
-                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                        <span style={{ fontFamily: "monospace", fontSize: "12px", fontWeight: "bold", color: "#fff" }}>
+                    {/* 3. CLABE INTERBANCARIA */}
+                    <div style={{ background: "rgba(255,255,255,0.04)", padding: "16px", borderRadius: "12px", border: "1px solid rgba(255,255,255,0.06)", boxSizing: "border-box" }}>
+                      <div style={{ fontSize: "11px", color: "#94a3b8", marginBottom: "8px", fontWeight: "bold" }}>
+                        CLABE INTERBANCARIA (18 DÍGITOS)
+                      </div>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "8px" }}>
+                        <span style={{ fontFamily: "monospace", fontSize: "12px", fontWeight: "bold", color: "#fff", whiteSpace: "nowrap" }}>
                           {alumno?.clabe || "No asignada"}
                         </span>
                         {alumno?.clabe && (
                           <button 
                             onClick={() => copiarAlPortapapeles(alumno.clabe, "CLABE Interbancaria")}
-                            style={{ background: "#d4af37", border: "none", padding: "4px 8px", borderRadius: "6px", cursor: "pointer", fontSize: "11px", fontWeight: "bold", color: "#0c1527" }}
+                            style={{ background: "#d4af37", border: "none", padding: "6px 12px", borderRadius: "6px", cursor: "pointer", fontSize: "12px", fontWeight: "bold", color: "#0c1527", whiteSpace: "nowrap" }}
                           >
                             {copiadoTipo === "CLABE Interbancaria" ? "¡Copiado!" : "Copiar"}
                           </button>
@@ -1004,17 +984,19 @@ export default function StudentDashboard() {
 
               </div>
             )}
-
+            
             {activeTab === 'transferencias' && (
               <div className="card-dark">
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "15px", flexWrap: "wrap", gap: "10px" }}>
-                  <h3 style={{ margin: 0, fontSize: "18px", color: "#f59e0b" }}>🔄 Módulo de Transferencias</h3>
-                  <div style={{ background: "rgba(16, 185, 129, 0.15)", border: "1px solid #10b981", borderRadius: "8px", padding: "6px 12px", color: "#10b981", fontSize: "13px", fontWeight: "bold" }}>
-                    🪙 Saldo disponible: {coinsDisponibles} COINS
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "15px", flexWrap: "wrap" }}>
+                  <h3 style={{ margin: "0", fontSize: "18px", color: "#f59e0b" }}>💸 Módulo de Transferencias</h3>
+                  <div style={{ background: "rgba(16, 185, 129, 0.15)", border: "1px solid #10b981", borderRadius: "8px", padding: "6px 12px", color: "#10b981", fontWeight: "bold" }}>
+                    Saldo disponible: {coinsDisponibles} COINS
                   </div>
                 </div>
-                <p style={{ color: "#94a3b8", fontSize: "14px", marginBottom: "20px" }}>Envía coins a tus compañeros usando su número de cuenta, tarjeta de débito o CLABE interbancaria.</p>
-                <TransferenciaCoins alumnoActual={alumno} onTransferenciaExitosa={() => { cargarDatosEstudiante(); mostrarToast("¡Transferencia realizada con éxito!", "success"); }} />
+                <p style={{ color: "#94a3b8", fontSize: "14px", marginBottom: "20px" }}>
+                  Envía coins a tus compañeros usando su número de cuenta.
+                </p>
+                <TransferenciaCoins alumnoActual={alumno} onTransferenciaExitosa={() => { cargarDatosEstudiante(); mostrarToast(); }} />
               </div>
             )}
 
