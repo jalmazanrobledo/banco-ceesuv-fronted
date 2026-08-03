@@ -334,8 +334,7 @@ function Alumnos() {
                             {a.estatus || "Activo"}
                           </span>
                         </td>
-                        // En tu tabla de Alumnos.jsx, asegúrate de renderizar el PIN directamente del alumno:
-                        <td style={{ padding: "15px 20px", textAlign: "center" }}>
+                         <td style={{ padding: "15px 20px", textAlign: "center" }}>
                        <span className="pin-badge">
                            🔑 {a.pin || "N/A"}
                         </span>
