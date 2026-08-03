@@ -801,7 +801,6 @@ app.put(["/usuarios/:id", "/api/usuarios/:id"], async (req, res) => {
   }
 });
 
-// Cambiar estado / estatus
 app.put([
   "/usuarios/:id/estado", 
   "/api/usuarios/:id/estado", 
@@ -810,31 +809,29 @@ app.put([
 ], async (req, res) => {
   try {
     const { id } = req.params;
-    
-    // ✅ Capturamos tanto 'estatus' como 'estado' por seguridad
     const nuevoValor = req.body.estatus || req.body.estado || "Activo";
 
-    // ✅ Actualizamos la tabla alumnos (que es la que muestras en la tabla de tu frontend)
-    // Asegúrate de que tu tabla se llame 'alumnos' y la columna sea 'estatus' o 'estado' según tu BD.
-    const resultado = await pool.query(
-      `UPDATE alumnos 
-       SET estatus = $1 
-       WHERE id = $2`,
+    // 1. Actualizamos directamente la tabla alumnos
+    const resultadoAlumno = await pool.query(
+      `UPDATE alumnos SET estatus = $1 WHERE id = $2`,
       [nuevoValor, id]
     );
 
-    // Opcional: Si también guardas el estado en la tabla usuarios ligada al alumno
-    await pool.query(
-      `UPDATE usuarios 
-       SET estado = $1 
-       WHERE alumno_id = $2 OR id = $2`,
-      [nuevoValor, id]
-    );
-
-    if (resultado.rowCount === 0) {
-      return res.status(404).json({ mensaje: "Usuario o alumno no encontrado." });
+    if (resultadoAlumno.rowCount === 0) {
+      return res.status(404).json({ mensaje: "Alumno no encontrado." });
     }
 
+    // 2. Intentamos actualizar usuarios solo si existe la vinculación (sin romper si falla)
+    try {
+      await pool.query(
+        `UPDATE usuarios SET estado = $1 WHERE alumno_id = $2 OR id = $2`,
+        [nuevoValor, id]
+      );
+    } catch (errUser) {
+      console.log("Nota: No se encontró usuario asociado para actualizar estado en tabla usuarios, pero el alumno se actualizó.");
+    }
+
+    // 3. Devolvemos el alumno actualizado para sincronizar la interfaz
     const alumnoCompletoRes = await pool.query(
       `SELECT 
         a.id, 
@@ -843,22 +840,16 @@ app.put([
         a.coins, 
         COALESCE(a.coins_ahorro, 0) AS coins_ahorro, 
         a.token_qr,
-        u.pin,
         COALESCE(a.estatus, 'Activo') AS estatus
        FROM alumnos a
-       LEFT JOIN usuarios u ON u.alumno_id = a.id
        WHERE a.id = $1`,
       [id]
     );
 
-    if (alumnoCompletoRes.rows.length > 0) {
-      return res.status(200).json(alumnoCompletoRes.rows[0]);
-    }
+    return res.status(200).json(alumnoCompletoRes.rows[0] || { success: true });
 
-    return res.status(200).json({ mensaje: "Estado actualizado correctamente." });
   } catch (error) {
-    // 🔍 Esto imprimirá el error exacto de PostgreSQL en los logs de Render
-    console.error("ERROR DETALLADO EN RENDER:", error.message, error.stack);
+    console.error("Error crítico al cambiar estado:", error);
     return res.status(500).json({ mensaje: "Error al cambiar el estado.", detalle: error.message });
   }
 });
