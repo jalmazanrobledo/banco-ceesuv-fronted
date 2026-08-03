@@ -73,7 +73,6 @@ const generarPinUnico = async () => {
 
   while (existe) {
     pin = Math.floor(1000 + Math.random() * 9000).toString();
-    // Verificamos que el PIN no exista en la tabla alumnos
     const res = await pool.query("SELECT id FROM alumnos WHERE pin = $1", [pin]);
     if (res.rowCount === 0) {
       existe = false;
@@ -146,7 +145,9 @@ const inicializarBaseDeDatos = async () => {
         numero_cuenta VARCHAR(20),
         tarjeta_debito VARCHAR(20),
         clabe VARCHAR(20),
-        fecha_limite_pago DATE
+        fecha_limite_pago DATE,
+        ultima_fecha_rendimiento TIMESTAMP,
+        ultima_fecha_interes_credito TIMESTAMP
       );
 
       CREATE TABLE IF NOT EXISTS movimientos (
@@ -171,6 +172,8 @@ const inicializarBaseDeDatos = async () => {
       ALTER TABLE alumnos ADD COLUMN IF NOT EXISTS tarjeta_debito VARCHAR(20);
       ALTER TABLE alumnos ADD COLUMN IF NOT EXISTS clabe VARCHAR(20);
       ALTER TABLE alumnos ADD COLUMN IF NOT EXISTS fecha_limite_pago DATE;
+      ALTER TABLE alumnos ADD COLUMN IF NOT EXISTS ultima_fecha_rendimiento TIMESTAMP;
+      ALTER TABLE alumnos ADD COLUMN IF NOT EXISTS ultima_fecha_interes_credito TIMESTAMP;
     `);
 
     await pool.query(`
@@ -204,14 +207,12 @@ app.put("/api/alumnos-cambiar-estatus/:id", async (req, res) => {
     const { id } = req.params;
     const nuevoValor = req.body.estatus || req.body.estado || "Activo";
 
-    // 1. Obtenemos los datos del alumno para asegurar su nombre o identificación real
     const alumnoRes = await pool.query(`SELECT nombre FROM alumnos WHERE id = $1`, [id]);
     if (alumnoRes.rows.length === 0) {
       return res.status(404).json({ mensaje: "Alumno no encontrado." });
     }
     const nombreAlumno = alumnoRes.rows[0].nombre;
 
-    // 🛡️ PROTECCIÓN: Verificar si este alumno está vinculado a un usuario Administrador
     const verificarAdmin = await pool.query(
       `SELECT u.rol FROM usuarios u WHERE u.alumno_id = $1 OR u.nombre ILIKE $2`,
       [id, nombreAlumno]
@@ -221,13 +222,8 @@ app.put("/api/alumnos-cambiar-estatus/:id", async (req, res) => {
       return res.status(403).json({ mensaje: "No se puede inactivar una cuenta de Administrador." });
     }
 
-    // 2. Actualizamos unívocamente la tabla alumnos por su ID exacto
-    const resultadoAlumno = await pool.query(
-      `UPDATE alumnos SET estatus = $1 WHERE id = $2`,
-      [nuevoValor, id]
-    );
+    await pool.query(`UPDATE alumnos SET estatus = $1 WHERE id = $2`, [nuevoValor, id]);
 
-    // 3. Actualizamos la tabla usuarios exclusivamente usando 'alumno_id' o coincidencia exacta de nombre, NUNCA por ID cruzado
     try {
       await pool.query(
         `UPDATE usuarios SET estado = $1 WHERE alumno_id = $2 AND rol != 'Admin'`,
@@ -270,9 +266,7 @@ app.get(["/consulta/:token", "/api/consulta/:token"], async (req, res) => {
     );
 
     if (alumnoResult.rows.length === 0) {
-      return res.status(404).json({
-        mensaje: "Código QR no válido o alumno no encontrado."
-      });
+      return res.status(404).json({ mensaje: "Código QR no válido o alumno no encontrado." });
     }
 
     const alumno = alumnoResult.rows[0];
@@ -293,9 +287,7 @@ app.get(["/consulta/:token", "/api/consulta/:token"], async (req, res) => {
 
   } catch (error) {
     console.error("Error al consultar por QR:", error);
-    return res.status(500).json({
-      mensaje: "Error interno del servidor al consultar QR."
-    });
+    return res.status(500).json({ mensaje: "Error interno del servidor al consultar QR." });
   }
 });
 
@@ -352,7 +344,7 @@ app.get(["/api/alumno-dashboard/:alumnoId", "/api/alumnos/:identifier", "/alumno
       movimientos: movsRes.rows
     });
   } catch (error) {
-    console.error("Error al obtener dashboard del alumno:", `[cite: 2]`, error);
+    console.error("Error al obtener dashboard del alumno:", error);
     return res.status(500).json({ mensaje: "Error al obtener datos del alumno." });
   }
 });
@@ -368,7 +360,7 @@ app.get(["/alumnos", "/api/alumnos"], async (req, res) => {
         a.coins,
         COALESCE(a.coins_ahorro, 0) AS coins_ahorro,
         a.token_qr,
-        a.pin,  -- <--- Cambiado de u.pin a a.pin directamente
+        a.pin,
         COALESCE(a.estatus, 'Activo') AS estatus
        FROM alumnos a
        ORDER BY a.id`
@@ -430,11 +422,7 @@ app.put(["/alumnos/:id", "/api/alumnos/:id"], async (req, res) => {
 
     const resultado = await pool.query(
       `UPDATE alumnos
-       SET nombre=$1,
-           grado=$2,
-           coins=$3,
-           coins_ahorro=$4,
-           estatus=$5
+       SET nombre=$1, grado=$2, coins=$3, coins_ahorro=$4, estatus=$5
        WHERE id=$6
        RETURNING *`,
       [nombre, grado, coins, coins_ahorro || 0, estatus || 'Activo', id]
@@ -461,9 +449,7 @@ app.delete(["/alumnos/:id", "/api/alumnos/:id"], async (req, res) => {
     await pool.query("DELETE FROM usuarios WHERE alumno_id=$1", [id]);
     await pool.query("DELETE FROM alumnos WHERE id=$1", [id]);
 
-    return res.status(200).json({
-      mensaje: "Alumno y usuario asociados eliminados correctamente."
-    });
+    return res.status(200).json({ mensaje: "Alumno y usuario asociados eliminados correctamente." });
   } catch (error) {
     console.error(error);
     return res.status(500).json({ mensaje: "Error al eliminar alumno." });
@@ -561,30 +547,10 @@ app.post(["/movimientos", "/api/movimientos"], async (req, res) => {
 // Dashboard General
 app.get(["/dashboard", "/api/dashboard"], async (req, res) => {
   try {
-    const alumnos = await pool.query(`
-      SELECT COUNT(a.id) AS total 
-      FROM alumnos a 
-      WHERE COALESCE(a.estatus, 'Activo') = 'Activo'
-    `);
-    
-    const coins = await pool.query(`
-      SELECT COALESCE(SUM(a.coins),0) AS total 
-      FROM alumnos a 
-      WHERE COALESCE(a.estatus, 'Activo') = 'Activo'
-    `);
-
-    const coinsAhorro = await pool.query(`
-      SELECT COALESCE(SUM(a.coins_ahorro),0) AS total 
-      FROM alumnos a 
-      WHERE COALESCE(a.estatus, 'Activo') = 'Activo'
-    `);
-
-    const movimientos = await pool.query(`
-      SELECT COUNT(m.id) AS total 
-      FROM movimientos m 
-      JOIN alumnos a ON m.alumno_id = a.id 
-      WHERE COALESCE(a.estatus, 'Activo') = 'Activo'
-    `);
+    const alumnos = await pool.query(`SELECT COUNT(a.id) AS total FROM alumnos a WHERE COALESCE(a.estatus, 'Activo') = 'Activo'`);
+    const coins = await pool.query(`SELECT COALESCE(SUM(a.coins),0) AS total FROM alumnos a WHERE COALESCE(a.estatus, 'Activo') = 'Activo'`);
+    const coinsAhorro = await pool.query(`SELECT COALESCE(SUM(a.coins_ahorro),0) AS total FROM alumnos a WHERE COALESCE(a.estatus, 'Activo') = 'Activo'`);
+    const movimientos = await pool.query(`SELECT COUNT(m.id) AS total FROM movimientos m JOIN alumnos a ON m.alumno_id = a.id WHERE COALESCE(a.estatus, 'Activo') = 'Activo'`);
 
     return res.status(200).json({
       alumnos: Number(alumnos.rows[0].total),
@@ -601,9 +567,7 @@ app.get(["/dashboard", "/api/dashboard"], async (req, res) => {
 // Usuarios
 app.get(["/usuarios", "/api/usuarios"], async (req, res) => {
   try {
-    const resultado = await pool.query(
-      `SELECT id, nombre, usuario, rol, estado, pin, alumno_id, fecha_registro FROM usuarios ORDER BY id`
-    );
+    const resultado = await pool.query(`SELECT id, nombre, usuario, rol, estado, pin, alumno_id, fecha_registro FROM usuarios ORDER BY id`);
     return res.status(200).json(resultado.rows);
   } catch (error) {
     console.error(error);
@@ -614,14 +578,10 @@ app.get(["/usuarios", "/api/usuarios"], async (req, res) => {
 app.post(["/usuarios", "/api/usuarios"], async (req, res) => {
   try {
     const { nombre, usuario, password, rol } = req.body;
-
     const resultado = await pool.query(
-      `INSERT INTO usuarios (nombre, usuario, password, rol)
-       VALUES ($1, $2, $3, $4)
-       RETURNING id, nombre, usuario, rol, estado`,
+      `INSERT INTO usuarios (nombre, usuario, password, rol) VALUES ($1, $2, $3, $4) RETURNING id, nombre, usuario, rol, estado`,
       [nombre, usuario, password, rol]
     );
-
     return res.status(200).json(resultado.rows[0]);
   } catch (error) {
     console.error(error);
@@ -632,20 +592,9 @@ app.post(["/usuarios", "/api/usuarios"], async (req, res) => {
 // Login
 app.post(["/login", "/api/login"], async (req, res) => {
   try {
-    const payload =
-      req.body && typeof req.body.usuario === "object" && req.body.usuario !== null
-        ? req.body.usuario
-        : req.body;
-
+    const payload = req.body && typeof req.body.usuario === "object" && req.body.usuario !== null ? req.body.usuario : req.body;
     const uRaw = payload.usuario || (typeof req.body.usuario === "string" ? req.body.usuario : "");
-    const pRaw =
-      payload.password ||
-      payload.contrasena ||
-      payload.pass ||
-      payload.pin ||
-      req.body.password ||
-      req.body.pin ||
-      "";
+    const pRaw = payload.password || payload.contrasena || payload.pass || payload.pin || req.body.password || req.body.pin || "";
 
     const userClean = String(uRaw).trim();
     const passClean = String(pRaw).trim();
@@ -654,7 +603,6 @@ app.post(["/login", "/api/login"], async (req, res) => {
       return res.status(400).json({ mensaje: "Credenciales requeridas." });
     }
 
-    // Si ingresan un PIN de 4 dígitos, buscamos directamente en la tabla ALUMNOS
     if (passClean.length === 4 && !isNaN(passClean)) {
       const resPin = await pool.query(
         `SELECT id, nombre, grado, coins, COALESCE(coins_ahorro, 0) as coins_ahorro, estatus
@@ -672,11 +620,8 @@ app.post(["/login", "/api/login"], async (req, res) => {
       }
     }
 
-    // Si es usuario y contraseña tradicional, se busca en la tabla USUARIOS (Admin / Docente)
     const resultado = await pool.query(
-      `SELECT id, nombre, usuario, password, rol, estado 
-       FROM usuarios 
-       WHERE LOWER(usuario) = LOWER($1)`,
+      `SELECT id, nombre, usuario, password, rol, estado FROM usuarios WHERE LOWER(usuario) = LOWER($1)`,
       [userClean]
     );
 
@@ -694,10 +639,7 @@ app.post(["/login", "/api/login"], async (req, res) => {
     return res.status(200).json(usuarioEncontrado);
   } catch (error) {
     console.error("Error al intentar iniciar sesión:", error);
-    return res.status(500).json({
-      mensaje: "Error al intentar iniciar sesión.",
-      detalles: error.message
-    });
+    return res.status(500).json({ mensaje: "Error al intentar iniciar sesión.", detalles: error.message });
   }
 });
 
@@ -706,11 +648,7 @@ app.post(["/api/compras", "/compras"], async (req, res) => {
   try {
     const { alumno_id, producto_nombre, costo, usuario } = req.body;
 
-    const alumnoQuery = await pool.query(
-      "SELECT coins, COALESCE(coins_ahorro, 0) AS coins_ahorro FROM alumnos WHERE id = $1",
-      [alumno_id]
-    );
-
+    const alumnoQuery = await pool.query("SELECT coins, COALESCE(coins_ahorro, 0) AS coins_ahorro FROM alumnos WHERE id = $1", [alumno_id]);
     if (alumnoQuery.rows.length === 0) {
       return res.status(404).json({ mensaje: "Alumno no encontrado." });
     }
@@ -724,35 +662,28 @@ app.post(["/api/compras", "/compras"], async (req, res) => {
 
     coinsDisponibles -= precioProducto;
 
+    await pool.query("UPDATE alumnos SET coins = $1 WHERE id = $2", [coinsDisponibles, alumno_id]);
     await pool.query(
-      "UPDATE alumnos SET coins = $1 WHERE id = $2",
-      [coinsDisponibles, alumno_id]
-    );
-
-    await pool.query(
-      `INSERT INTO movimientos (alumno_id, tipo, cantidad, motivo, usuario)
-       VALUES ($1, $2, $3, $4, $5)`,
+      `INSERT INTO movimientos (alumno_id, tipo, cantidad, motivo, usuario) VALUES ($1, $2, $3, $4, $5)`,
       [alumno_id, 'COMPRA', precioProducto, `Compra: ${producto_nombre}`, usuario || 'Tienda Escolar']
     );
 
-    return res.status(200).json({
-      mensaje: "¡Compra realizada con éxito!",
-      coins: coinsDisponibles
-    });
-
+    return res.status(200).json({ mensaje: "¡Compra realizada con éxito!", coins: coinsDisponibles });
   } catch (error) {
     console.error("Error al procesar la compra:", error);
     return res.status(500).json({ mensaje: "Error interno al procesar la compra." });
   }
 });
 
-// Compras con Tarjeta de Crédito
+// =========================================================================
+// COMPRAS CON TARJETA DE CRÉDITO (RESTRINGIDO A SECUNDARIA Y BACHILLERATO)
+// =========================================================================
 app.post(["/api/comprar-credito", "/comprar-credito"], async (req, res) => {
   try {
     const { alumno_id, monto_compra, concepto } = req.body;
 
     const alumnoQuery = await pool.query(
-      "SELECT id, nombre, limite_credito, credito_utilizado, fecha_limite_pago FROM alumnos WHERE id = $1",
+      "SELECT id, nombre, grado, limite_credito, credito_utilizado, fecha_limite_pago FROM alumnos WHERE id = $1",
       [alumno_id]
     );
 
@@ -761,21 +692,24 @@ app.post(["/api/comprar-credito", "/comprar-credito"], async (req, res) => {
     }
 
     const alumno = alumnoQuery.rows[0];
+    const gradoLower = (alumno.grado || '').toLowerCase();
+
+    // 🛡️ Restricción estricta: Primaria no puede comprar a crédito
+    if (gradoLower.includes('primaria')) {
+      return res.status(403).json({ mensaje: "Acceso denegado: Los alumnos de primaria no tienen habilitado el módulo de crédito." });
+    }
+
     const limite = Number(alumno.limite_credito || 200);
     const utilizado = Number(alumno.credito_utilizado || 0);
     const disponible = limite - utilizado;
     const monto = Number(monto_compra);
 
     if (monto > disponible) {
-      return res.status(400).json({ 
-        mensaje: `Crédito insuficiente. Límite disponible: $${disponible.toFixed(2)}` 
-      });
+      return res.status(400).json({ mensaje: `Crédito insuficiente. Límite disponible: $${disponible.toFixed(2)}` });
     }
 
     const nuevoCreditoUtilizado = utilizado + monto;
 
-    // Si el alumno no tenía deuda previa (utilizado === 0), le asignamos automáticamente 15 días de plazo desde hoy.
-    // Si ya tenía una fecha activa, la respetamos.
     await pool.query(
       `UPDATE alumnos 
        SET credito_utilizado = $1,
@@ -788,8 +722,7 @@ app.post(["/api/comprar-credito", "/comprar-credito"], async (req, res) => {
     );
 
     await pool.query(
-      `INSERT INTO movimientos (alumno_id, tipo, cantidad, motivo, usuario)
-       VALUES ($1, $2, $3, $4, $5)`,
+      `INSERT INTO movimientos (alumno_id, tipo, cantidad, motivo, usuario) VALUES ($1, $2, $3, $4, $5)`,
       [alumno_id, 'COMPRA_CREDITO', monto, concepto || 'Compra a crédito en Tienda Escolar', alumno.nombre]
     );
 
@@ -811,19 +744,21 @@ app.post(["/api/pagar-credito", "/pagar-credito"], async (req, res) => {
     const { alumno_id, monto_pago, usuario } = req.body;
 
     if (!alumno_id || !monto_pago) {
-      return res.status(400).json({ mensaje: "Faltan datos requeridos (alumno_id o monto_pago)." });
+      return res.status(400).json({ mensaje: "Faltan datos requeridos (alumno_id or monto_pago)." });
     }
 
-    const alumnoQuery = await pool.query(
-      "SELECT id, nombre, coins, credito_utilizado FROM alumnos WHERE id = $1",
-      [alumno_id]
-    );
-
+    const alumnoQuery = await pool.query("SELECT id, nombre, grado, coins, credito_utilizado FROM alumnos WHERE id = $1", [alumno_id]);
     if (alumnoQuery.rows.length === 0) {
       return res.status(404).json({ mensaje: "Alumno no encontrado." });
     }
 
     const alumno = alumnoQuery.rows[0];
+    const gradoLower = (alumno.grado || '').toLowerCase();
+
+    if (gradoLower.includes('primaria')) {
+      return res.status(403).json({ mensaje: "Acceso denegado: Los alumnos de primaria no manejan cuentas de crédito." });
+    }
+
     const coinsDisponibles = Number(alumno.coins || 0);
     const utilizado = Number(alumno.credito_utilizado || 0);
     const monto = Number(monto_pago);
@@ -831,7 +766,6 @@ app.post(["/api/pagar-credito", "/pagar-credito"], async (req, res) => {
     if (isNaN(monto) || monto <= 0) {
       return res.status(400).json({ mensaje: "Cantidad de pago inválida." });
     }
-    
     if (monto > (utilizado + 0.01)) {
       return res.status(400).json({ mensaje: "El monto supera el crédito utilizado actual." });
     }
@@ -841,26 +775,16 @@ app.post(["/api/pagar-credito", "/pagar-credito"], async (req, res) => {
 
     const nuevoCoins = coinsDisponibles - monto;
     let nuevoCreditoUtilizado = utilizado - monto;
-    
-    if (nuevoCreditoUtilizado < 0.05) {
-      nuevoCreditoUtilizado = 0.00;
-    }
+    if (nuevoCreditoUtilizado < 0.05) nuevoCreditoUtilizado = 0.00;
 
     if (nuevoCreditoUtilizado === 0.00) {
-      await pool.query(
-        "UPDATE alumnos SET coins = $1, credito_utilizado = 0.00, fecha_limite_pago = NULL WHERE id = $2",
-        [nuevoCoins, alumno_id]
-      );
+      await pool.query("UPDATE alumnos SET coins = $1, credito_utilizado = 0.00, fecha_limite_pago = NULL WHERE id = $2", [nuevoCoins, alumno_id]);
     } else {
-      await pool.query(
-        "UPDATE alumnos SET coins = $1, credito_utilizado = $2 WHERE id = $3",
-        [nuevoCoins, nuevoCreditoUtilizado, alumno_id]
-      );
+      await pool.query("UPDATE alumnos SET coins = $1, credito_utilizado = $2 WHERE id = $3", [nuevoCoins, nuevoCreditoUtilizado, alumno_id]);
     }
 
     await pool.query(
-      `INSERT INTO movimientos (alumno_id, tipo, cantidad, motivo, usuario)
-       VALUES ($1, $2, $3, $4, $5)`,
+      `INSERT INTO movimientos (alumno_id, tipo, cantidad, motivo, usuario) VALUES ($1, $2, $3, $4, $5)`,
       [alumno_id, 'PAGO_CREDITO', monto, 'Pago de tarjeta de crédito con Coins', usuario || alumno.nombre]
     );
 
@@ -884,10 +808,7 @@ app.put(["/usuarios/:id", "/api/usuarios/:id"], async (req, res) => {
     const { nombre, usuario, rol } = req.body;
 
     const resultado = await pool.query(
-      `UPDATE usuarios 
-       SET nombre = $1, usuario = $2, rol = $3 
-       WHERE id = $4 
-       RETURNING id, nombre, usuario, rol, estado`,
+      `UPDATE usuarios SET nombre = $1, usuario = $2, rol = $3 WHERE id = $4 RETURNING id, nombre, usuario, rol, estado`,
       [nombre, usuario, rol, id]
     );
 
@@ -909,20 +830,12 @@ const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 app.post("/api/analisis-ia", async (req, res) => {
   try {
     const { datosAlumnos, resumenMovimientos } = req.body;
-
     const prompt = `
       Actúa como un analista de datos escolares experto para la institución "Centro de Estudios Elementales y Superiores de Valles (CEESUV)".
       Analiza la siguiente información de los alumnos y el banco escolar:
-      
       - Datos de alumnos activos: ${JSON.stringify(datosAlumnos || [])}
       - Resumen de movimientos/ahorros: ${JSON.stringify(resumenMovimientos || {})}
-
-      Por favor, genera un informe ejecutivo profesional, motivador y claro en español que incluya:
-      1. Un resumen general del estado del banco escolar y comportamiento.
-      2. Destacar los grados o áreas con mejor rendimiento o ahorro.
-      3. Dos recomendaciones prácticas para los administradores o profesores para el próximo mes.
-
-      Mantén un tono formal, educativo y directo.
+      Genera un informe ejecutivo profesional, motivador y claro en español.
     `;
 
     const completion = await groq.chat.completions.create({
@@ -931,7 +844,6 @@ app.post("/api/analisis-ia", async (req, res) => {
     });
 
     const textoAnalisis = completion.choices[0]?.message?.content || "No se pudo generar el análisis.";
-
     res.json({ analisis: textoAnalisis });
   } catch (error) {
     console.error("Error al generar análisis con Groq:", error);
@@ -939,17 +851,15 @@ app.post("/api/analisis-ia", async (req, res) => {
   }
 });
 
-// Transferencia universal (Por Tarjeta, CLABE o Número de Cuenta)
-// Reemplaza esta parte en tu endpoint de server.js:
+// Transferencia universal
 app.post(['/api/transferencias', '/api/transferir-por-tarjeta', '/transferir-por-tarjeta', '/api/transferencias/spei'], async (req, res) => {
     const { 
         remitente_id, remitenteId, emisor_id,
         tarjeta_destino, numeroTarjetaDestino, clabeDestino, cuentaDestino, destinoIdentifier, 
         clabe_destino, destino, cuenta, clabe,
-        cantidad, monto, concepto, referencia, pin 
+        cantidad, monto, concepto, referencia 
     } = req.body;
 
-    // Unificamos la captura para que agarre cualquiera de los nombres posibles
     const idRemitente = remitente_id || remitenteId || emisor_id;
     const destinoRaw = tarjeta_destino || numeroTarjetaDestino || clabeDestino || cuentaDestino || destinoIdentifier || clabe_destino || destino || cuenta || clabe;
     const montoTransferir = cantidad || monto;
@@ -960,9 +870,8 @@ app.post(['/api/transferencias', '/api/transferir-por-tarjeta', '/transferir-por
     }
 
     const destinoLimpio = destinoRaw ? String(destinoRaw).replace(/\s+/g, '') : '';
-
     if (!destinoLimpio) {
-        return res.status(400).json({ error: "Debe proporcionar un destino válido (Tarjeta, CLABE o Número de Cuenta)." });
+        return res.status(400).json({ error: "Debe proporcionar un destino válido." });
     }
 
     try {
@@ -982,10 +891,8 @@ app.post(['/api/transferencias', '/api/transferir-por-tarjeta', '/transferir-por
                 return res.status(400).json({ error: "Saldo insuficiente para realizar la transferencia." });
             }
 
-            // Buscar al destinatario buscando en las tres columnas posibles de la base de datos
             const destinatarioRes = await client.query(
-                `SELECT id, nombre, coins FROM alumnos 
-                 WHERE tarjeta_debito = $1 OR clabe = $1 OR numero_cuenta = $1 FOR UPDATE`, 
+                `SELECT id, nombre, coins FROM alumnos WHERE tarjeta_debito = $1 OR clabe = $1 OR numero_cuenta = $1 FOR UPDATE`, 
                 [destinoLimpio]
             );
 
@@ -995,7 +902,6 @@ app.post(['/api/transferencias', '/api/transferir-por-tarjeta', '/transferir-por
             }
 
             const destinatario = destinatarioRes.rows[0];
-
             if (Number(remitente.id) === Number(destinatario.id)) {
                 await client.query('ROLLBACK');
                 return res.status(400).json({ error: "No puedes transferir coins a tu propia cuenta." });
@@ -1007,24 +913,17 @@ app.post(['/api/transferencias', '/api/transferir-por-tarjeta', '/transferir-por
             const textoConcepto = concepto ? String(concepto).trim() : "Transferencia CEESUV Coins";
             const textoReferencia = referencia ? String(referencia).trim() : String(Math.floor(100000 + Math.random() * 900000));
 
-            const motivoSalida = `Envío a ${destinatario.nombre} | Concepto: ${textoConcepto} | Ref: ${textoReferencia}`;
-            const motivoEntrada = `Recepción de ${remitente.nombre} | Concepto: ${textoConcepto} | Ref: ${textoReferencia}`;
-
             await client.query(
                 "INSERT INTO movimientos (alumno_id, tipo, cantidad, motivo, usuario) VALUES ($1, 'SALIDA', $2, $3, $4)",
-                [idRemitente, valCantidad, motivoSalida, remitente.nombre]
+                [idRemitente, valCantidad, `Envío a ${destinatario.nombre} | Concepto: ${textoConcepto} | Ref: ${textoReferencia}`, remitente.nombre]
             );
             await client.query(
                 "INSERT INTO movimientos (alumno_id, tipo, cantidad, motivo, usuario) VALUES ($1, 'ENTRADA', $2, $3, $4)",
-                [destinatario.id, valCantidad, motivoEntrada, remitente.nombre]
+                [destinatario.id, valCantidad, `Recepción de ${remitente.nombre} | Concepto: ${textoConcepto} | Ref: ${textoReferencia}`, remitente.nombre]
             );
 
             await client.query('COMMIT');
-
-            res.json({ 
-                success: true, 
-                mensaje: `¡Transferencia exitosa! Enviaste ${valCantidad} coins a ${destinatario.nombre}.` 
-            });
+            res.json({ success: true, mensaje: `¡Transferencia exitosa! Enviaste ${valCantidad} coins a ${destinatario.nombre}.` });
         } catch (err) {
             await client.query('ROLLBACK');
             throw err;
@@ -1039,37 +938,28 @@ app.post(['/api/transferencias', '/api/transferir-por-tarjeta', '/transferir-por
 
 const cron = require("node-cron");
 
-// 1. Tarea automática de los lunes a medianoche
 cron.schedule("0 0 * * 1", async () => {
   console.log("⏰ Ejecutando tarea automática: Aplicando rendimientos de ahorro del 5%...");
-  
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
-
     const alumnosRes = await client.query("SELECT id, nombre, coins_ahorro FROM alumnos WHERE coins_ahorro > 0");
-    const alumnosAhorradores = alumnosRes.rows;
     let procesados = 0;
 
-    for (const alumno of alumnosAhorradores) {
+    for (const alumno of alumnosRes.rows) {
       const ahorroActual = Number(alumno.coins_ahorro);
       const rendimiento = Math.round(ahorroActual * 0.05);
 
       if (rendimiento > 0) {
         const nuevoAhorro = ahorroActual + rendimiento;
-
         await client.query("UPDATE alumnos SET coins_ahorro = $1 WHERE id = $2", [nuevoAhorro, alumno.id]);
-
         await client.query(
-          `INSERT INTO movimientos (alumno_id, tipo, cantidad, motivo, usuario)
-           VALUES ($1, 'AHORRO_RENDIMIENTO', $2, $3, $4)`,
+          `INSERT INTO movimientos (alumno_id, tipo, cantidad, motivo, usuario) VALUES ($1, 'AHORRO_RENDIMIENTO', $2, $3, $4)`,
           [alumno.id, rendimiento, 'Rendimiento semanal automático (5%)', 'Sistema Banco CEESUV']
         );
-
         procesados++;
       }
     }
-
     await client.query('COMMIT');
     console.log(`✅ Rendimientos aplicados exitosamente a ${procesados} alumnos ahorradores.`);
   } catch (error) {
@@ -1080,42 +970,28 @@ cron.schedule("0 0 * * 1", async () => {
   }
 });
 
-// 2. Endpoint opcional para ejecutarlo manualmente o asegurar el cálculo hoy lunes
+// Endpoint manual de rendimiento
 app.post("/api/verificar-rendimiento-lunes", async (req, res) => {
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
-
-    const alumnosRes = await client.query(`
-      SELECT id, nombre, coins_ahorro, ultima_fecha_rendimiento 
-      FROM alumnos 
-      WHERE coins_ahorro > 0 
-      AND (ultima_fecha_rendimiento::date < CURRENT_DATE)
-    `);
-
+    const alumnosRes = await client.query(`SELECT id, nombre, coins_ahorro, ultima_fecha_rendimiento FROM alumnos WHERE coins_ahorro > 0 AND (ultima_fecha_rendimiento::date < CURRENT_DATE)`);
     let procesados = 0;
+
     for (const alumno of alumnosRes.rows) {
       const ahorroActual = Number(alumno.coins_ahorro);
       const rendimiento = Math.round(ahorroActual * 0.05);
 
       if (rendimiento > 0) {
         const nuevoAhorro = ahorroActual + rendimiento;
-
+        await client.query("UPDATE alumnos SET coins_ahorro = $1, ultima_fecha_rendimiento = CURRENT_TIMESTAMP WHERE id = $2", [nuevoAhorro, alumno.id]);
         await client.query(
-          "UPDATE alumnos SET coins_ahorro = $1, ultima_fecha_rendimiento = CURRENT_TIMESTAMP WHERE id = $2", 
-          [nuevoAhorro, alumno.id]
-        );
-
-        await client.query(
-          `INSERT INTO movimientos (alumno_id, tipo, cantidad, motivo, usuario)
-           VALUES ($1, 'AHORRO_RENDIMIENTO', $2, $3, $4)`,
+          `INSERT INTO movimientos (alumno_id, tipo, cantidad, motivo, usuario) VALUES ($1, 'AHORRO_RENDIMIENTO', $2, $3, $4)`,
           [alumno.id, rendimiento, 'Rendimiento semanal automático (5%)', 'Sistema Banco CEESUV']
         );
-
         procesados++;
       }
     }
-
     await client.query('COMMIT');
     res.json({ mensaje: `Rendimientos aplicados correctamente a ${procesados} cuentas.` });
   } catch (error) {
@@ -1127,95 +1003,8 @@ app.post("/api/verificar-rendimiento-lunes", async (req, res) => {
   }
 });
 
-
-// Endpoint para transferencias SPEI
-app.post('/api/transferencias/spei', async (req, res) => {
-    const { emisor_id, clabe_destino, monto, pin } = req.body;
-
-    // Validar que el monto sea positivo
-    if (!monto || monto <= 0) {
-        return res.status(400).json({ error: 'Monto de transferencia inválido.' });
-    }
-
-    const client = await pool.connect();
-
-    try {
-        await client.query('BEGIN');
-
-        // 1. Verificar al emisor y validar su PIN (Cambiado 'saldo' por 'coins')
-        const emisorQuery = await client.query(
-            'SELECT id, coins, pin FROM alumnos WHERE id = $1',
-            [emisor_id]
-        );
-
-        if (emisorQuery.rows.length === 0) {
-            await client.query('ROLLBACK');
-            return res.status(404).json({ error: 'Alumno emisor no encontrado.' });
-        }
-
-        const emisor = emisorQuery.rows[0];
-
-        if (emisor.pin !== pin) {
-            await client.query('ROLLBACK');
-            return res.status(401).json({ error: 'PIN incorrecto.' });
-        }
-
-        if (parseFloat(emisor.coins) < parseFloat(monto)) {
-            await client.query('ROLLBACK');
-            return res.status(400).json({ error: 'Saldo insuficiente para realizar la transferencia.' });
-        }
-
-        // 2. Verificar que la CLABE de destino exista y no sea la misma del emisor
-        const destinoQuery = await client.query(
-            'SELECT id, coins, clabe FROM alumnos WHERE clabe = $1',
-            [clabe_destino]
-        );
-
-        if (destinoQuery.rows.length === 0) {
-            await client.query('ROLLBACK');
-            return res.status(404).json({ error: 'La CLABE de destino no existe.' });
-        }
-
-        const destino = destinoQuery.rows[0];
-
-        if (emisor.id === destino.id) {
-            await client.query('ROLLBACK');
-            return res.status(400).json({ error: 'No puedes transferir a tu propia cuenta.' });
-        }
-
-        // 3. Realizar los movimientos (Descontar y sumar usando 'coins')
-        await client.query(
-            'UPDATE alumnos SET coins = coins - $1 WHERE id = $2',
-            [monto, emisor.id]
-        );
-
-        await client.query(
-            'UPDATE alumnos SET coins = coins + $1 WHERE id = $2',
-            [monto, destino.id]
-        );
-
-        // 4. Registrar la transacción en una tabla de historial
-        await client.query(
-            `INSERT INTO transacciones (emisor_id, receptor_id, monto, tipo, fecha) 
-             VALUES ($1, $2, $3, 'SPEI', NOW())`,
-            [emisor.id, destino.id, monto]
-        );
-
-        await client.query('COMMIT');
-        res.json({ success: true, message: 'Transferencia SPEI realizada con éxito.' });
-
-    } catch (err) {
-        await client.query('ROLLBACK');
-        console.error(err);
-        res.status(500).json({ error: 'Error en el servidor al procesar la transferencia.' });
-    } finally {
-        client.release();
-    }
-});
-
 app.post('/api/aplicar-interes-credito', async (req, res) => {
     try {
-        // 1. Aplicar el UPDATE en la base de datos
         const queryUpdate = `
             UPDATE alumnos 
             SET credito_utilizado = credito_utilizado + (credito_utilizado * 0.05),
@@ -1223,30 +1012,19 @@ app.post('/api/aplicar-interes-credito', async (req, res) => {
             WHERE credito_utilizado > 0 
                AND fecha_limite_pago < CURRENT_DATE
                AND (ultima_fecha_interes_credito::date < CURRENT_DATE OR ultima_fecha_interes_credito IS NULL)
-            RETURNING matricula, credito_utilizado;
+            RETURNING id, credito_utilizado;
         `;
         const resultado = await pool.query(queryUpdate);
-
-        // 2. Opcional: Registrar el movimiento en la tabla de movimientos para cada alumno afectado
-        // (Puedes iterar sobre resultado.rows e insertar en tu tabla 'movimientos' con el tipo CREDITO_INTERES)
-
-        res.json({ 
-            exito: true, 
-            mensaje: `Intereses de crédito aplicados correctamente a ${resultado.rowCount} cuentas.` 
-        });
+        res.json({ exito: true, mensaje: `Intereses de crédito aplicados correctamente a ${resultado.rowCount} cuentas.` });
     } catch (error) {
         console.error(error);
         res.status(500).json({ exito: false, error: 'Error al aplicar intereses al crédito' });
     }
 });
 
-
-// ==========================================
-// Inicialización del Servidor
-// ==========================================
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
-  console.log(`Servidor corriendo en el puerto ${PORT}`);
+  console.log(`Servidor corriendo en el puerto ${PORT}[cite: 2]`);
 });
 
 module.exports = app;

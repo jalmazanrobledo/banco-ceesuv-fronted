@@ -59,6 +59,13 @@ export default function StudentDashboard() {
     { id: 4, nombre: "Goma y Sacapuntas", costo: 8, icono: "📐" }
   ];
 
+  // Identificar si el alumno pertenece a Primaria
+  const esPrimaria = (() => {
+    const nivel = (alumno?.nivel || alumno?.nivel_escolar || alumno?.seccion || "").toLowerCase();
+    const grado = String(alumno?.grado || "").toLowerCase();
+    return nivel.includes("primaria") || grado.includes("primaria");
+  })();
+
   useEffect(() => {
     async function obtenerTiposCambio() {
       try {
@@ -258,6 +265,8 @@ export default function StudentDashboard() {
   };
 
   const handlePagarCredito = async () => {
+    if (esPrimaria) return; // Bloqueo estricto para Primaria
+
     const monto = Number(montoCreditoPago);
     const utilizado = Number(alumno?.credito_utilizado || 0);
     const disponibles = Number(alumno?.coins || 0);
@@ -321,6 +330,13 @@ export default function StudentDashboard() {
   };
 
   const handleComprar = async (producto) => {
+    if (esPrimaria && metodoPago === "credito") {
+      const msg = "Los alumnos de Primaria no pueden realizar compras a crédito.";
+      setMensajeTienda({ tipo: "error", texto: msg });
+      mostrarToast(msg, "error");
+      return;
+    }
+
     const alumnoId = alumno?.alumno_id || alumno?.id;
 
     if (!alumnoId) {
@@ -337,6 +353,14 @@ export default function StudentDashboard() {
       let response;
 
       if (metodoPago === "credito") {
+        if (esPrimaria) {
+          const msg = "Acceso denegado a crédito para Primaria.";
+          setMensajeTienda({ tipo: "error", texto: msg });
+          mostrarToast(msg, "error");
+          setProcesandoCompra(null);
+          return;
+        }
+
         const limite = Number(alumno?.limite_credito || 200);
         const utilizado = Number(alumno?.credito_utilizado || 0);
         const disponibleCredito = limite - utilizado;
@@ -464,9 +488,9 @@ export default function StudentDashboard() {
   const coinsDisponibles = Number(alumno?.coins ?? 0);
   const coinsAhorro = Number(alumno?.coins_ahorro ?? 0);
   const coinsTotales = coinsDisponibles + coinsAhorro;
-  const creditoUtilizado = Number(alumno?.credito_utilizado ?? 0);
-  const limiteCredito = Number(alumno?.limite_credito ?? 200);
-  const creditoDisponible = limiteCredito - creditoUtilizado;
+  const creditoUtilizado = esPrimaria ? 0 : Number(alumno?.credito_utilizado ?? 0);
+  const limiteCredito = esPrimaria ? 0 : Number(alumno?.limite_credito ?? 200);
+  const creditoDisponible = esPrimaria ? 0 : limiteCredito - creditoUtilizado;
   const matricula = alumno?.matricula || alumno?.id || "N/A";
 
   const usdMxn = tasas?.usd || "17.50";
@@ -876,13 +900,15 @@ export default function StudentDashboard() {
               <div className="badge-icon">🏦</div>
             </div>
 
-            <div className="card-stat">
-              <div>
-                <p className="stat-title">Crédito Utilizado</p>
-                <p className="stat-value" style={{ color: "#ef4444" }}>${creditoUtilizado.toFixed(2)} <span style={{ fontSize: "12px", color: "#94a3b8" }}>/ ${limiteCredito}</span></p>
+            {!esPrimaria && (
+              <div className="card-stat">
+                <div>
+                  <p className="stat-title">Crédito Utilizado</p>
+                  <p className="stat-value" style={{ color: "#ef4444" }}>${creditoUtilizado.toFixed(2)} <span style={{ fontSize: "12px", color: "#94a3b8" }}>/ ${limiteCredito}</span></p>
+                </div>
+                <div className="badge-icon">💳</div>
               </div>
-              <div className="badge-icon">💳</div>
-            </div>
+            )}
           </div>
 
           {/* BARRA DE PESTAÑAS */}
@@ -890,7 +916,12 @@ export default function StudentDashboard() {
             <button onClick={() => setActiveTab('tarjetas')} className={`modern-tab-btn ${activeTab === 'tarjetas' ? 'active' : ''}`}>💳 Tarjetas</button>
             <button onClick={() => setActiveTab('transferencias')} className={`modern-tab-btn ${activeTab === 'transferencias' ? 'active' : ''}`}>🔄 Transferir</button>
             <button onClick={() => setActiveTab('ahorro')} className={`modern-tab-btn ${activeTab === 'ahorro' ? 'active' : ''}`}>🏛️ Ahorro</button>
-            <button onClick={() => setActiveTab('credito')} className={`modern-tab-btn ${activeTab === 'credito' ? 'active' : ''}`}>💳 Pagar Crédito</button>
+            
+            {/* Pestaña de pago de crédito exclusiva para Secundaria y Bachillerato */}
+            {!esPrimaria && (
+              <button onClick={() => setActiveTab('credito')} className={`modern-tab-btn ${activeTab === 'credito' ? 'active' : ''}`}>💳 Pagar Crédito</button>
+            )}
+
             <button onClick={() => setActiveTab('tienda')} className={`modern-tab-btn ${activeTab === 'tienda' ? 'active' : ''}`}>🛒 Tienda</button>
             <button onClick={() => setActiveTab('estadocuenta')} className={`modern-tab-btn ${activeTab === 'estadocuenta' ? 'active' : ''}`}>📄 Estado de Cuenta</button>
             <button onClick={() => setActiveTab('historial')} className={`modern-tab-btn ${activeTab === 'historial' ? 'active' : ''}`}>🕒 Movimientos</button>
@@ -907,10 +938,14 @@ export default function StudentDashboard() {
                     <h4 style={{ color: "#FFF", marginBottom: "10px", fontSize: "14px" }}>Débito</h4>
                     <TarjetaDebito alumno={alumno} />
                   </div>
-                  <div>
-                    <h4 style={{ color: "#d4af37", marginBottom: "10px", fontSize: "14px" }}>Crédito</h4>
-                    <TarjetaCredito alumno={alumno} />
-                  </div>
+                  
+                  {/* Tarjeta de crédito solo para Secundaria y Bachillerato */}
+                  {!esPrimaria && (
+                    <div>
+                      <h4 style={{ color: "#d4af37", marginBottom: "10px", fontSize: "14px" }}>Crédito</h4>
+                      <TarjetaCredito alumno={alumno} />
+                    </div>
+                  )}
                 </div>
                 
                 {/* PANEL DE CREDENCIALES BANCARIAS PARA COPIAR FÁCILMENTE */}
@@ -1062,7 +1097,7 @@ export default function StudentDashboard() {
               </div>
             )}
 
-            {activeTab === 'credito' && (
+            {!esPrimaria && activeTab === 'credito' && (
               <div className="card-dark">
                 <h3 style={{ margin: "0 0 10px 0", fontSize: "18px" }}>💳 Pagar Crédito con Coins</h3>
                 <p style={{ color: "#94a3b8", fontSize: "14px", marginBottom: "15px" }}>
@@ -1135,15 +1170,21 @@ export default function StudentDashboard() {
             {activeTab === 'tienda' && (
               <div className="card-dark">
                 <h3 style={{ margin: "0 0 5px 0", fontSize: "18px" }}>🛒 Tienda Escolar</h3>
-                <p style={{ color: "#94a3b8", fontSize: "14px", margin: "0 0 15px 0" }}>Canjea tus coins o usa crédito institucional.</p>
+                <p style={{ color: "#94a3b8", fontSize: "14px", margin: "0 0 15px 0" }}>
+                  {esPrimaria ? "Canjea tus coins." : "Canjea tus coins o usa crédito institucional."}
+                </p>
 
                 <div style={{ display: "flex", gap: "10px", marginBottom: "20px" }}>
                   <button onClick={() => setMetodoPago("coins")} style={{ flex: 1, padding: "10px", borderRadius: "8px", border: metodoPago === "coins" ? "2px solid #10b981" : "1px solid #1e3250", background: metodoPago === "coins" ? "rgba(16, 185, 129, 0.15)" : "rgba(12, 21, 39, 0.6)", color: "white", fontWeight: "bold", cursor: "pointer", fontSize: "13px" }}>
                     🪙 Pagar con Coins ({coinsDisponibles})
                   </button>
-                  <button onClick={() => setMetodoPago("credito")} style={{ flex: 1, padding: "10px", borderRadius: "8px", border: metodoPago === "credito" ? "2px solid #d4af37" : "1px solid #1e3250", background: metodoPago === "credito" ? "rgba(212, 175, 55, 0.15)" : "rgba(12, 21, 39, 0.6)", color: "white", fontWeight: "bold", cursor: "pointer", fontSize: "13px" }}>
-                    💳 Tarjeta de Crédito (Disp: ${creditoDisponible.toFixed(2)})
-                  </button>
+                  
+                  {/* Selector de crédito en tienda oculto para Primaria */}
+                  {!esPrimaria && (
+                    <button onClick={() => setMetodoPago("credito")} style={{ flex: 1, padding: "10px", borderRadius: "8px", border: metodoPago === "credito" ? "2px solid #d4af37" : "1px solid #1e3250", background: metodoPago === "credito" ? "rgba(212, 175, 55, 0.15)" : "rgba(12, 21, 39, 0.6)", color: "white", fontWeight: "bold", cursor: "pointer", fontSize: "13px" }}>
+                      💳 Tarjeta de Crédito (Disp: ${creditoDisponible.toFixed(2)})
+                    </button>
+                  )}
                 </div>
 
                 <div className="carrusel-contenedor">
@@ -1201,7 +1242,7 @@ export default function StudentDashboard() {
                   </div>
                 </div>
 
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "12px", marginBottom: "20px" }}>
+                <div style={{ display: "grid", gridTemplateColumns: `repeat(auto-fit, minmax(180px, 1fr))`, gap: "12px", marginBottom: "20px" }}>
                   <div style={{ background: "rgba(12, 21, 39, 0.5)", padding: "12px", borderRadius: "8px", border: "1px solid #1e3250" }}>
                     <p style={{ margin: 0, color: "#94a3b8", fontSize: "12px" }}>Saldo Coins:</p>
                     <p style={{ margin: "4px 0 0 0", fontSize: "16px", fontWeight: "bold", color: "#f59e0b" }}>{coinsDisponibles} COINS</p>
@@ -1210,10 +1251,12 @@ export default function StudentDashboard() {
                     <p style={{ margin: 0, color: "#94a3b8", fontSize: "12px" }}>Ahorro:</p>
                     <p style={{ margin: "4px 0 0 0", fontSize: "16px", fontWeight: "bold", color: "#3b82f6" }}>{coinsAhorro} COINS</p>
                   </div>
-                  <div style={{ background: "rgba(12, 21, 39, 0.5)", padding: "12px", borderRadius: "8px", border: "1px solid #1e3250" }}>
-                    <p style={{ margin: 0, color: "#94a3b8", fontSize: "12px" }}>Crédito Usado:</p>
-                    <p style={{ margin: "4px 0 0 0", fontSize: "16px", fontWeight: "bold", color: "#ef4444" }}>${creditoUtilizado.toFixed(2)}</p>
-                  </div>
+                  {!esPrimaria && (
+                    <div style={{ background: "rgba(12, 21, 39, 0.5)", padding: "12px", borderRadius: "8px", border: "1px solid #1e3250" }}>
+                      <p style={{ margin: 0, color: "#94a3b8", fontSize: "12px" }}>Crédito Usado:</p>
+                      <p style={{ margin: "4px 0 0 0", fontSize: "16px", fontWeight: "bold", color: "#ef4444" }}>${creditoUtilizado.toFixed(2)}</p>
+                    </div>
+                  )}
                 </div>
 
                 <h4 style={{ margin: "0 0 10px 0", fontSize: "15px" }}>Detalle de Transacciones del Periodo</h4>
