@@ -1,4 +1,4 @@
-[source: 1]import React, { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import TarjetaDebito from "./TarjetaDebito";
 import TarjetaCredito from "./TarjetaCredito";
