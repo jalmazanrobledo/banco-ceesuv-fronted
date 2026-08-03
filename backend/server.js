@@ -800,7 +800,7 @@ app.put(["/usuarios/:id", "/api/usuarios/:id"], async (req, res) => {
     return res.status(500).json({ mensaje: "Error al actualizar el usuario." });
   }
 });
-
+// Estado Alumno
 app.put([
   "/usuarios/:id/estado", 
   "/api/usuarios/:id/estado", 
@@ -812,8 +812,8 @@ app.put([
     const nuevoValor = req.body.estatus || req.body.estado || "Activo";
 
     // 1. Actualizamos directamente la tabla alumnos
-    const resultadoAlumno = await pool.query(
-      `UPDATE alumnos SET estado = $1 WHERE id = $2`, // 👈 Cambiado a 'estado'
+   const resultadoAlumno = await pool.query(
+      `UPDATE alumnos SET estatus = $1 WHERE id = $2`, // 👈 Debe decir estatus
       [nuevoValor, id]
     );
 
