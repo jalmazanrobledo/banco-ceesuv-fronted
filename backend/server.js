@@ -305,12 +305,21 @@ app.get(["/api/alumno-dashboard/:alumnoId", "/api/alumnos/:identifier", "/alumno
 
     if (!isNaN(identifier)) {
       alumnoRes = await pool.query(
-        "SELECT id, nombre, grado, coins, COALESCE(coins_ahorro, 0) AS coins_ahorro, COALESCE(limite_credito, 200.00) AS limite_credito, COALESCE(credito_utilizado, 0.00) AS credito_utilizado FROM alumnos WHERE id = $1",
+        `SELECT id, nombre, grado, coins, 
+                COALESCE(coins_ahorro, 0) AS coins_ahorro, 
+                COALESCE(limite_credito, 200.00) AS limite_credito, 
+                COALESCE(credito_utilizado, 0.00) AS credito_utilizado,
+                numero_cuenta, tarjeta_debito, clabe
+         FROM alumnos WHERE id = $1`,
         [parseInt(identifier, 10)]
       );
     } else {
       alumnoRes = await pool.query(
-        `SELECT a.id, a.nombre, a.grado, a.coins, COALESCE(a.coins_ahorro, 0) AS coins_ahorro, COALESCE(a.limite_credito, 200.00) AS limite_credito, COALESCE(a.credito_utilizado, 0.00) AS credito_utilizado 
+        `SELECT a.id, a.nombre, a.grado, a.coins, 
+                COALESCE(a.coins_ahorro, 0) AS coins_ahorro, 
+                COALESCE(a.limite_credito, 200.00) AS limite_credito, 
+                COALESCE(a.credito_utilizado, 0.00) AS credito_utilizado,
+                a.numero_cuenta, a.tarjeta_debito, a.clabe
          FROM alumnos a
          JOIN usuarios u ON u.alumno_id = a.id
          WHERE LOWER(u.usuario) = LOWER($1)`,
