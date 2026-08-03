@@ -889,22 +889,8 @@ export default function StudentDashboard() {
                     <TarjetaCredito alumno={alumno} />
                   </div>
                 </div>
-{activeTab === 'tarjetas' && (
-              <div className="card-dark" style={{ textAlign: "center" }}>
-                <h3 style={{ margin: "0 0 10px 0", fontSize: "18px" }}>💳 Mis Tarjetas CEESUV</h3>
-                <p style={{ color: "#94a3b8", fontSize: "14px", marginBottom: "20px" }}>Consulta tus tarjetas digitales oficiales.</p>
-                <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: "25px" }}>
-                  <div>
-                    <h4 style={{ color: "#FFF", marginBottom: "10px", fontSize: "14px" }}>Débito</h4>
-                    <TarjetaDebito alumno={alumno} />
-                  </div>
-                  <div>
-                    <h4 style={{ color: "#d4af37", marginBottom: "10px", fontSize: "14px" }}>Crédito</h4>
-                    <TarjetaCredito alumno={alumno} />
-                  </div>
-                </div>
-
-                {/* PANEL DE CREDENCIALES BANCARIAS UNIFICADO */}
+                
+                {/* PANEL DE CREDENCIALES BANCARIAS PARA COPIAR FÁCILMENTE */}
                 <div style={{ 
                   marginTop: "30px", 
                   background: "rgba(12, 21, 39, 0.75)", 
@@ -984,7 +970,7 @@ export default function StudentDashboard() {
 
               </div>
             )}
-            
+
             {activeTab === 'transferencias' && (
               <div className="card-dark">
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "15px", flexWrap: "wrap" }}>
