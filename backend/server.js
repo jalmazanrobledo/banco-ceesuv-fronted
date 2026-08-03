@@ -17,7 +17,6 @@ const corsOptions = {
 app.use(cors(corsOptions));
 app.options(/(.*)/, cors(corsOptions));
 
-// Middleware explícito para asegurar cabeceras
 app.use((req, res, next) => {
   res.setHeader('Access-Control-Allow-Origin', req.headers.origin || '*');
   res.setHeader('Access-Control-Allow-Credentials', 'true');
@@ -141,7 +140,8 @@ const inicializarBaseDeDatos = async () => {
         coins_ahorro INT DEFAULT 0,
         token_qr VARCHAR(100) UNIQUE NOT NULL,
         limite_credito NUMERIC(10,2) DEFAULT 200.00,
-        credito_utilizado NUMERIC(10,2) DEFAULT 0.00
+        credito_utilizado NUMERIC(10,2) DEFAULT 0.00,
+        estatus VARCHAR(20) DEFAULT 'Activo'
       );
 
       CREATE TABLE IF NOT EXISTS movimientos (
@@ -159,6 +159,7 @@ const inicializarBaseDeDatos = async () => {
       ALTER TABLE alumnos ADD COLUMN IF NOT EXISTS coins_ahorro INT DEFAULT 0;
       ALTER TABLE alumnos ADD COLUMN IF NOT EXISTS limite_credito NUMERIC(10,2) DEFAULT 200.00;
       ALTER TABLE alumnos ADD COLUMN IF NOT EXISTS credito_utilizado NUMERIC(10,2) DEFAULT 0.00;
+      ALTER TABLE alumnos ADD COLUMN IF NOT EXISTS estatus VARCHAR(20) DEFAULT 'Activo';
       ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS pin VARCHAR(10) UNIQUE;
       ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS alumno_id INT UNIQUE;
     `);
@@ -184,6 +185,57 @@ inicializarBaseDeDatos();
 
 app.get(["/", "/api"], (req, res) => {
   return res.status(200).send("Servidor Banco Escolar CEESUV funcionando correctamente.");
+});
+
+// ==========================================
+// RUTA EXPLICITA DE CAMBIO DE ESTATUS (CORREGIDA)
+// ==========================================
+app.put("/api/alumnos-cambiar-estatus/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const nuevoValor = req.body.estatus || req.body.estado || "Activo";
+
+    // 1. Actualizamos la tabla alumnos
+    const resultadoAlumno = await pool.query(
+      `UPDATE alumnos SET estatus = $1 WHERE id = $2`,
+      [nuevoValor, id]
+    );
+
+    if (resultadoAlumno.rowCount === 0) {
+      return res.status(404).json({ mensaje: "Alumno no encontrado." });
+    }
+
+    // 2. Intentamos actualizar usuarios si existe
+    try {
+      await pool.query(
+        `UPDATE usuarios SET estado = $1 WHERE alumno_id = $2 OR id = $2`,
+        [nuevoValor, id]
+      );
+    } catch (errUser) {
+      console.log("Nota: No se encontró usuario asociado para actualizar estado en tabla usuarios.");
+    }
+
+    // 3. Devolvemos el alumno actualizado
+    const alumnoCompletoRes = await pool.query(
+      `SELECT 
+        a.id, 
+        a.nombre, 
+        a.grado, 
+        a.coins, 
+        COALESCE(a.coins_ahorro, 0) AS coins_ahorro, 
+        a.token_qr,
+        COALESCE(a.estatus, 'Activo') AS estatus
+       FROM alumnos a
+       WHERE a.id = $1`,
+      [id]
+    );
+
+    return res.status(200).json(alumnoCompletoRes.rows[0] || { success: true });
+
+  } catch (error) {
+    console.error("Error crítico al cambiar estado:", error);
+    return res.status(500).json({ mensaje: "Error al cambiar el estado.", detalle: error.message });
+  }
 });
 
 // Consulta pública vía Código QR (Padres)
@@ -285,7 +337,7 @@ app.get(["/alumnos", "/api/alumnos"], async (req, res) => {
         COALESCE(a.coins_ahorro, 0) AS coins_ahorro,
         a.token_qr,
         u.pin,
-        COALESCE(u.estado, 'Activo') AS estado
+        COALESCE(a.estatus, 'Activo') AS estatus
        FROM alumnos a
        LEFT JOIN usuarios u ON a.id = u.alumno_id
        ORDER BY a.id`
@@ -301,14 +353,14 @@ app.get(["/alumnos", "/api/alumnos"], async (req, res) => {
 // Agregar alumno
 app.post(["/alumnos", "/api/alumnos"], async (req, res) => {
   try {
-    const { nombre, grado, coins, coins_ahorro } = req.body;
+    const { nombre, grado, coins, coins_ahorro, estatus } = req.body;
     const tokenGenerado = `ceesuv-${Date.now()}-${Math.floor(Math.random() * 899999 + 100000)}`;
 
     const resultado = await pool.query(
-      `INSERT INTO alumnos (nombre, grado, coins, coins_ahorro, token_qr)
-       VALUES ($1, $2, $3, $4, $5)
+      `INSERT INTO alumnos (nombre, grado, coins, coins_ahorro, token_qr, estatus)
+       VALUES ($1, $2, $3, $4, $5, $6)
        RETURNING *`,
-      [nombre, grado, coins || 0, coins_ahorro || 0, tokenGenerado]
+      [nombre, grado, coins || 0, coins_ahorro || 0, tokenGenerado, estatus || 'Activo']
     );
 
     const nuevoAlumno = resultado.rows[0];
@@ -345,17 +397,18 @@ app.post(["/alumnos/generar-usuarios", "/api/alumnos/generar-usuarios"], async (
 app.put(["/alumnos/:id", "/api/alumnos/:id"], async (req, res) => {
   try {
     const { id } = req.params;
-    const { nombre, grado, coins, coins_ahorro } = req.body;
+    const { nombre, grado, coins, coins_ahorro, estatus } = req.body;
 
     const resultado = await pool.query(
       `UPDATE alumnos
        SET nombre=$1,
            grado=$2,
            coins=$3,
-           coins_ahorro=$4
-       WHERE id=$5
+           coins_ahorro=$4,
+           estatus=$5
+       WHERE id=$6
        RETURNING *`,
-      [nombre, grado, coins, coins_ahorro || 0, id]
+      [nombre, grado, coins, coins_ahorro || 0, estatus || 'Activo', id]
     );
 
     const alumnoEditado = resultado.rows[0];
@@ -482,30 +535,26 @@ app.get(["/dashboard", "/api/dashboard"], async (req, res) => {
     const alumnos = await pool.query(`
       SELECT COUNT(a.id) AS total 
       FROM alumnos a 
-      LEFT JOIN usuarios u ON u.alumno_id = a.id 
-      WHERE COALESCE(u.estado, 'Activo') = 'Activo'
+      WHERE COALESCE(a.estatus, 'Activo') = 'Activo'
     `);
     
     const coins = await pool.query(`
       SELECT COALESCE(SUM(a.coins),0) AS total 
       FROM alumnos a 
-      LEFT JOIN usuarios u ON u.alumno_id = a.id 
-      WHERE COALESCE(u.estado, 'Activo') = 'Activo'
+      WHERE COALESCE(a.estatus, 'Activo') = 'Activo'
     `);
 
     const coinsAhorro = await pool.query(`
       SELECT COALESCE(SUM(a.coins_ahorro),0) AS total 
       FROM alumnos a 
-      LEFT JOIN usuarios u ON u.alumno_id = a.id 
-      WHERE COALESCE(u.estado, 'Activo') = 'Activo'
+      WHERE COALESCE(a.estatus, 'Activo') = 'Activo'
     `);
 
     const movimientos = await pool.query(`
       SELECT COUNT(m.id) AS total 
       FROM movimientos m 
       JOIN alumnos a ON m.alumno_id = a.id 
-      LEFT JOIN usuarios u ON u.alumno_id = a.id 
-      WHERE COALESCE(u.estado, 'Activo') = 'Activo'
+      WHERE COALESCE(a.estatus, 'Activo') = 'Activo'
     `);
 
     return res.status(200).json({
@@ -800,60 +849,6 @@ app.put(["/usuarios/:id", "/api/usuarios/:id"], async (req, res) => {
     return res.status(500).json({ mensaje: "Error al actualizar el usuario." });
   }
 });
-// Estado Alumno (Corregido)
-app.put([
-  "/usuarios/:id/estado", 
-  "/api/usuarios/:id/estado", 
-  "/alumnos/:id/estado", 
-  "/api/alumnos/:id/estado"
-], async (req, res) => {
-  try {
-    const { id } = req.params;
-    // Capturamos correctamente el estatus enviado desde el frontend
-    const nuevoValor = req.body.estatus || req.body.estado || "Activo";
-
-    // 1. Actualizamos la tabla alumnos usando 'nuevoValor'
-    const resultadoAlumno = await pool.query(
-      `UPDATE alumnos SET estatus = $1 WHERE id = $2`,
-      [nuevoValor, id]
-    );
-
-    if (resultadoAlumno.rowCount === 0) {
-      return res.status(404).json({ mensaje: "Alumno no encontrado." });
-    }
-
-    // 2. Intentamos actualizar usuarios solo si existe la vinculación
-    try {
-      await pool.query(
-        `UPDATE usuarios SET estado = $1 WHERE alumno_id = $2 OR id = $2`,
-        [nuevoValor, id]
-      );
-    } catch (errUser) {
-      console.log("Nota: No se encontró usuario asociado para actualizar estado en tabla usuarios, pero el alumno se actualizó.");
-    }
-
-    // 3. Devolvemos el alumno actualizado para sincronizar la interfaz
-    const alumnoCompletoRes = await pool.query(
-      `SELECT 
-        a.id, 
-        a.nombre, 
-        a.grado, 
-        a.coins, 
-        COALESCE(a.coins_ahorro, 0) AS coins_ahorro, 
-        a.token_qr,
-        COALESCE(a.estatus, 'Activo') AS estatus
-       FROM alumnos a
-       WHERE a.id = $1`,
-      [id]
-    );
-
-    return res.status(200).json(alumnoCompletoRes.rows[0] || { success: true });
-
-  } catch (error) {
-    console.error("Error crítico al cambiar estado:", error);
-    return res.status(500).json({ mensaje: "Error al cambiar el estado.", detalle: error.message });
-  }
-});
 
 // Análisis IA con Groq
 const { Groq } = require("groq-sdk");
@@ -892,7 +887,7 @@ app.post("/api/analisis-ia", async (req, res) => {
   }
 });
 
-// Transferencia por Tarjeta (Actualizado para soportar concepto, referencia y ruta /api/transferencias)
+// Transferencia por Tarjeta
 app.post(['/api/transferencias', '/api/transferir-por-tarjeta', '/transferir-por-tarjeta'], async (req, res) => {
     const { remitente_id, remitenteId, tarjeta_destino, numeroTarjetaDestino, cantidad, monto, concepto, referencia } = req.body;
 
@@ -946,11 +941,9 @@ app.post(['/api/transferencias', '/api/transferir-por-tarjeta', '/transferir-por
 
             const destinatario = destinatarioRes.rows[0];
 
-            // Actualizar saldos
             await client.query("UPDATE alumnos SET coins = coins - $1 WHERE id = $2", [valCantidad, idRemitente]);
             await client.query("UPDATE alumnos SET coins = coins + $1 WHERE id = $2", [valCantidad, destinatarioId]);
 
-            // Registrar movimientos incluyendo concepto y referencia (si tu tabla tiene esas columnas, o ajustarlas al motivo)
             const motivoSalida = `Envío a ${destinatario.nombre} | Concepto: ${textoConcepto} | Ref: ${textoReferencia}`;
             const motivoEntrada = `Recepción de ${remitente.nombre} | Concepto: ${textoConcepto} | Ref: ${textoReferencia}`;
 
@@ -983,7 +976,6 @@ app.post(['/api/transferencias', '/api/transferir-por-tarjeta', '/transferir-por
 
 const cron = require("node-cron");
 
-// Tarea programada: Se ejecuta cada lunes a las 00:00 horas
 cron.schedule("0 0 * * 1", async () => {
   console.log("⏰ Ejecutando tarea automática: Aplicando rendimientos de ahorro del 5%...");
   
@@ -1024,9 +1016,8 @@ cron.schedule("0 0 * * 1", async () => {
   }
 });
 
-
 // ==========================================
-// Inicialización del Servidor (Local y Render)
+// Inicialización del Servidor
 // ==========================================
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {

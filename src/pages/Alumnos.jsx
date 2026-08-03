@@ -13,7 +13,7 @@ function Alumnos() {
   const [nombre, setNombre] = useState("");
   const [grado, setGrado] = useState("");
   const [coins, setCoins] = useState(0);
-  const [estatusForm, setEstatusForm] = useState("Activo"); // Agregado para controlar el estatus en el formulario
+  const [estatusForm, setEstatusForm] = useState("Activo");
   const [editId, setEditId] = useState(null);
 
   useEffect(() => {
@@ -61,7 +61,7 @@ function Alumnos() {
     }
   };
 
-// 🔄 Lógica para cambiar estatus (Activo / Inactivo) de forma correcta
+  // 🔄 Lógica para cambiar estatus (Activo / Inactivo) usando la ruta directa corregida
   const handleCambiarEstatus = async (alumno) => {
     const estatusActual = alumno.estatus || "Activo";
     const nuevoEstatus = estatusActual === "Inactivo" ? "Activo" : "Inactivo";
@@ -74,7 +74,8 @@ function Alumnos() {
       try {
         const idAlumno = alumno.id || alumno._id;
         
-        const respuesta = await fetch(`https://banco-ceesuv-backend.onrender.com/api/alumnos/${idAlumno}/estatus`, {
+        // Usamos la ruta explícita para evitar colisiones con /api/alumnos/:id
+        const respuesta = await fetch(`https://banco-ceesuv-backend.onrender.com/api/alumnos-cambiar-estatus/${idAlumno}`, {
           method: "PUT",
           headers: {
             "Content-Type": "application/json"
@@ -86,9 +87,9 @@ function Alumnos() {
           throw new Error("No se pudo cambiar el estatus en el servidor");
         }
 
-        // Actualización optimista inmediata usando 'estatus'
+        // Actualización optimista inmediata en interfaz
         setAlumnos(prevAlumnos => 
-          prevAlumnos.map(a => ((a.id === idAlumno || a._id === idAlumno) ? { ...a, estatus: nuevoEstatus } : a)) // ✅ Actualizamos "estatus"
+          prevAlumnos.map(a => ((a.id === idAlumno || a._id === idAlumno) ? { ...a, estatus: nuevoEstatus } : a))
         );
 
         if (typeof cargarAlumnos === "function") {
@@ -130,7 +131,6 @@ function Alumnos() {
   const qrTargetUrl = `${DOMINIO_PUBLICO}/consulta/${tokenFinal}`;
   const qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&format=png&data=${encodeURIComponent(qrTargetUrl)}`;
 
-  // Función para descargar la imagen del QR
   const descargarQR = async () => {
     try {
       const response = await fetch(qrImageUrl);
@@ -147,7 +147,6 @@ function Alumnos() {
     }
   };
 
-  // Función para compartir por WhatsApp con PIN incluido
   const compartirWhatsApp = () => {
     const mensaje = `Hola, este es el acceso de *${alumnoSeleccionado.nombre}* para la plataforma del Banco Escolar CEESUV:\n\n🔑 *PIN de Acceso:* ${alumnoSeleccionado.pin || 'Sin PIN'}\n📲 *Consulta QR:* ${qrTargetUrl}`;
     window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(mensaje)}`, "_blank");
@@ -247,13 +246,8 @@ function Alumnos() {
       `}</style>
 
       <div className="alumnos-container">
-        {/* BARRA LATERAL (SIDEBAR) */}
         <Sidebar />
-
-        {/* CONTENIDO PRINCIPAL */}
         <div className="alumnos-content">
-          
-          {/* ENCABEZADO */}
           <div style={{ marginBottom: "25px" }}>
             <h1 style={{ color: "#0B2341", margin: 0, fontSize: "28px", display: "flex", alignItems: "center", gap: "10px" }}>
               👨‍🎓 Gestión de Alumnos
@@ -263,7 +257,6 @@ function Alumnos() {
             </p>
           </div>
 
-          {/* TARJETA SUPERIOR CON BUSCADOR Y BOTÓN AGREGAR */}
           <div className="action-bar">
             <div className="search-box">
               <input
@@ -305,7 +298,6 @@ function Alumnos() {
             </button>
           </div>
 
-          {/* TABLA CON PIN DE ACCESO */}
           <div className="table-card">
             <table style={{ width: "100%", borderCollapse: "collapse", color: "#333", minWidth: "700px" }}>
               <thead>
@@ -360,20 +352,20 @@ function Alumnos() {
                           >
                             ✏️ Editar
                           </button>
-                         <button
+                          <button
                             onClick={() => handleCambiarEstatus(a)}
-                           style={{ 
-                          marginRight: "6px", 
-                          padding: "8px 12px", 
-                          background: a.estatus === "Inactivo" ? "#28a745" : "rgb(255, 139, 7)", 
-                          color: a.estatus === "Inactivo" ? "white" : "#0f2341", 
-                          border: "none", 
-                          borderRadius: "6px", 
-                          cursor: "pointer", 
-                          fontWeight: "bold" 
-                        }}
->
-                        {a.estatus === "Inactivo" ? "🟢 Activar" : "🟠 Inactivar"}
+                            style={{ 
+                              marginRight: "6px", 
+                              padding: "8px 12px", 
+                              background: a.estatus === "Inactivo" ? "#28a745" : "rgb(255, 139, 7)", 
+                              color: a.estatus === "Inactivo" ? "white" : "#0f2341", 
+                              border: "none", 
+                              borderRadius: "6px", 
+                              cursor: "pointer", 
+                              fontWeight: "bold" 
+                            }}
+                          >
+                            {a.estatus === "Inactivo" ? "🟢 Activar" : "🟠 Inactivar"}
                           </button>
                           <button
                             onClick={() => handleEliminar(alumnoId)}
@@ -396,7 +388,6 @@ function Alumnos() {
             </table>
           </div>
 
-          {/* MODAL AGREGAR / EDITAR */}
           {modalOpen && (
             <div style={{ position: "fixed", top: 0, left: 0, width: "100%", height: "100%", background: "rgba(0,0,0,0.5)", display: "flex", justifyContent: "center", alignItems: "center", zIndex: 1000 }}>
               <div className="modal-box">
@@ -430,7 +421,6 @@ function Alumnos() {
             </div>
           )}
 
-          {/* MODAL CÓDIGO QR MEJORADO CON PIN */}
           {modalQROpen && alumnoSeleccionado && (
             <div style={{ position: "fixed", top: 0, left: 0, width: "100%", height: "100%", background: "rgba(0,0,0,0.6)", display: "flex", justifyContent: "center", alignItems: "center", zIndex: 2000 }}>
               <div className="modal-qr-box">
@@ -448,7 +438,6 @@ function Alumnos() {
                 <h4 style={{ margin: "12px 0 2px 0", color: "#0B2341", fontSize: "18px" }}>{alumnoSeleccionado.nombre}</h4>
                 <p style={{ fontSize: "13px", color: "#666", fontWeight: "bold", margin: "0 0 10px 0" }}>{alumnoSeleccionado.grado}</p>
 
-                {/* VISUALIZACIÓN DESTACADA DEL PIN */}
                 <div style={{ background: "#0B2341", padding: "8px 15px", borderRadius: "8px", margin: "10px 0 15px 0" }}>
                   <span style={{ color: "#AAA", fontSize: "11px", display: "block", textTransform: "uppercase" }}>PIN de Inicio de Sesión</span>
                   <span style={{ color: "#FFD700", fontSize: "20px", fontWeight: "bold", fontFamily: "monospace", letterSpacing: "3px" }}>
