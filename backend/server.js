@@ -142,7 +142,10 @@ const inicializarBaseDeDatos = async () => {
         token_qr VARCHAR(100) UNIQUE NOT NULL,
         limite_credito NUMERIC(10,2) DEFAULT 200.00,
         credito_utilizado NUMERIC(10,2) DEFAULT 0.00,
-        estatus VARCHAR(20) DEFAULT 'Activo'
+        estatus VARCHAR(20) DEFAULT 'Activo',
+        numero_cuenta VARCHAR(20),
+        tarjeta_debito VARCHAR(20),
+        clabe VARCHAR(20)
       );
 
       CREATE TABLE IF NOT EXISTS movimientos (
@@ -163,6 +166,9 @@ const inicializarBaseDeDatos = async () => {
       ALTER TABLE alumnos ADD COLUMN IF NOT EXISTS estatus VARCHAR(20) DEFAULT 'Activo';
       ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS pin VARCHAR(10) UNIQUE;
       ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS alumno_id INT UNIQUE;
+      ALTER TABLE alumnos ADD COLUMN IF NOT EXISTS numero_cuenta VARCHAR(20);
+      ALTER TABLE alumnos ADD COLUMN IF NOT EXISTS tarjeta_debito VARCHAR(20);
+      ALTER TABLE alumnos ADD COLUMN IF NOT EXISTS clabe VARCHAR(20);
     `);
 
     await pool.query(`
