@@ -911,12 +911,16 @@ app.post("/api/analisis-ia", async (req, res) => {
   }
 });
 
-// Transferencia por Tarjeta
-app.post(['/api/transferencias', '/api/transferir-por-tarjeta', '/transferir-por-tarjeta'], async (req, res) => {
-    const { remitente_id, remitenteId, tarjeta_destino, numeroTarjetaDestino, cantidad, monto, concepto, referencia } = req.body;
+// Transferencia universal (Por Tarjeta, CLABE o Número de Cuenta)
+app.post(['/api/transferencias', '/api/transferir-por-tarjeta', '/transferir-por-tarjeta', '/api/transferencias/spei'], async (req, res) => {
+    const { 
+        remitente_id, remitenteId, 
+        tarjeta_destino, numeroTarjetaDestino, clabeDestino, cuentaDestino, destinoIdentifier, 
+        cantidad, monto, concepto, referencia 
+    } = req.body;
 
     const idRemitente = remitente_id || remitenteId;
-    const tarjetaDest = tarjeta_destino || numeroTarjetaDestino;
+    const destinoRaw = tarjeta_destino || numeroTarjetaDestino || clabeDestino || cuentaDestino || destinoIdentifier;
     const montoTransferir = cantidad || monto;
 
     const valCantidad = Number(montoTransferir);
@@ -924,21 +928,11 @@ app.post(['/api/transferencias', '/api/transferir-por-tarjeta', '/transferir-por
         return res.status(400).json({ error: "El monto debe ser mayor a cero." });
     }
 
-    const tarjetaLimpia = tarjetaDest ? tarjetaDest.replace(/\s+/g, '') : '';
+    const destinoLimpio = destinoRaw ? String(destinoRaw).replace(/\s+/g, '') : '';
 
-    if (!tarjetaLimpia.startsWith("48200000") || tarjetaLimpia.length !== 16) {
-        return res.status(400).json({ error: "Número de tarjeta de destino inválido." });
+    if (!destinoLimpio) {
+        return res.status(400).json({ error: "Debe proporcionar un destino válido (Tarjeta, CLABE o Número de Cuenta)." });
     }
-
-    const idDestinatarioStr = tarjetaLimpia.slice(8);
-    const destinatarioId = parseInt(idDestinatarioStr, 10);
-
-    if (Number(idRemitente) === Number(destinatarioId)) {
-        return res.status(400).json({ error: "No puedes transferir coins a tu propia tarjeta." });
-    }
-
-    const textoConcepto = concepto ? concepto.trim() : "Transferencia CEESUV Coins";
-    const textoReferencia = referencia ? referencia.trim() : String(Math.floor(100000 + Math.random() * 900000));
 
     try {
         const client = await pool.connect();
@@ -957,16 +951,30 @@ app.post(['/api/transferencias', '/api/transferir-por-tarjeta', '/transferir-por
                 return res.status(400).json({ error: "Saldo insuficiente para realizar la transferencia." });
             }
 
-            const destinatarioRes = await client.query("SELECT id, nombre, coins FROM alumnos WHERE id = $1 FOR UPDATE", [destinatarioId]);
+            // Buscar al destinatario buscando en las tres columnas posibles de la base de datos
+            const destinatarioRes = await client.query(
+                `SELECT id, nombre, coins FROM alumnos 
+                 WHERE tarjeta_debito = $1 OR clabe = $1 OR numero_cuenta = $1 FOR UPDATE`, 
+                [destinoLimpio]
+            );
+
             if (destinatarioRes.rows.length === 0) {
                 await client.query('ROLLBACK');
-                return res.status(404).json({ error: "La tarjeta ingresada no corresponde a ningún alumno activo." });
+                return res.status(404).json({ error: "El número de destino ingresado no corresponde a ningún alumno activo." });
             }
 
             const destinatario = destinatarioRes.rows[0];
 
+            if (Number(remitente.id) === Number(destinatario.id)) {
+                await client.query('ROLLBACK');
+                return res.status(400).json({ error: "No puedes transferir coins a tu propia cuenta." });
+            }
+
             await client.query("UPDATE alumnos SET coins = coins - $1 WHERE id = $2", [valCantidad, idRemitente]);
-            await client.query("UPDATE alumnos SET coins = coins + $1 WHERE id = $2", [valCantidad, destinatarioId]);
+            await client.query("UPDATE alumnos SET coins = coins + $1 WHERE id = $2", [valCantidad, destinatario.id]);
+
+            const textoConcepto = concepto ? String(concepto).trim() : "Transferencia CEESUV Coins";
+            const textoReferencia = referencia ? String(referencia).trim() : String(Math.floor(100000 + Math.random() * 900000));
 
             const motivoSalida = `Envío a ${destinatario.nombre} | Concepto: ${textoConcepto} | Ref: ${textoReferencia}`;
             const motivoEntrada = `Recepción de ${remitente.nombre} | Concepto: ${textoConcepto} | Ref: ${textoReferencia}`;
@@ -977,7 +985,7 @@ app.post(['/api/transferencias', '/api/transferir-por-tarjeta', '/transferir-por
             );
             await client.query(
                 "INSERT INTO movimientos (alumno_id, tipo, cantidad, motivo, usuario) VALUES ($1, 'ENTRADA', $2, $3, $4)",
-                [destinatarioId, valCantidad, motivoEntrada, remitente.nombre]
+                [destinatario.id, valCantidad, motivoEntrada, remitente.nombre]
             );
 
             await client.query('COMMIT');
