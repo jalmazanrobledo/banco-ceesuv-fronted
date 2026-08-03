@@ -915,16 +915,15 @@ app.post("/api/analisis-ia", async (req, res) => {
 // Reemplaza esta parte en tu endpoint de server.js:
 app.post(['/api/transferencias', '/api/transferir-por-tarjeta', '/transferir-por-tarjeta', '/api/transferencias/spei'], async (req, res) => {
     const { 
-        remitente_id, remitenteId, 
+        remitente_id, remitenteId, emisor_id,
         tarjeta_destino, numeroTarjetaDestino, clabeDestino, cuentaDestino, destinoIdentifier, 
-        clabe, cuenta, destino, numero, // <--- Añadimos estas variables extra por si acaso
-        cantidad, monto, concepto, referencia 
+        clabe_destino, destino, cuenta, clabe,
+        cantidad, monto, concepto, referencia, pin 
     } = req.body;
 
-    const idRemitente = remitente_id || remitenteId;
-    
-    // Captura cualquier variable que esté enviando el frontend
-    const destinoRaw = tarjeta_destino || numeroTarjetaDestino || clabeDestino || cuentaDestino || destinoIdentifier || clabe || cuenta || destino || numero;
+    // Unificamos la captura para que agarre cualquiera de los nombres posibles
+    const idRemitente = remitente_id || remitenteId || emisor_id;
+    const destinoRaw = tarjeta_destino || numeroTarjetaDestino || clabeDestino || cuentaDestino || destinoIdentifier || clabe_destino || destino || cuenta || clabe;
     const montoTransferir = cantidad || monto;
 
     const valCantidad = Number(montoTransferir);
