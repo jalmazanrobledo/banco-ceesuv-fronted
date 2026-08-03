@@ -1051,6 +1051,97 @@ cron.schedule("0 0 * * 1", async () => {
   }
 });
 
+const cron = require("node-cron");
+
+// 1. Tu tarea automática de los lunes a medianoche
+cron.schedule("0 0 * * 1", async () => {
+  console.log("⏰ Ejecutando tarea automática: Aplicando rendimientos de ahorro del 5%...");
+  
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+
+    const alumnosRes = await client.query("SELECT id, nombre, coins_ahorro FROM alumnos WHERE coins_ahorro > 0");
+    const alumnosAhorradores = alumnosRes.rows;
+    let procesados = 0;
+
+    for (const alumno of alumnosAhorradores) {
+      const ahorroActual = Number(alumno.coins_ahorro);
+      const rendimiento = Math.round(ahorroActual * 0.05);
+
+      if (rendimiento > 0) {
+        const nuevoAhorro = ahorroActual + rendimiento;
+
+        await client.query("UPDATE alumnos SET coins_ahorro = $1 WHERE id = $2", [nuevoAhorro, alumno.id]);
+
+        await client.query(
+          `INSERT INTO movimientos (alumno_id, tipo, cantidad, motivo, usuario)
+           VALUES ($1, 'AHORRO_RENDIMIENTO', $2, $3, $4)`,
+          [alumno.id, rendimiento, 'Rendimiento semanal automático (5%)', 'Sistema Banco CEESUV']
+        );
+
+        procesados++;
+      }
+    }
+
+    await client.query('COMMIT');
+    console.log(`✅ Rendimientos aplicados exitosamente a ${procesados} alumnos ahorradores.`);
+  } catch (error) {
+    await client.query('ROLLBACK');
+    console.error("❌ Error al aplicar rendimientos automáticos por cron:", error);
+  } finally {
+    client.release();
+  }
+});
+
+// 2. Endpoint opcional para ejecutarlo manualmente o asegurar el cálculo hoy lunes
+app.post("/api/verificar-rendimiento-lunes", async (req, res) => {
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+
+    const alumnosRes = await client.query(`
+      SELECT id, nombre, coins_ahorro, ultima_fecha_rendimiento 
+      FROM alumnos 
+      WHERE coins_ahorro > 0 
+      AND (ultima_fecha_rendimiento::date < CURRENT_DATE)
+    `);
+
+    let procesados = 0;
+    for (const alumno of alumnosRes.rows) {
+      const ahorroActual = Number(alumno.coins_ahorro);
+      const rendimiento = Math.round(ahorroActual * 0.05);
+
+      if (rendimiento > 0) {
+        const nuevoAhorro = ahorroActual + rendimiento;
+
+        await client.query(
+          "UPDATE alumnos SET coins_ahorro = $1, ultima_fecha_rendimiento = CURRENT_TIMESTAMP WHERE id = $2", 
+          [nuevoAhorro, alumno.id]
+        );
+
+        await client.query(
+          `INSERT INTO movimientos (alumno_id, tipo, cantidad, motivo, usuario)
+           VALUES ($1, 'AHORRO_RENDIMIENTO', $2, $3, $4)`,
+          [alumno.id, rendimiento, 'Rendimiento semanal automático (5%)', 'Sistema Banco CEESUV']
+        );
+
+        procesados++;
+      }
+    }
+
+    await client.query('COMMIT');
+    res.json({ mensaje: `Rendimientos aplicados correctamente a ${procesados} cuentas.` });
+  } catch (error) {
+    await client.query('ROLLBACK');
+    console.error("Error al verificar rendimiento:", error);
+    res.status(500).json({ error: "Error al procesar rendimientos." });
+  } finally {
+    client.release();
+  }
+});
+
+
 // Endpoint para transferencias SPEI
 app.post('/api/transferencias/spei', async (req, res) => {
     const { emisor_id, clabe_destino, monto, pin } = req.body;
