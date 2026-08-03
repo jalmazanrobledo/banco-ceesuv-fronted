@@ -1039,9 +1039,9 @@ app.post('/api/transferencias/spei', async (req, res) => {
     try {
         await client.query('BEGIN');
 
-        // 1. Verificar al emisor y validar su PIN
+        // 1. Verificar al emisor y validar su PIN (Cambiado 'saldo' por 'coins')
         const emisorQuery = await client.query(
-            'SELECT id, saldo, pin FROM alumnos WHERE id = $1',
+            'SELECT id, coins, pin FROM alumnos WHERE id = $1',
             [emisor_id]
         );
 
@@ -1057,14 +1057,14 @@ app.post('/api/transferencias/spei', async (req, res) => {
             return res.status(401).json({ error: 'PIN incorrecto.' });
         }
 
-        if (parseFloat(emisor.saldo) < parseFloat(monto)) {
+        if (parseFloat(emisor.coins) < parseFloat(monto)) {
             await client.query('ROLLBACK');
             return res.status(400).json({ error: 'Saldo insuficiente para realizar la transferencia.' });
         }
 
         // 2. Verificar que la CLABE de destino exista y no sea la misma del emisor
         const destinoQuery = await client.query(
-            'SELECT id, saldo, clabe FROM alumnos WHERE clabe = $1',
+            'SELECT id, coins, clabe FROM alumnos WHERE clabe = $1',
             [clabe_destino]
         );
 
@@ -1080,18 +1080,18 @@ app.post('/api/transferencias/spei', async (req, res) => {
             return res.status(400).json({ error: 'No puedes transferir a tu propia cuenta.' });
         }
 
-        // 3. Realizar los movimientos (Descontar al emisor y sumar al receptor)
+        // 3. Realizar los movimientos (Descontar y sumar usando 'coins')
         await client.query(
-            'UPDATE alumnos SET saldo = saldo - $1 WHERE id = $2',
+            'UPDATE alumnos SET coins = coins - $1 WHERE id = $2',
             [monto, emisor.id]
         );
 
         await client.query(
-            'UPDATE alumnos SET saldo = saldo + $1 WHERE id = $2',
+            'UPDATE alumnos SET coins = coins + $1 WHERE id = $2',
             [monto, destino.id]
         );
 
-        // 4. Registrar la transacción en una tabla de historial (opcional pero recomendado)
+        // 4. Registrar la transacción en una tabla de historial
         await client.query(
             `INSERT INTO transacciones (emisor_id, receptor_id, monto, tipo, fecha) 
              VALUES ($1, $2, $3, 'SPEI', NOW())`,
@@ -1109,7 +1109,6 @@ app.post('/api/transferencias/spei', async (req, res) => {
         client.release();
     }
 });
-
 // ==========================================
 // Inicialización del Servidor
 // ==========================================
