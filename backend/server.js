@@ -813,7 +813,7 @@ app.put([
 
     // 1. Actualizamos directamente la tabla alumnos
     const resultadoAlumno = await pool.query(
-      `UPDATE alumnos SET estatus = $1 WHERE id = $2`,
+      `UPDATE alumnos SET estado = $1 WHERE id = $2`, // 👈 Cambiado a 'estado'
       [nuevoValor, id]
     );
 
