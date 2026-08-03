@@ -925,53 +925,61 @@ export default function StudentDashboard() {
                       </div>
                     </div>
 
-                    {/* Ejemplo del contenedor de la Tarjeta de Débito */}
-<div style={{
-  background: "#1e293b",
-  border: "1px solid #334155",
-  borderRadius: "12px",
-  padding: "16px",
-  flex: "1",
-  minWidth: "280px", // Asegura un ancho mínimo para que respire el texto
-  boxSizing: "border-box"
-}}>
-  <div style={{ fontSize: "11px", color: "#94a3b8", marginBottom: "8px", fontWeight: "bold" }}>
-    TARJETA DE DÉBITO (16 DÍGITOS)
-  </div>
-  
-  <div style={{ 
-    display: "flex", 
-    justifyContent: "space-between", 
-    alignItems: "center",
-    gap: "8px" 
-  }}>
-    <span style={{ 
-      fontSize: "15px", // Ajustado ligeramente para optimizar espacio
-      fontWeight: "bold", 
-      color: "#ffffff",
-      fontFamily: "monospace",
-      whiteSpace: "nowrap" // <--- Evita que el número salte a un segundo renglón
+{/* --- CORRECCIÓN PARA LA TARJETA DE DÉBITO --- */}
+{(() => {
+  const tarjetaDebitoRaw = alumno?.tarjeta_debito || alumno?.tarjeta || alumno?.numero_tarjeta || "4820000000000001";
+  const tarjetaDebitoFormateada = tarjetaDebitoRaw.replace(/\s+/g, "").match(/.{1,4}/g)?.join(" ") || tarjetaDebitoRaw;
+
+  return (
+    <div style={{
+      background: "#1e293b",
+      border: "1px solid #334155",
+      borderRadius: "12px",
+      padding: "16px",
+      flex: "1",
+      minWidth: "280px",
+      boxSizing: "border-box"
     }}>
-      {tarjetaDebitoFormateada}
-    </span>
-    
-    <button 
-      onClick={() => copiarAlPortapapeles(tarjetaDebito)}
-      style={{
-        background: "#eab308",
-        border: "none",
-        borderRadius: "6px",
-        padding: "6px 12px",
-        fontWeight: "bold",
-        cursor: "pointer",
-        fontSize: "12px",
-        whiteSpace: "nowrap"
-      }}
-    >
-      Copiar
-    </button>
-  </div>
-</div>
+      <div style={{ fontSize: "11px", color: "#94a3b8", marginBottom: "8px", fontWeight: "bold" }}>
+        TARJETA DE DÉBITO (16 DÍGITOS)
+      </div>
+      
+      <div style={{ 
+        display: "flex", 
+        justifyContent: "space-between", 
+        alignItems: "center",
+        gap: "8px" 
+      }}>
+        <span style={{ 
+          fontSize: "15px", 
+          fontWeight: "bold", 
+          color: "#ffffff",
+          fontFamily: "monospace",
+          whiteSpace: "nowrap"
+        }}>
+          {tarjetaDebitoFormateada}
+        </span>
+        
+        <button 
+          onClick={() => copiarAlPortapapeles(tarjetaDebitoRaw, "Tarjeta de Débito")}
+          style={{
+            background: "#eab308",
+            border: "none",
+            borderRadius: "6px",
+            padding: "6px 12px",
+            fontWeight: "bold",
+            cursor: "pointer",
+            fontSize: "12px",
+            whiteSpace: "nowrap",
+            color: "#0c1527"
+          }}
+        >
+          {copiadoTipo === "Tarjeta de Débito" ? "¡Copiado!" : "Copiar"}
+        </button>
+      </div>
+    </div>
+  );
+})()}
 
                     {/* CLABE Interbancaria */}
                     <div style={{ background: "rgba(255,255,255,0.04)", padding: "12px", borderRadius: "10px", border: "1px solid rgba(255,255,255,0.06)" }}>
