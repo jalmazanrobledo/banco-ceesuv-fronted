@@ -34,7 +34,7 @@ function TarjetaCredito({ alumno }) {
       }}>
         <h3 style={{ color: "#d4af37", marginBottom: "10px" }}>💳 Tarjeta de Crédito CEESUV</h3>
         <p style={{ color: "#94a3b8", fontSize: "14px", lineHeight: "1.5" }}>
-          Este módulo de tarjeta de crédito está disponible exclusivamente para alumnos de **Secundaria (1°, 2°, 3°)** y **Bachillerato (1°, 3° y 5° Semestre)**.
+          Este módulo de tarjeta de crédito está disponible exclusivamente para alumnos de Secundaria y Bachillerato.
         </p>
       </div>
     );
