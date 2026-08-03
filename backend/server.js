@@ -871,7 +871,7 @@ app.post(["/api/pagar-credito", "/pagar-credito"], async (req, res) => {
     });
 
   } catch (error) {
-    console.error("Error al procesar el pago de crédito:",, error);
+    console.error("Error al procesar el pago de crédito:", error);
     return res.status(500).json({ mensaje: "Error interno al procesar el pago de crédito." });
   }
 });
