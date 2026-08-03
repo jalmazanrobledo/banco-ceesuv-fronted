@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+[source: 1]import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import TarjetaDebito from "./TarjetaDebito";
 import TarjetaCredito from "./TarjetaCredito";
@@ -787,6 +787,29 @@ export default function StudentDashboard() {
         .tarjeta-inactiva { transform: scale(0.85); opacity: 0.4; filter: brightness(0.7); }
         .tarjeta-activa { transform: scale(1.1); opacity: 1; filter: brightness(1); border-color: #10b981; z-index: 10; }
 
+        /* Estilos para Alertas Dinámicas de Crédito */
+        .alerta {
+          padding: 12px;
+          border-radius: 8px;
+          margin-top: 12px;
+          font-size: 13px;
+        }
+        .alerta-danger {
+          background-color: rgba(239, 68, 68, 0.2);
+          color: #fca5a5;
+          border: 1px solid rgba(239, 68, 68, 0.4);
+        }
+        .alerta-warning {
+          background-color: rgba(245, 158, 11, 0.2);
+          color: #fcd34d;
+          border: 1px solid rgba(245, 158, 11, 0.4);
+        }
+        .alerta-info {
+          background-color: rgba(59, 130, 246, 0.2);
+          color: #93c5fd;
+          border: 1px solid rgba(59, 130, 246, 0.4);
+        }
+
         @media print {
           body { background: white !important; color: black !important; }
           .portal-header, .modern-tabs-bar, .btn-logout, .btn-accion, button, .toast-notif { display: none !important; }
@@ -1048,7 +1071,39 @@ export default function StudentDashboard() {
                 
                 <div style={{ background: "rgba(12, 21, 39, 0.6)", padding: "15px", borderRadius: "10px", marginBottom: "15px", border: "1px solid #1e3250" }}>
                   <p style={{ margin: "0 0 5px 0", fontSize: "13px", color: "#94a3b8" }}>Crédito Utilizado: <strong style={{ color: "#ef4444" }}>${creditoUtilizado.toFixed(2)}</strong></p>
-                  <p style={{ margin: 0, fontSize: "13px", color: "#94a3b8" }}>Coins Disponibles para Pago: <strong style={{ color: "#10b981" }}>{coinsDisponibles} COINS</strong></p>
+                  
+                  {/* Visualización de la fecha límite y alerta dinámica integrada */}
+                  <p style={{ margin: "5px 0 0 0", fontSize: "13px", color: "#94a3b8" }}>
+                    Fecha Límite de Pago: <strong style={{ color: "#fff" }}>{alumno?.fecha_limite_pago ? new Date(alumno.fecha_limite_pago).toLocaleDateString() : "No asignada"}</strong>
+                  </p>
+
+                  {creditoUtilizado > 0 && alumno?.fecha_limite_pago && (() => {
+                    const fechaLimite = new Date(alumno.fecha_limite_pago);
+                    const hoy = new Date();
+                    const diferenciaDias = Math.ceil((fechaLimite - hoy) / (1000 * 60 * 60 * 24));
+
+                    if (diferenciaDias < 0) {
+                      return (
+                        <div className="alerta alerta-danger">
+                          ⚠️ <strong>¡Crédito Vencido!</strong> Tu fecha límite era el {fechaLimite.toLocaleDateString()}. Se está aplicando un 5% de interés moratorio semanal.
+                        </div>
+                      );
+                    } else if (diferenciaDias <= 3) {
+                      return (
+                        <div className="alerta alerta-warning">
+                          ⚠️ <strong>¡Atención!</strong> Tu crédito vence en {diferenciaDias} días ({fechaLimite.toLocaleDateString()}). Evita cargos extra pagando a tiempo.
+                        </div>
+                      );
+                    } else {
+                      return (
+                        <div className="alerta alerta-info">
+                          ℹ️ Tienes hasta el {fechaLimite.toLocaleDateString()} para liquidar tu crédito sin recargos.
+                        </div>
+                      );
+                    }
+                  })()}
+
+                  <p style={{ margin: "10px 0 0 0", fontSize: "13px", color: "#94a3b8" }}>Coins Disponibles para Pago: <strong style={{ color: "#10b981" }}>{coinsDisponibles} COINS</strong></p>
                 </div>
 
                 <div className="ahorro-acciones">

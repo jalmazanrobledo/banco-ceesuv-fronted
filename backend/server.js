@@ -1184,6 +1184,35 @@ app.post('/api/transferencias/spei', async (req, res) => {
         client.release();
     }
 });
+
+app.post('/api/aplicar-interes-credito', async (req, res) => {
+    try {
+        // 1. Aplicar el UPDATE en la base de datos
+        const queryUpdate = `
+            UPDATE alumnos 
+            SET credito_utilizado = credito_utilizado + (credito_utilizado * 0.05),
+                ultima_fecha_interes_credito = NOW()
+            WHERE credito_utilizado > 0 
+               AND fecha_limite_pago < CURRENT_DATE
+               AND (ultima_fecha_interes_credito::date < CURRENT_DATE OR ultima_fecha_interes_credito IS NULL)
+            RETURNING matricula, credito_utilizado;
+        `;
+        const resultado = await pool.query(queryUpdate);
+
+        // 2. Opcional: Registrar el movimiento en la tabla de movimientos para cada alumno afectado
+        // (Puedes iterar sobre resultado.rows e insertar en tu tabla 'movimientos' con el tipo CREDITO_INTERES)
+
+        res.json({ 
+            exito: true, 
+            mensaje: `Intereses de crédito aplicados correctamente a ${resultado.rowCount} cuentas.` 
+        });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ exito: false, error: 'Error al aplicar intereses al crédito' });
+    }
+});
+
+
 // ==========================================
 // Inicialización del Servidor
 // ==========================================
