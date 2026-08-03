@@ -912,15 +912,19 @@ app.post("/api/analisis-ia", async (req, res) => {
 });
 
 // Transferencia universal (Por Tarjeta, CLABE o Número de Cuenta)
+// Reemplaza esta parte en tu endpoint de server.js:
 app.post(['/api/transferencias', '/api/transferir-por-tarjeta', '/transferir-por-tarjeta', '/api/transferencias/spei'], async (req, res) => {
     const { 
         remitente_id, remitenteId, 
         tarjeta_destino, numeroTarjetaDestino, clabeDestino, cuentaDestino, destinoIdentifier, 
+        clabe, cuenta, destino, numero, // <--- Añadimos estas variables extra por si acaso
         cantidad, monto, concepto, referencia 
     } = req.body;
 
     const idRemitente = remitente_id || remitenteId;
-    const destinoRaw = tarjeta_destino || numeroTarjetaDestino || clabeDestino || cuentaDestino || destinoIdentifier;
+    
+    // Captura cualquier variable que esté enviando el frontend
+    const destinoRaw = tarjeta_destino || numeroTarjetaDestino || clabeDestino || cuentaDestino || destinoIdentifier || clabe || cuenta || destino || numero;
     const montoTransferir = cantidad || monto;
 
     const valCantidad = Number(montoTransferir);
