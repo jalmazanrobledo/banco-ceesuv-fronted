@@ -1025,6 +1025,91 @@ cron.schedule("0 0 * * 1", async () => {
   }
 });
 
+// Endpoint para transferencias SPEI
+app.post('/api/transferencias/spei', async (req, res) => {
+    const { emisor_id, clabe_destino, monto, pin } = req.body;
+
+    // Validar que el monto sea positivo
+    if (!monto || monto <= 0) {
+        return res.status(400).json({ error: 'Monto de transferencia inválido.' });
+    }
+
+    const client = await pool.connect();
+
+    try {
+        await client.query('BEGIN');
+
+        // 1. Verificar al emisor y validar su PIN
+        const emisorQuery = await client.query(
+            'SELECT id, saldo, pin FROM alumnos WHERE id = $1',
+            [emisor_id]
+        );
+
+        if (emisorQuery.rows.length === 0) {
+            await client.query('ROLLBACK');
+            return res.status(404).json({ error: 'Alumno emisor no encontrado.' });
+        }
+
+        const emisor = emisorQuery.rows[0];
+
+        if (emisor.pin !== pin) {
+            await client.query('ROLLBACK');
+            return res.status(401).json({ error: 'PIN incorrecto.' });
+        }
+
+        if (parseFloat(emisor.saldo) < parseFloat(monto)) {
+            await client.query('ROLLBACK');
+            return res.status(400).json({ error: 'Saldo insuficiente para realizar la transferencia.' });
+        }
+
+        // 2. Verificar que la CLABE de destino exista y no sea la misma del emisor
+        const destinoQuery = await client.query(
+            'SELECT id, saldo, clabe FROM alumnos WHERE clabe = $1',
+            [clabe_destino]
+        );
+
+        if (destinoQuery.rows.length === 0) {
+            await client.query('ROLLBACK');
+            return res.status(404).json({ error: 'La CLABE de destino no existe.' });
+        }
+
+        const destino = destinoQuery.rows[0];
+
+        if (emisor.id === destino.id) {
+            await client.query('ROLLBACK');
+            return res.status(400).json({ error: 'No puedes transferir a tu propia cuenta.' });
+        }
+
+        // 3. Realizar los movimientos (Descontar al emisor y sumar al receptor)
+        await client.query(
+            'UPDATE alumnos SET saldo = saldo - $1 WHERE id = $2',
+            [monto, emisor.id]
+        );
+
+        await client.query(
+            'UPDATE alumnos SET saldo = saldo + $1 WHERE id = $2',
+            [monto, destino.id]
+        );
+
+        // 4. Registrar la transacción en una tabla de historial (opcional pero recomendado)
+        await client.query(
+            `INSERT INTO transacciones (emisor_id, receptor_id, monto, tipo, fecha) 
+             VALUES ($1, $2, $3, 'SPEI', NOW())`,
+            [emisor.id, destino.id, monto]
+        );
+
+        await client.query('COMMIT');
+        res.json({ success: true, message: 'Transferencia SPEI realizada con éxito.' });
+
+    } catch (err) {
+        await client.query('ROLLBACK');
+        console.error(err);
+        res.status(500).json({ error: 'Error en el servidor al procesar la transferencia.' });
+    } finally {
+        client.release();
+    }
+});
+
 // ==========================================
 // Inicialización del Servidor
 // ==========================================
