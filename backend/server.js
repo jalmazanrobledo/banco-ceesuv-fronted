@@ -1059,10 +1059,11 @@ app.post("/api/verificar-rendimiento-lunes", async (req, res) => {
     await client.query('BEGIN');
 
     const alumnosRes = await client.query(`
-  SELECT id, nombre, coins_ahorro, ultima_fecha_rendimiento 
-  FROM alumnos 
-  WHERE coins_ahorro > 0
-`);
+      SELECT id, nombre, coins_ahorro, ultima_fecha_rendimiento 
+      FROM alumnos 
+      WHERE coins_ahorro > 0 
+      AND (ultima_fecha_rendimiento::date < CURRENT_DATE)
+    `);
 
     let procesados = 0;
     for (const alumno of alumnosRes.rows) {
