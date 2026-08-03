@@ -810,6 +810,10 @@ app.post(["/api/pagar-credito", "/pagar-credito"], async (req, res) => {
   try {
     const { alumno_id, monto_pago, usuario } = req.body;
 
+    if (!alumno_id || !monto_pago) {
+      return res.status(400).json({ mensaje: "Faltan datos requeridos (alumno_id o monto_pago)." });
+    }
+
     const alumnoQuery = await pool.query(
       "SELECT id, nombre, coins, credito_utilizado FROM alumnos WHERE id = $1",
       [alumno_id]
@@ -824,11 +828,10 @@ app.post(["/api/pagar-credito", "/pagar-credito"], async (req, res) => {
     const utilizado = Number(alumno.credito_utilizado || 0);
     const monto = Number(monto_pago);
 
-    if (!monto || monto <= 0) {
+    if (isNaN(monto) || monto <= 0) {
       return res.status(400).json({ mensaje: "Cantidad de pago inválida." });
     }
     
-    // Usamos una pequeña tolerancia para evitar problemas con decimales exactos como 26.25
     if (monto > (utilizado + 0.01)) {
       return res.status(400).json({ mensaje: "El monto supera el crédito utilizado actual." });
     }
@@ -839,12 +842,10 @@ app.post(["/api/pagar-credito", "/pagar-credito"], async (req, res) => {
     const nuevoCoins = coinsDisponibles - monto;
     let nuevoCreditoUtilizado = utilizado - monto;
     
-    // Si la resta deja centavos perdidos o llega a cero, lo ajustamos perfectamente a 0.00
     if (nuevoCreditoUtilizado < 0.05) {
       nuevoCreditoUtilizado = 0.00;
     }
 
-    // Si el crédito queda totalmente liquidado (0.00), limpiamos la fecha límite de pago para el próximo ciclo
     if (nuevoCreditoUtilizado === 0.00) {
       await pool.query(
         "UPDATE alumnos SET coins = $1, credito_utilizado = 0.00, fecha_limite_pago = NULL WHERE id = $2",
@@ -871,8 +872,8 @@ app.post(["/api/pagar-credito", "/pagar-credito"], async (req, res) => {
     });
 
   } catch (error) {
-    console.error("Error al procesar el pago de crédito:", error);
-    return res.status(500).json({ mensaje: "Error interno al procesar el pago de crédito." });
+    console.error("Error detallado al procesar el pago de crédito:", error);
+    return res.status(500).json({ mensaje: "Error interno al procesar el pago de crédito: " + error.message });
   }
 });
 
