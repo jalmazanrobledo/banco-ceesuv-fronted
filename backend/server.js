@@ -73,7 +73,8 @@ const generarPinUnico = async () => {
 
   while (existe) {
     pin = Math.floor(1000 + Math.random() * 9000).toString();
-    const res = await pool.query("SELECT id FROM usuarios WHERE pin = $1", [pin]);
+    // Verificamos que el PIN no exista en la tabla alumnos
+    const res = await pool.query("SELECT id FROM alumnos WHERE pin = $1", [pin]);
     if (res.rowCount === 0) {
       existe = false;
     }
@@ -367,18 +368,16 @@ app.post(["/alumnos", "/api/alumnos"], async (req, res) => {
   try {
     const { nombre, grado, coins, coins_ahorro, estatus } = req.body;
     const tokenGenerado = `ceesuv-${Date.now()}-${Math.floor(Math.random() * 899999 + 100000)}`;
+    const pinGenerado = await generarPinUnico();
 
     const resultado = await pool.query(
-      `INSERT INTO alumnos (nombre, grado, coins, coins_ahorro, token_qr, estatus)
-       VALUES ($1, $2, $3, $4, $5, $6)
+      `INSERT INTO alumnos (nombre, grado, coins, coins_ahorro, token_qr, pin, estatus)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)
        RETURNING *`,
-      [nombre, grado, coins || 0, coins_ahorro || 0, tokenGenerado, estatus || 'Activo']
+      [nombre, grado, coins || 0, coins_ahorro || 0, tokenGenerado, pinGenerado, estatus || 'Activo']
     );
 
-    const nuevoAlumno = resultado.rows[0];
-    const pin = await asegurarUsuarioAlumno(nuevoAlumno.id, nuevoAlumno.nombre);
-
-    return res.status(200).json({ ...nuevoAlumno, pin });
+    return res.status(200).json(resultado.rows[0]);
   } catch (error) {
     console.error(error);
     return res.status(500).json({ mensaje: "Error al guardar alumno." });
@@ -637,28 +636,27 @@ app.post(["/login", "/api/login"], async (req, res) => {
       return res.status(400).json({ mensaje: "Credenciales requeridas." });
     }
 
+    // Si ingresan un PIN de 4 dígitos, buscamos directamente en la tabla ALUMNOS
     if (passClean.length === 4 && !isNaN(passClean)) {
       const resPin = await pool.query(
-        `SELECT u.id AS usuario_id, u.nombre, u.usuario, u.rol, u.estado, u.alumno_id, 
-                COALESCE(a.grado, 'N/A') AS grado, 
-                COALESCE(a.coins, 0) as coins, 
-                COALESCE(a.coins_ahorro,0) as coins_ahorro
-         FROM usuarios u
-         LEFT JOIN alumnos a ON u.alumno_id = a.id
-         WHERE u.pin = $1 AND u.estado = 'Activo'`,
+        `SELECT id, nombre, grado, coins, COALESCE(coins_ahorro, 0) as coins_ahorro, estatus
+         FROM alumnos
+         WHERE pin = $1 AND COALESCE(estatus, 'Activo') = 'Activo'`,
         [passClean]
       );
 
       if (resPin.rows.length > 0) {
         return res.status(200).json({
           ...resPin.rows[0],
+          rol: "Alumno",
           loginTipo: "PIN"
         });
       }
     }
 
+    // Si es usuario y contraseña tradicional, se busca en la tabla USUARIOS (Admin / Docente)
     const resultado = await pool.query(
-      `SELECT id, nombre, usuario, password, rol, estado, alumno_id 
+      `SELECT id, nombre, usuario, password, rol, estado 
        FROM usuarios 
        WHERE LOWER(usuario) = LOWER($1)`,
       [userClean]
