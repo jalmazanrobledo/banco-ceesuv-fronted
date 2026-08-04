@@ -20,14 +20,19 @@ export default function TransferenciaCoins({ alumnoActual, onTransferenciaExitos
   const [procesando, setProcesando] = useState(false);
   const [datosTicket, setDatosTicket] = useState(null);
 
-  // Cargar contactos guardados en LocalStorage al iniciar
+ // Cargar contactos guardados desde el backend de PostgreSQL al iniciar
   useEffect(() => {
-    try {
-      const guardados = JSON.parse(localStorage.getItem(`contactos_${alumnoActual?.id || 'default'}`)) || [];
-      setContactosGuardados(guardados);
-    } catch (e) {
-      console.error("Error al cargar contactos", e);
-    }
+    const alumnoId = Number(alumnoActual?.alumno_id || alumnoActual?.id);
+    if (!alumnoId) return;
+
+    fetch(`https://banco-ceesuv-backend.onrender.com/api/contactos/${alumnoId}`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (Array.isArray(data)) {
+          setContactosGuardados(data);
+        }
+      })
+      .catch((e) => console.error("Error al cargar contactos de la BD:", e));
   }, [alumnoActual]);
 
   // Avanzar al paso 2 (Monto) desde Destino
@@ -95,16 +100,22 @@ export default function TransferenciaCoins({ alumnoActual, onTransferenciaExitos
       });
 
       if (response.ok) {
-        // Si marcó guardar contacto y es nuevo
+        // Si marcó guardar contacto y es nuevo, guardarlo en la Base de Datos
         if (guardarContactoCheck && tipoDestino === "nuevo" && aliasGuardar) {
-          const nuevoContacto = {
-            nombre: aliasGuardar,
-            numero_cuenta: numeroCuentaDestino,
-            banco: bancoDestino
-          };
-          const actualizado = [...contactosGuardados, nuevoContacto];
-          setContactosGuardados(actualizado);
-          localStorage.setItem(`contactos_${alumnoActual?.id || 'default'}`, JSON.stringify(actualizado));
+          try {
+            await fetch("https://banco-ceesuv-backend.onrender.com/api/contactos", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                usuario_id: Number(alumnoActual?.alumno_id || alumnoActual?.id),
+                nombre_contacto: aliasGuardar,
+                numero_cuenta: numeroCuentaDestino,
+                banco: bancoDestino
+              })
+            });
+          } catch (err) {
+            console.error("Error al guardar contacto en BD:", err);
+          }
         }
 
         const ticketData = {
