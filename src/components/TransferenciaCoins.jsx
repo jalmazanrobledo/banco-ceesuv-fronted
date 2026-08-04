@@ -95,7 +95,8 @@ export default function TransferenciaCoins({ alumnoActual, onTransferenciaExitos
           tipo: "SALIDA",
           cantidad: Number(monto),
           motivo: `Transferencia a ${nombreDestinoFinal} (${bancoDestino}): ${concepto || 'Sin concepto'}`,
-          usuario: alumnoActual?.nombre || "Estudiante"
+          usuario: alumnoActual?.nombre || "Estudiante",
+          cuentaDestino: cuentaDestinoFinal // <-- ¡Faltaba enviar esta variable al backend!
         })
       });
 
