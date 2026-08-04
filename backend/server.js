@@ -1211,7 +1211,7 @@ app.get("/api/alumnos/buscar", async (req, res) => {
   const { query } = req.query;
   
   if (!query) {
-    return res.status(400).json({ mensaje: "Frecuencia o identificador de búsqueda requerido." });
+    return res.status(400).json({ mensaje: "Identificador de búsqueda requerido." });
   }
 
   try {
@@ -1223,7 +1223,8 @@ app.get("/api/alumnos/buscar", async (req, res) => {
          OR TRIM(tarjeta_debito) = $1 
          OR TRIM(clabe) = $1
     `;
-    const resultado = await client.query(queryString, [valorLimpio]);
+    // ✅ CORREGIDO: Usamos pool.query en lugar de client.query
+    const resultado = await pool.query(queryString, [valorLimpio]);
 
     if (resultado.rows.length > 0) {
       res.json(resultado.rows[0]);
