@@ -1207,7 +1207,7 @@ app.post('/api/aplicar-interes-credito', async (req, res) => {
 });
 
 // =====================================
-// RUTA UNIFICADA DE BÚSQUEDA DE ALUMNOS (Para Transferencias y Panel)
+// RUTA UNIFICADA DE BÚSQUEDA DE ALUMNOS (Corregida)
 // =====================================
 app.get(["/alumnos/buscar", "/api/alumnos/buscar"], async (req, res) => {
   try {
@@ -1234,20 +1234,22 @@ app.get(["/alumnos/buscar", "/api/alumnos/buscar"], async (req, res) => {
         COALESCE(a.estatus, 'Activo') AS estatus
        FROM alumnos a
        WHERE a.nombre ILIKE $1 
-          OR a.numero_cuenta = $2 
-          OR a.tarjeta_debito = $2 
-          OR a.clabe = $2
+          OR a.numero_cuenta ILIKE $1 
+          OR a.tarjeta_debito ILIKE $1 
+          OR a.clabe ILIKE $1
           OR a.grado ILIKE $1
-       LIMIT 1;
+       LIMIT 5;
     `;
     
-    const resultado = await pool.query(queryBusqueda, [`%${terminoLimpio}%`, terminoLimpio]);
+    const resultado = await pool.query(queryBusqueda, [`%${terminoLimpio}%`]);
     
     if (resultado.rows.length === 0) {
       return res.status(404).json({ mensaje: "No se encontró ningún alumno con ese identificador." });
     }
 
+    // Si tu frontend espera un solo objeto (para transferencias directas o panel individual):
     return res.status(200).json(resultado.rows[0]);
+    
   } catch (error) {
     console.error("Error al buscar alumnos:", error);
     return res.status(500).json({ mensaje: "Error al realizar la búsqueda de alumnos." });
