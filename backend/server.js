@@ -1210,34 +1210,33 @@ app.post('/api/aplicar-interes-credito', async (req, res) => {
 // RUTA DE BÚSQUEDA PARA TRANSFERENCIAS
 // =====================================
 app.get('/api/alumnos/buscar', async (req, res) => {
-    const searchTerm = req.query.q || req.query.query; // Ajusta según el parámetro que mande tu frontend
-    
-    if (!searchTerm) {
-        return res.status(400).json({ error: "Frecuencia de búsqueda vacía" });
-    }
-
     try {
+        const searchTerm = req.query.query || req.query.q;
+
+        if (!searchTerm) {
+            return res.status(400).json({ mensaje: "Falta el parámetro de búsqueda" });
+        }
+
         const queryText = `
-            SELECT id, nombre, grado, coins, saldo_disponible, numero_cuenta, tarjeta_debito, clabe 
+            SELECT id, nombre, grado, numero_cuenta, clabe, tarjeta_debito, saldo_disponible 
             FROM alumnos 
             WHERE numero_cuenta ILIKE $1 
                OR tarjeta_debito ILIKE $1 
-               OR clabe ILIKE $1 
-               OR nombre ILIKE $1
+               OR clabe ILIKE $1
+            LIMIT 1;
         `;
-        
+
         const values = [`%${searchTerm}%`];
         const result = await pool.query(queryText, values);
 
         if (result.rows.length === 0) {
-            return res.status(404).json({ error: "Alumno no encontrado" });
+            return res.status(404).json({ mensaje: "Alumno no encontrado." });
         }
 
-        // Devuelve el primer resultado encontrado
         res.json(result.rows[0]);
-    } catch (err) {
-        console.error("Error en la búsqueda:", err);
-        res.status(500).json({ error: "Error interno en el servidor" });
+    } catch (error) {
+        console.error("Error en la búsqueda:", error);
+        res.status(500).json({ mensaje: "Error en el servidor" });
     }
 });
 
