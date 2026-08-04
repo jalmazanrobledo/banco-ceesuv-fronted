@@ -35,13 +35,8 @@ export default function StudentDashboard() {
   // Estado para indicar qué campo se copió recientemente en el portapapeles
   const [copiadoTipo, setCopiadoTipo] = useState("");
 
-  // Estado para la configuración de la sucursal en el estado de cuenta
-  const [sucursalInfo, setSucursalInfo] = useState({
-    nombreSucursal: "PLANTEL CENTRAL CEESUV",
-    direccion: "CAMPUS PRINCIPAL",
-    plaza: "VER / MÉXICO",
-    telefono: "228-CEESUV-1"
-  });
+  // Estado para el periodo seleccionado en el estado de cuenta (ej. "AGOSTO 2026")
+  const [periodoSeleccionado, setPeriodoSeleccionado] = useState("");
 
   const mostrarToast = (mensaje, tipo = "success") => {
     setNotificacionToast({ mensaje, tipo });
@@ -74,15 +69,37 @@ export default function StudentDashboard() {
     return nivel.includes("primaria") || grado.includes("primaria");
   })();
 
-  // Cálculo dinámico del periodo actual (Ej: AGOSTO 2026)
-  const obtenerPeriodoActual = () => {
+  // Lista de meses disponibles para consulta (Mes actual y meses anteriores del ciclo)
+  const obtenerListaPeriodos = () => {
     const meses = [
       "ENERO", "FEBRERO", "MARZO", "ABRIL", "MAYO", "JUNIO", 
       "JULIO", "AGOSTO", "SEPTIEMBRE", "OCTUBRE", "NOVIEMBRE", "DICIEMBRE"
     ];
     const fechaActual = new Date();
-    return `${meses[fechaActual.getMonth()]} ${fechaActual.getFullYear()}`;
+    const mesActualIdx = fechaActual.getMonth();
+    const anioActual = fechaActual.getFullYear();
+
+    let lista = [];
+    // Generar los últimos 6 meses hacia atrás
+    for (let i = 0; i < 6; i++) {
+      let mIdx = mesActualIdx - i;
+      let anio = anioActual;
+      if (mIdx < 0) {
+        mIdx += 12;
+        anio -= 1;
+      }
+      lista.push(`${meses[mIdx]} ${anio}`);
+    }
+    return lista;
   };
+
+  const listaPeriodosDisponibles = obtenerListaPeriodos();
+
+  useEffect(() => {
+    if (!periodoSeleccionado && listaPeriodosDisponibles.length > 0) {
+      setPeriodoSeleccionado(listaPeriodosDisponibles[0]);
+    }
+  }, [listaPeriodosDisponibles]);
 
   useEffect(() => {
     async function obtenerTiposCambio() {
@@ -283,7 +300,7 @@ export default function StudentDashboard() {
   };
 
   const handlePagarCredito = async () => {
-    if (esPrimaria) return; // Bloqueo estricto para Primaria
+    if (esPrimaria) return;
 
     const monto = Number(montoCreditoPago);
     const utilizado = Number(alumno?.credito_utilizado || 0);
@@ -462,7 +479,6 @@ export default function StudentDashboard() {
     return `${cantidad}`;
   };
 
-  // VISTA DE CARGA
   if (cargando) {
     return (
       <>
@@ -515,7 +531,6 @@ export default function StudentDashboard() {
   const eurMxn = tasas?.eur || "19.05";
   const cadMxn = tasas?.cad || "12.80";
 
-  // Filtrar específicamente los movimientos de ahorro y rendimientos para su historial dedicado
   const movimientosAhorro = movimientos.filter(m => 
     m.tipo === "AHORRO_DEPOSITO" || m.tipo === "AHORRO_RETIRO" || m.tipo === "AHORRO_RENDIMIENTO"
   );
@@ -829,7 +844,6 @@ export default function StudentDashboard() {
         .tarjeta-inactiva { transform: scale(0.85); opacity: 0.4; filter: brightness(0.7); }
         .tarjeta-activa { transform: scale(1.1); opacity: 1; filter: brightness(1); border-color: #10b981; z-index: 10; }
 
-        /* Estilos para Alertas Dinámicas de Crédito */
         .alerta {
           padding: 12px;
           border-radius: 8px;
@@ -980,7 +994,6 @@ export default function StudentDashboard() {
           padding-top: 10px;
         }
 
-        /* REGLAS DE IMPRESIÓN AISLADA (Solo muestra el estado de cuenta y oculta el resto de la app) */
         @media print {
           body * {
             visibility: hidden !important;
@@ -1006,7 +1019,6 @@ export default function StudentDashboard() {
         }
       `}</style>
 
-      {/* NOTIFICACIÓN TOAST FLOTANTE */}
       {notificacionToast && (
         <div className={`toast-notif ${notificacionToast.tipo === "error" ? "toast-error" : "toast-success"}`}>
           {notificacionToast.tipo === "error" ? "⚠️ " : "✅ "} {notificacionToast.mensaje}
@@ -1075,13 +1087,11 @@ export default function StudentDashboard() {
             )}
           </div>
 
-          {/* BARRA DE PESTAÑAS */}
           <nav className="modern-tabs-bar">
             <button onClick={() => setActiveTab('tarjetas')} className={`modern-tab-btn ${activeTab === 'tarjetas' ? 'active' : ''}`}>💳 Tarjetas</button>
             <button onClick={() => setActiveTab('transferencias')} className={`modern-tab-btn ${activeTab === 'transferencias' ? 'active' : ''}`}>🔄 Transferir</button>
             <button onClick={() => setActiveTab('ahorro')} className={`modern-tab-btn ${activeTab === 'ahorro' ? 'active' : ''}`}>🏛️ Ahorro</button>
             
-            {/* Pestaña de pago de crédito exclusiva para Secundaria y Bachillerato */}
             {!esPrimaria && (
               <button onClick={() => setActiveTab('credito')} className={`modern-tab-btn ${activeTab === 'credito' ? 'active' : ''}`}>💳 Pagar Crédito</button>
             )}
@@ -1091,7 +1101,6 @@ export default function StudentDashboard() {
             <button onClick={() => setActiveTab('historial')} className={`modern-tab-btn ${activeTab === 'historial' ? 'active' : ''}`}>🕒 Movimientos</button>
           </nav>
 
-          {/* CONTENEDOR DE VISTAS */}
           <div>
             {activeTab === 'tarjetas' && (
               <div className="card-dark" style={{ textAlign: "center" }}>
@@ -1103,7 +1112,6 @@ export default function StudentDashboard() {
                     <TarjetaDebito alumno={alumno} />
                   </div>
                   
-                  {/* Tarjeta de crédito solo para Secundaria y Bachillerato */}
                   {!esPrimaria && (
                     <div>
                       <h4 style={{ color: "#d4af37", marginBottom: "10px", fontSize: "14px" }}>Crédito</h4>
@@ -1112,7 +1120,6 @@ export default function StudentDashboard() {
                   )}
                 </div>
                 
-                {/* PANEL DE CREDENCIALES BANCARIAS PARA COPIAR FÁCILMENTE */}
                 <div style={{ 
                   marginTop: "30px", 
                   background: "rgba(12, 21, 39, 0.75)", 
@@ -1129,7 +1136,6 @@ export default function StudentDashboard() {
                   
                   <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: "15px" }}>
                     
-                    {/* 1. NÚMERO DE CUENTA */}
                     <div style={{ background: "rgba(255,255,255,0.04)", padding: "16px", borderRadius: "12px", border: "1px solid rgba(255,255,255,0.06)", boxSizing: "border-box" }}>
                       <div style={{ fontSize: "11px", color: "#94a3b8", marginBottom: "8px", fontWeight: "bold" }}>
                         NÚMERO DE CUENTA (10 DÍGITOS)
@@ -1149,7 +1155,6 @@ export default function StudentDashboard() {
                       </div>
                     </div>
 
-                    {/* 2. TARJETA DE DÉBITO */}
                     <div style={{ background: "rgba(255,255,255,0.04)", padding: "16px", borderRadius: "12px", border: "1px solid rgba(255,255,255,0.06)", boxSizing: "border-box" }}>
                       <div style={{ fontSize: "11px", color: "#94a3b8", marginBottom: "8px", fontWeight: "bold" }}>
                         TARJETA DE DÉBITO (16 DÍGITOS)
@@ -1167,7 +1172,6 @@ export default function StudentDashboard() {
                       </div>
                     </div>
 
-                    {/* 3. CLABE INTERBANCARIA */}
                     <div style={{ background: "rgba(255,255,255,0.04)", padding: "16px", borderRadius: "12px", border: "1px solid rgba(255,255,255,0.06)", boxSizing: "border-box" }}>
                       <div style={{ fontSize: "11px", color: "#94a3b8", marginBottom: "8px", fontWeight: "bold" }}>
                         CLABE INTERBANCARIA (18 DÍGITOS)
@@ -1271,7 +1275,6 @@ export default function StudentDashboard() {
                 <div style={{ background: "rgba(12, 21, 39, 0.6)", padding: "15px", borderRadius: "10px", marginBottom: "15px", border: "1px solid #1e3250" }}>
                   <p style={{ margin: "0 0 5px 0", fontSize: "13px", color: "#94a3b8" }}>Crédito Utilizado: <strong style={{ color: "#ef4444" }}>${creditoUtilizado.toFixed(2)}</strong></p>
                   
-                  {/* Visualización de la fecha límite y alerta dinámica integrada */}
                   <p style={{ margin: "5px 0 0 0", fontSize: "13px", color: "#94a3b8" }}>
                     Fecha Límite de Pago: <strong style={{ color: "#fff" }}>{alumno?.fecha_limite_pago ? new Date(alumno.fecha_limite_pago).toLocaleDateString() : "No asignada"}</strong>
                   </p>
@@ -1343,7 +1346,6 @@ export default function StudentDashboard() {
                     🪙 Pagar con Coins ({coinsDisponibles})
                   </button>
                   
-                  {/* Selector de crédito en tienda oculto para Primaria */}
                   {!esPrimaria && (
                     <button onClick={() => setMetodoPago("credito")} style={{ flex: 1, padding: "10px", borderRadius: "8px", border: metodoPago === "credito" ? "2px solid #d4af37" : "1px solid #1e3250", background: metodoPago === "credito" ? "rgba(212, 175, 55, 0.15)" : "rgba(12, 21, 39, 0.6)", color: "white", fontWeight: "bold", cursor: "pointer", fontSize: "13px" }}>
                       💳 Tarjeta de Crédito (Disp: ${creditoDisponible.toFixed(2)})
@@ -1379,58 +1381,52 @@ export default function StudentDashboard() {
 
             {activeTab === 'estadocuenta' && (
               <div>
-                {/* PANEL DE CONFIGURACIÓN DE SUCURSAL (Se oculta al imprimir) */}
+                {/* PANEL DE SELECCIÓN DE PERIODO Y ACCIONES (Se oculta al imprimir) */}
                 <div className="no-print card-dark" style={{ marginBottom: "20px" }}>
-                  <p style={{ margin: "0 0 10px 0", fontSize: "12px", color: "#d4af37", fontWeight: "bold" }}>⚙️ CONFIGURACIÓN DE DATOS DE SUCURSAL (Para impresión)</p>
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px", marginBottom: "12px" }}>
-                    <input
-                      type="text"
-                      placeholder="Nombre de Sucursal"
-                      value={sucursalInfo.nombreSucursal}
-                      onChange={(e) => setSucursalInfo({...sucursalInfo, nombreSucursal: e.target.value})}
-                      className="input-ahorro"
-                      style={{ margin: 0, fontSize: "12px" }}
-                    />
-                    <input
-                      type="text"
-                      placeholder="Dirección"
-                      value={sucursalInfo.direccion}
-                      onChange={(e) => setSucursalInfo({...sucursalInfo, direccion: e.target.value})}
-                      className="input-ahorro"
-                      style={{ margin: 0, fontSize: "12px" }}
-                    />
-                    <input
-                      type="text"
-                      placeholder="Plaza"
-                      value={sucursalInfo.plaza}
-                      onChange={(e) => setSucursalInfo({...sucursalInfo, plaza: e.target.value})}
-                      className="input-ahorro"
-                      style={{ margin: 0, fontSize: "12px" }}
-                    />
-                    <input
-                      type="text"
-                      placeholder="Teléfono"
-                      value={sucursalInfo.telefono}
-                      onChange={(e) => setSucursalInfo({...sucursalInfo, telefono: e.target.value})}
-                      className="input-ahorro"
-                      style={{ margin: 0, fontSize: "12px" }}
-                    />
-                  </div>
-                  <div style={{ textAlign: "right" }}>
-                    <button 
-                      onClick={() => window.print()}
-                      className="btn-accion btn-guardar" 
-                      style={{ width: "auto" }}
-                    >
-                      🖨️ Imprimir Estado de Cuenta
-                    </button>
+                  <p style={{ margin: "0 0 10px 0", fontSize: "12px", color: "#d4af37", fontWeight: "bold" }}>📅 SELECCIONAR PERIODO DE CONSULTA</p>
+                  
+                  <div style={{ display: "flex", gap: "15px", alignItems: "center", flexWrap: "wrap", marginBottom: "15px" }}>
+                    <div style={{ flex: 1, minWidth: "220px" }}>
+                      <select
+                        value={periodoSeleccionado}
+                        onChange={(e) => setPeriodoSeleccionado(e.target.value)}
+                        className="input-ahorro"
+                        style={{ cursor: "pointer" }}
+                      >
+                        {listaPeriodosDisponibles.map((p, idx) => (
+                          <option key={idx} value={p} style={{ background: "#0c1527", color: "white" }}>
+                            {p} {idx === 0 ? "(Periodo Actual)" : ""}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
+                      <button 
+                        onClick={() => window.print()}
+                        className="btn-accion btn-guardar" 
+                        style={{ width: "auto", display: "flex", alignItems: "center", gap: "6px" }}
+                      >
+                        🖨️ Imprimir Estado de Cuenta
+                      </button>
+
+                      <button 
+                        onClick={() => {
+                          window.print();
+                          mostrarToast("Generando archivo para descarga...", "success");
+                        }}
+                        className="btn-accion" 
+                        style={{ width: "auto", background: "#10b981", color: "white", display: "flex", alignItems: "center", gap: "6px" }}
+                      >
+                        📥 Descargar Estado de Cuenta
+                      </button>
+                    </div>
                   </div>
                 </div>
 
                 {/* DOCUMENTO TIPO ESTADO DE CUENTA BANCARIO */}
                 <div className="statement-sheet">
                   
-                  {/* ENCABEZADO: LOGO Y DATOS DE CUENTA */}
                   <div className="statement-header">
                     <div className="bank-brand">
                       <h1 className="bank-title">BANCO CEESUV</h1>
@@ -1438,14 +1434,13 @@ export default function StudentDashboard() {
                     </div>
                     <div className="statement-meta-box">
                       <div className="meta-row"><span>Estado de Cuenta</span> <strong>Página 1/1</strong></div>
-                      <div className="meta-row"><span>Periodo</span> <strong>{obtenerPeriodoActual()}</strong></div>
+                      <div className="meta-row"><span>Periodo</span> <strong>{periodoSeleccionado}</strong></div>
                       <div className="meta-row"><span>Fecha de Corte</span> <strong>{new Date().toLocaleDateString()}</strong></div>
                       <div className="meta-row"><span>No. de Cuenta</span> <strong>{alumno?.numero_cuenta || "CEESUV-2026"}</strong></div>
                       <div className="meta-row"><span>No. de Cliente</span> <strong>{alumno?.alumno_id || alumno?.id}</strong></div>
                     </div>
                   </div>
 
-                  {/* DATOS DEL TITULAR Y SUCURSAL DINÁMICOS */}
                   <div className="statement-client-section">
                     <div className="client-box">
                       <p className="section-label">DATOS DEL TITULAR</p>
@@ -1455,14 +1450,13 @@ export default function StudentDashboard() {
                     </div>
                     <div className="branch-box">
                       <p className="section-label">SUCURSAL Y CONTACTO</p>
-                      <p><strong>SUCURSAL:</strong> {sucursalInfo.nombreSucursal}</p>
-                      <p><strong>DIRECCIÓN:</strong> {sucursalInfo.direccion}</p>
-                      <p><strong>PLAZA:</strong> {sucursalInfo.plaza}</p>
-                      <p><strong>TELÉFONO:</strong> {sucursalInfo.telefono}</p>
+                      <p><strong>SUCURSAL:</strong> PLANTEL CENTRAL CEESUV</p>
+                      <p><strong>DIRECCIÓN:</strong> CAMPUS PRINCIPAL</p>
+                      <p><strong>PLAZA:</strong> VER / MÉXICO</p>
+                      <p><strong>TELÉFONO:</strong> 228-CEESUV-1</p>
                     </div>
                   </div>
 
-                  {/* INFORMACIÓN FINANCIERA Y COMPORTAMIENTO */}
                   <div className="financial-grid">
                     <div className="financial-col">
                       <h4>Información Financiera</h4>
@@ -1472,7 +1466,7 @@ export default function StudentDashboard() {
                       <div className="fin-row"><span>ISR Retenido (-)</span> <strong>0.00 Coins</strong></div>
                     </div>
                     <div className="financial-col">
-                      <h4>Comportamiento (Moneda Nacional / Coins)</h4>
+                      <h4>Comportamiento ({periodoSeleccionado})</h4>
                       <div className="fin-row"><span>Saldo Anterior</span> <strong>0.00</strong></div>
                       <div className="fin-row"><span>Depósitos / Abonos (+)</span> <strong>{coinsDisponibles}</strong></div>
                       <div className="fin-row"><span>Retiros / Cargos (-)</span> <strong>0.00</strong></div>
@@ -1480,9 +1474,8 @@ export default function StudentDashboard() {
                     </div>
                   </div>
 
-                  {/* DETALLE DE MOVIMIENTOS */}
                   <div className="movements-section">
-                    <h4>Detalle de Movimientos Realizados</h4>
+                    <h4>Detalle de Movimientos Realizados ({periodoSeleccionado})</h4>
                     <table className="statement-table">
                       <thead>
                         <tr>
@@ -1521,7 +1514,6 @@ export default function StudentDashboard() {
                     </table>
                   </div>
 
-                  {/* PIE DE PÁGINA LEGAL / INSTITUCIONAL */}
                   <div className="statement-footer">
                     <p>BANCO CEESUV S.A., INSTITUCIÓN DE BANCA ESCOLAR, GRUPO FINANCIERO CEESUV</p>
                     <p>Este documento es una representación impresa de un estado de cuenta digital generado para control interno escolar.</p>
