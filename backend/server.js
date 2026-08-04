@@ -1209,49 +1209,36 @@ app.post('/api/aplicar-interes-credito', async (req, res) => {
 // =====================================
 // RUTA DE BÚSQUEDA PARA TRANSFERENCIAS
 // =====================================
-app.get(["/alumnos/buscar", "/api/alumnos/buscar"], async (req, res) => {
-  try {
-    const { q } = req.query; 
+app.get('/api/alumnos/buscar', async (req, res) => {
+    const searchTerm = req.query.q || req.query.query; // Ajusta según el parámetro que mande tu frontend
     
-    if (!q) {
-      return res.status(400).json({ mensaje: "Debe proporcionar un parámetro de búsqueda 'q'." });
+    if (!searchTerm) {
+        return res.status(400).json({ error: "Frecuencia de búsqueda vacía" });
     }
 
-    const terminoLimpio = q.trim();
+    try {
+        const queryText = `
+            SELECT id, nombre, grado, coins, saldo_disponible, numero_cuenta, tarjeta_debito, clabe 
+            FROM alumnos 
+            WHERE numero_cuenta ILIKE $1 
+               OR tarjeta_debito ILIKE $1 
+               OR clabe ILIKE $1 
+               OR nombre ILIKE $1
+        `;
+        
+        const values = [`%${searchTerm}%`];
+        const result = await pool.query(queryText, values);
 
-    const queryBusqueda = `
-      SELECT 
-        a.id,
-        a.nombre,
-        a.grado,
-        a.coins,
-        COALESCE(a.coins_ahorro, 0) AS coins_ahorro,
-        a.token_qr,
-        a.pin,
-        a.numero_cuenta,
-        a.tarjeta_debito,
-        a.clabe,
-        COALESCE(a.estatus, 'Activo') AS estatus
-       FROM alumnos a
-       WHERE a.nombre ILIKE $1 
-          OR a.numero_cuenta = $2 
-          OR a.tarjeta_debito = $2 
-          OR a.clabe = $2
-          OR a.grado ILIKE $1
-       LIMIT 1;
-    `;
-    
-    const resultado = await pool.query(queryBusqueda, [`%${terminoLimpio}%`, terminoLimpio]);
-    
-    if (resultado.rows.length === 0) {
-      return res.status(404).json({ mensaje: "No se encontró ningún alumno con ese identificador." });
+        if (result.rows.length === 0) {
+            return res.status(404).json({ error: "Alumno no encontrado" });
+        }
+
+        // Devuelve el primer resultado encontrado
+        res.json(result.rows[0]);
+    } catch (err) {
+        console.error("Error en la búsqueda:", err);
+        res.status(500).json({ error: "Error interno en el servidor" });
     }
-
-    return res.status(200).json(resultado.rows[0]);
-  } catch (error) {
-    console.error("Error al buscar alumnos:", error);
-    return res.status(500).json({ mensaje: "Error al realizar la búsqueda de alumnos." });
-  }
 });
 
 
