@@ -7,7 +7,12 @@ export default function TransferenciaCoins({ alumnoActual, onTransferenciaExitos
   // Estados del formulario
   const [bancoDestino, setBancoDestino] = useState("BANCO CEESUV");
   const [tipoDestino, setTipoDestino] = useState("nuevo"); // 'nuevo' o 'guardado'
-  const [numeroCuentaDestino, setNumeroCuentaDestino] = useState("");
+  const [identificadorDestino, setIdentificadorDestino] = useState("");
+  
+  // Estados para la validación y datos dinámicos del destinatario
+  const [destinatarioVerificado, setDestinatarioVerificado] = useState(null);
+  const [buscandoDestinatario, setBuscandoDestinatario] = useState(false);
+
   const [contactoSeleccionado, setContactoSeleccionado] = useState(null);
   const [contactosGuardados, setContactosGuardados] = useState([]);
   
@@ -20,7 +25,7 @@ export default function TransferenciaCoins({ alumnoActual, onTransferenciaExitos
   const [procesando, setProcesando] = useState(false);
   const [datosTicket, setDatosTicket] = useState(null);
 
- // Cargar contactos guardados desde el backend de PostgreSQL al iniciar
+  // Cargar contactos guardados desde el backend de PostgreSQL al iniciar
   useEffect(() => {
     const alumnoId = Number(alumnoActual?.alumno_id || alumnoActual?.id);
     if (!alumnoId) return;
@@ -35,30 +40,71 @@ export default function TransferenciaCoins({ alumnoActual, onTransferenciaExitos
       .catch((e) => console.error("Error al cargar contactos de la BD:", e));
   }, [alumnoActual]);
 
-// Avanzar al paso 2 (Monto) desde Destino
-  const handleContinuarADestino = (e) => {
-    e.preventDefault();
-
-    // Determinar la cuenta final dependiendo de la pestaña activa (nuevo o guardados)
-    const cuentaFinal = tipoDestino === "nuevo" 
-      ? numeroCuentaStr(numeroCuentaDestino) 
-      : numeroCuentaStr(contactoSeleccionado?.cuenta || contactoSeleccionado?.numero_cuenta || contactoSeleccionado?.tarjeta_debito || contactoSeleccionado?.clabe);
-
-    if (!cuentaFinal || cuentaFinal.length < 3) {
-      mostrarToast("Ingresa o selecciona un número de cuenta válido.", "error");
+  // Función para buscar al alumno en tiempo real por Cuenta, Tarjeta o CLABE
+  const buscarDestinatarioBackend = async (valorBusqueda) => {
+    const query = String(valorBusqueda || "").trim();
+    if (!query || query.length < 3) {
+      setDestinatarioVerificado(null);
       return;
     }
 
-    if (String(cuentaFinal) === String(alumnoActual?.numero_cuenta)) {
+    setBuscandoDestinatario(true);
+    try {
+      const res = await fetch(`https://banco-ceesuv-backend.onrender.com/api/alumnos/buscar?q=${encodeURIComponent(query)}`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data && data.nombre) {
+          setDestinatarioVerificado(data);
+          mostrarToast(`Destinatario encontrado: ${data.nombre}`, "success");
+        } else {
+          setDestinatarioVerificado(null);
+          mostrarToast("No se encontró ningún alumno con ese identificador.", "error");
+        }
+      } else {
+        setDestinatarioVerificado(null);
+      }
+    } catch (error) {
+      console.error("Error buscando destinatario:", error);
+      setDestinatarioVerificado(null);
+    } finally {
+      setBuscandoDestinatario(false);
+    }
+  };
+
+  // Avanzar al paso 2 (Monto) desde Destino
+  const handleContinuarADestino = (e) => {
+    e.preventDefault();
+
+    let cuentaFinal = "";
+    let nombreFinal = "";
+
+    if (tipoDestino === "nuevo") {
+      cuentaFinal = String(identificadorDestino).trim();
+      if (!cuentaFinal) {
+        mostrarToast("Ingresa un número de cuenta, tarjeta o CLABE válido.", "error");
+        return;
+      }
+      if (!destinatarioVerificado) {
+        mostrarToast("Debes verificar o ingresar un destinatario válido.", "error");
+        return;
+      }
+      nombreFinal = destinatarioVerificado.nombre;
+    } else {
+      if (!contactoSeleccionado) {
+        mostrarToast("Selecciona un contacto guardado.", "error");
+        return;
+      }
+      cuentaFinal = String(contactoSeleccionado.cuenta || contactoSeleccionado.numero_cuenta || contactoSeleccionado.tarjeta_debito || contactoSeleccionado.clabe).trim();
+      nombreFinal = contactoSeleccionado.nombre;
+    }
+
+    if (String(cuentaFinal) === String(alumnoActual?.numero_cuenta || alumnoActual?.cuenta)) {
       mostrarToast("No puedes realizar una transferencia a tu propia cuenta.", "error");
       return;
     }
 
-    // Si todo es correcto, avanza al paso 2
     setPaso(2);
   };
-
-  const numeroCuentaStr = (val) => String(val || "").trim();
 
   // Avanzar al paso 3 (PIN)
   const handleContinuarAMonto = (e) => {
@@ -89,14 +135,12 @@ export default function TransferenciaCoins({ alumnoActual, onTransferenciaExitos
     setProcesando(true);
 
     try {
-      // 1. Obtener la cuenta/tarjeta/clabe destino de forma segura sin importar de dónde venga
       const cuentaDestinoFinal = tipoDestino === "nuevo" 
-        ? numeroCuentaDestino 
+        ? identificadorDestino 
         : (contactoSeleccionado?.cuenta || contactoSeleccionado?.numero_cuenta || contactoSeleccionado?.tarjeta_debito || contactoSeleccionado?.clabe);
 
-      // 2. Obtener el nombre del destino de forma segura
       const nombreDestinoFinal = tipoDestino === "nuevo" 
-        ? numeroCuentaDestino 
+        ? (destinatarioVerificado?.nombre || "Destinatario") 
         : (contactoSeleccionado?.nombre || "Destinatario");
 
       const response = await fetch("https://banco-ceesuv-backend.onrender.com/api/movimientos", {
@@ -122,7 +166,7 @@ export default function TransferenciaCoins({ alumnoActual, onTransferenciaExitos
               body: JSON.stringify({
                 usuario_id: Number(alumnoActual?.alumno_id || alumnoActual?.id),
                 nombre: aliasGuardar,
-                cuenta: numeroCuentaDestino, // <-- Cambiado de numero_cuenta a cuenta para coincidir con tu server.js
+                cuenta: identificadorDestino,
                 banco: bancoDestino
               })
             });
@@ -135,7 +179,7 @@ export default function TransferenciaCoins({ alumnoActual, onTransferenciaExitos
           folio: "CEESUV-" + Math.floor(100000 + Math.random() * 900000),
           fecha: new Date().toLocaleString(),
           origen: alumnoActual?.nombre || "ESTUDIANTE",
-          cuentaOrigen: alumnoActual?.numero_cuenta || "N/A",
+          cuentaOrigen: alumnoActual?.numero_cuenta || alumnoActual?.cuenta || "N/A",
           destino: nombreDestinoFinal,
           cuentaDestino: cuentaDestinoFinal,
           bancoDestino: bancoDestino,
@@ -145,7 +189,7 @@ export default function TransferenciaCoins({ alumnoActual, onTransferenciaExitos
         };
 
         setDatosTicket(ticketData);
-        setPaso(4); // Pantalla de Éxito / Voucher
+        setPaso(4);
         mostrarToast("¡Transferencia realizada con éxito!", "success");
         if (onTransferenciaExitosa) onTransferenciaExitosa();
       } else {
@@ -165,7 +209,8 @@ export default function TransferenciaCoins({ alumnoActual, onTransferenciaExitos
     setMonto("");
     setConcepto("");
     setPin("");
-    setNumeroCuentaDestino("");
+    setIdentificadorDestino("");
+    setDestinatarioVerificado(null);
     setContactoSeleccionado(null);
     setDatosTicket(null);
     setGuardarContactoCheck(false);
@@ -177,10 +222,7 @@ export default function TransferenciaCoins({ alumnoActual, onTransferenciaExitos
     const textoCompartir = `🧾 *COMPROBANTE DE TRANSFERENCIA - BANCO CEESUV*\n\nFolio: ${datosTicket.folio}\nFecha: ${datosTicket.fecha}\nDestino: ${datosTicket.destino} (${datosTicket.bancoDestino})\nCuenta: ${datosTicket.cuentaDestino}\nMonto: ${datosTicket.monto} COINS\nConcepto: ${datosTicket.concepto}\nReferencia: ${datosTicket.referencia}\n\n¡Operación exitosa!`;
 
     if (navigator.share) {
-      navigator.share({
-        title: 'Comprobante Banco CEESUV',
-        text: textoCompartir
-      }).catch(() => {});
+      navigator.share({ title: 'Comprobante Banco CEESUV', text: textoCompartir }).catch(() => {});
     } else {
       navigator.clipboard.writeText(textoCompartir);
       mostrarToast("¡Comprobante copiado al portapapeles para compartir!", "success");
@@ -190,7 +232,7 @@ export default function TransferenciaCoins({ alumnoActual, onTransferenciaExitos
   return (
     <div style={{ background: "rgba(12, 21, 39, 0.85)", border: "1px solid #1e3250", borderRadius: "16px", padding: "20px", maxWidth: "600px", margin: "0 auto" }}>
       
-      {/* INDICADOR DE PASOS SUPERIOR */}
+      {/* INDICADOR DE PASOS */}
       {paso < 4 && (
         <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "20px", fontSize: "12px", color: "#94a3b8", borderBottom: "1px solid #1e3250", paddingBottom: "10px" }}>
           <span style={{ color: paso === 1 ? "#f59e0b" : "#10b981", fontWeight: "bold" }}>1. Destino</span>
@@ -211,7 +253,8 @@ export default function TransferenciaCoins({ alumnoActual, onTransferenciaExitos
 
           {paso > 1 ? (
             <div style={{ marginTop: "8px", fontSize: "13px", color: "#cbd5e1" }}>
-              <strong>Destino:</strong> {tipoDestino === "nuevo" ? numeroCuentaDestino : contactoSeleccionado?.nombre} ({tipoDestino === "nuevo" ? numeroCuentaDestino : contactoSeleccionado?.numero_cuenta})
+              <strong>Destino:</strong> {tipoDestino === "nuevo" ? destinatarioVerificado?.nombre : contactoSeleccionado?.nombre} 
+              ({tipoDestino === "nuevo" ? identificadorDestino : (contactoSeleccionado?.cuenta || contactoSeleccionado?.numero_cuenta || contactoSeleccionado?.tarjeta_debito || contactoSeleccionado?.clabe)})
             </div>
           ) : (
             <form onSubmit={handleContinuarADestino} style={{ marginTop: "12px" }}>
@@ -226,14 +269,34 @@ export default function TransferenciaCoins({ alumnoActual, onTransferenciaExitos
 
               {tipoDestino === "nuevo" ? (
                 <div>
-                  <label style={{ display: "block", fontSize: "11px", color: "#94a3b8", marginBottom: "4px" }}>NÚMERO DE CUENTA DESTINO (BANCO CEESUV):</label>
-                  <input
-                    type="text"
-                    placeholder="Ej. 1002938120"
-                    value={numeroCuentaDestino}
-                    onChange={(e) => setNumeroCuentaDestino(e.target.value)}
-                    style={{ width: "100%", background: "#0c1527", border: "1px solid #1e3250", color: "white", padding: "10px", borderRadius: "8px", fontSize: "13px", boxSizing: "border-box" }}
-                  />
+                  <label style={{ display: "block", fontSize: "11px", color: "#94a3b8", marginBottom: "4px" }}>NÚMERO DE CUENTA, TARJETA O CLABE:</label>
+                  <div style={{ display: "flex", gap: "8px" }}>
+                    <input
+                      type="text"
+                      placeholder="Ej. Cuenta, Tarjeta o CLABE"
+                      value={identificadorDestino}
+                      onChange={(e) => {
+                        setIdentificadorDestino(e.target.value);
+                        setDestinatarioVerificado(null);
+                      }}
+                      onBlur={() => buscarDestinatarioBackend(identificadorDestino)}
+                      style={{ flex: 1, background: "#0c1527", border: "1px solid #1e3250", color: "white", padding: "10px", borderRadius: "8px", fontSize: "13px", boxSizing: "border-box" }}
+                    />
+                    <button 
+                      type="button" 
+                      onClick={() => buscarDestinatarioBackend(identificadorDestino)}
+                      style={{ background: "#1e3250", color: "#f59e0b", border: "1px solid #f59e0b", padding: "0 12px", borderRadius: "8px", fontWeight: "bold", cursor: "pointer", fontSize: "12px" }}
+                    >
+                      {buscandoStr => buscandoDestinatario ? "Buscando..." : "Buscar"}
+                    </button>
+                  </div>
+
+                  {/* Nombre Dinámico del Destinatario Encontrado */}
+                  {destinatarioVerificado && (
+                    <div style={{ marginTop: "8px", background: "rgba(16, 185, 129, 0.1)", border: "1px solid #10b981", padding: "8px", borderRadius: "6px", fontSize: "12px", color: "#34d399" }}>
+                      ✔ Destinatario: <strong>{destinatarioVerificado.nombre}</strong> (Banco CEESUV)
+                    </div>
+                  )}
                   
                   <div style={{ marginTop: "10px", display: "flex", alignItems: "center", gap: "8px" }}>
                     <input 
@@ -248,7 +311,7 @@ export default function TransferenciaCoins({ alumnoActual, onTransferenciaExitos
                   {guardarContactoCheck && (
                     <input
                       type="text"
-                      placeholder="Alias o nombre del contacto"
+                      placeholder="Alias o nombre del contacto (Ej. Jorge)"
                       value={aliasGuardar}
                       onChange={(e) => setAliasGuardar(e.target.value)}
                       style={{ width: "100%", marginTop: "8px", background: "#0c1527", border: "1px solid #1e3250", color: "white", padding: "8px", borderRadius: "8px", fontSize: "12px", boxSizing: "border-box" }}
@@ -261,18 +324,30 @@ export default function TransferenciaCoins({ alumnoActual, onTransferenciaExitos
                   {contactosGuardados.length > 0 ? (
                     <select
                       onChange={(e) => {
-                        const encontrado = contactosGuardados.find(c => c.numero_cuenta === e.target.value);
+                        const encontrado = contactosGuardados.find(c => String(c.cuenta || c.numero_cuenta || c.tarjeta_debito || c.clabe) === e.target.value);
                         setContactoSeleccionado(encontrado);
                       }}
                       style={{ width: "100%", background: "#0c1527", border: "1px solid #1e3250", color: "white", padding: "10px", borderRadius: "8px", fontSize: "13px" }}
                     >
                       <option value="">-- Selecciona contacto --</option>
-                      {contactosGuardados.map((c, idx) => (
-                        <option key={idx} value={c.numero_cuenta}>{c.nombre} - {c.numero_cuenta}</option>
-                      ))}
+                      {contactosGuardados.map((c, idx) => {
+                        const valCuenta = c.cuenta || c.numero_cuenta || c.tarjeta_debito || c.clabe;
+                        return (
+                          <option key={idx} value={valCuenta}>
+                            {c.nombre} - {valCuenta}
+                          </option>
+                        );
+                      })}
                     </select>
                   ) : (
                     <p style={{ color: "#94a3b8", fontSize: "12px", margin: "5px 0" }}>No tienes contactos guardados aún.</p>
+                  )}
+
+                  {contactoSeleccionado && (
+                    <div style={{ marginTop: "8px", background: "rgba(245, 158, 11, 0.1)", border: "1px solid #f59e0b", padding: "8px", borderRadius: "6px", fontSize: "12px", color: "#fcd34d" }}>
+                      👤 Destinatario: <strong>{contactoSeleccionado.nombre}</strong> <br/>
+                      💳 Cuenta/Dato: <strong>{contactoSeleccionado.cuenta || contactoSeleccionado.numero_cuenta || contactoSeleccionado.tarjeta_debito || contactoSeleccionado.clabe}</strong> (Banco CEESUV)
+                    </div>
                   )}
                 </div>
               )}
@@ -351,7 +426,7 @@ export default function TransferenciaCoins({ alumnoActual, onTransferenciaExitos
         </form>
       )}
 
-      {/* ================= PASO 4: PANTALLA DE ÉXITO / VOUCHER ================= */}
+      {/* ================= PASO 4: VOUCHER ================= */}
       {paso === 4 && datosTicket && (
         <div style={{ background: "#ffffff", color: "#1e293b", padding: "20px", borderRadius: "12px", textAlign: "center", fontFamily: "Arial, sans-serif" }}>
           <div style={{ fontSize: "40px", marginBottom: "5px" }}>✅</div>
