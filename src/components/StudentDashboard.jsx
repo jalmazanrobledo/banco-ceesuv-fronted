@@ -74,6 +74,16 @@ export default function StudentDashboard() {
     return nivel.includes("primaria") || grado.includes("primaria");
   })();
 
+  // Cálculo dinámico del periodo actual (Ej: AGOSTO 2026)
+  const obtenerPeriodoActual = () => {
+    const meses = [
+      "ENERO", "FEBRERO", "MARZO", "ABRIL", "MAYO", "JUNIO", 
+      "JULIO", "AGOSTO", "SEPTIEMBRE", "OCTUBRE", "NOVIEMBRE", "DICIEMBRE"
+    ];
+    const fechaActual = new Date();
+    return `${meses[fechaActual.getMonth()]} ${fechaActual.getFullYear()}`;
+  };
+
   useEffect(() => {
     async function obtenerTiposCambio() {
       try {
@@ -970,11 +980,29 @@ export default function StudentDashboard() {
           padding-top: 10px;
         }
 
+        /* REGLAS DE IMPRESIÓN AISLADA (Solo muestra el estado de cuenta y oculta el resto de la app) */
         @media print {
-          body { background: white !important; color: black !important; }
-          .portal-header, .modern-tabs-bar, .btn-logout, .btn-accion, button, .toast-notif, .no-print { display: none !important; }
-          .card-dark { background: white !important; color: black !important; border: none !important; box-shadow: none !important; padding: 0 !important; }
-          .statement-sheet { box-shadow: none !important; padding: 0 !important; width: 100% !important; max-width: 100% !important; }
+          body * {
+            visibility: hidden !important;
+          }
+          .statement-sheet, .statement-sheet * {
+            visibility: visible !important;
+          }
+          .statement-sheet {
+            position: absolute !important;
+            left: 0 !important;
+            top: 0 !important;
+            width: 100% !important;
+            max-width: 100% !important;
+            margin: 0 !important;
+            padding: 15px !important;
+            box-shadow: none !important;
+            background: white !important;
+            color: black !important;
+          }
+          .no-print {
+            display: none !important;
+          }
         }
       `}</style>
 
@@ -1410,19 +1438,19 @@ export default function StudentDashboard() {
                     </div>
                     <div className="statement-meta-box">
                       <div className="meta-row"><span>Estado de Cuenta</span> <strong>Página 1/1</strong></div>
-                      <div className="meta-row"><span>Periodo</span> <strong>MES ACTUAL</strong></div>
+                      <div className="meta-row"><span>Periodo</span> <strong>{obtenerPeriodoActual()}</strong></div>
                       <div className="meta-row"><span>Fecha de Corte</span> <strong>{new Date().toLocaleDateString()}</strong></div>
                       <div className="meta-row"><span>No. de Cuenta</span> <strong>{alumno?.numero_cuenta || "CEESUV-2026"}</strong></div>
                       <div className="meta-row"><span>No. de Cliente</span> <strong>{alumno?.alumno_id || alumno?.id}</strong></div>
                     </div>
                   </div>
 
-                  {/* DATOS DEL TITULAR Y SUCURSAL */}
+                  {/* DATOS DEL TITULAR Y SUCURSAL DINÁMICOS */}
                   <div className="statement-client-section">
                     <div className="client-box">
                       <p className="section-label">DATOS DEL TITULAR</p>
                       <h3>{nombreCompletoAlumno}</h3>
-                      <p>Nivel: {alumno?.nivel || alumno?.grado_nivel || "Secundaria / Bachillerato"}</p>
+                      <p>Nivel: {alumno?.nivel || alumno?.grado_nivel || (esPrimaria ? "Primaria" : "Secundaria / Bachillerato")}</p>
                       <p>CEESUV - MÉXICO</p>
                     </div>
                     <div className="branch-box">
