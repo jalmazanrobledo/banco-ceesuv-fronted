@@ -35,16 +35,16 @@ export default function TransferenciaCoins({ alumnoActual, onTransferenciaExitos
       .catch((e) => console.error("Error al cargar contactos de la BD:", e));
   }, [alumnoActual]);
 
-  // Avanzar al paso 2 (Monto) desde Destino
+// Avanzar al paso 2 (Monto) desde Destino
   const handleContinuarADestino = (e) => {
     e.preventDefault();
-    
-    // Validar si es cuenta nueva o contacto guardado (aceptando tanto 'cuenta' como 'numero_cuenta')
+
+    // Determinar la cuenta final dependiendo de la pestaña activa (nuevo o guardados)
     const cuentaFinal = tipoDestino === "nuevo" 
       ? numeroCuentaStr(numeroCuentaDestino) 
-      : numeroCuentaStr(contactoSeleccionado?.cuenta || contactoSeleccionado?.numero_cuenta);
+      : numeroCuentaStr(contactoSeleccionado?.cuenta || contactoSeleccionado?.numero_cuenta || contactoSeleccionado?.tarjeta_debito || contactoSeleccionado?.clabe);
 
-    if (!cuentaFinal || cuentaFinal.length < 3) { // Ajustado por si el número de cuenta es corto
+    if (!cuentaFinal || cuentaFinal.length < 3) {
       mostrarToast("Ingresa o selecciona un número de cuenta válido.", "error");
       return;
     }
@@ -54,6 +54,7 @@ export default function TransferenciaCoins({ alumnoActual, onTransferenciaExitos
       return;
     }
 
+    // Si todo es correcto, avanza al paso 2
     setPaso(2);
   };
 
