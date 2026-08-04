@@ -1387,165 +1387,162 @@ export default function StudentDashboard() {
             )}
 
             {activeTab === 'estadocuenta' && (
-              <div>
-                {/* PANEL DE SELECCIÓN DE PERIODO Y ACCIONES (Se oculta al imprimir) */}
-                <div className="no-print card-dark" style={{ marginBottom: "20px" }}>
-                  <p style={{ margin: "0 0 10px 0", fontSize: "12px", color: "#d4af37", fontWeight: "bold" }}>📅 SELECCIONAR PERIODO DE CONSULTA</p>
-                  
-                  <div style={{ display: "flex", gap: "15px", alignItems: "center", flexWrap: "wrap", marginBottom: "15px" }}>
-                    <div style={{ flex: 1, minWidth: "180px" }}>
-                      <label style={{ fontSize: "11px", color: "#94a3b8", display: "block", marginBottom: "4px" }}>MES:</label>
-                      <select
-                        value={mesSeleccionado}
-                        onChange={(e) => setMesSeleccionado(Number(e.target.value))}
-                        className="input-ahorro"
-                        style={{ cursor: "pointer" }}
-                      >
-                        {listaMesesDisponibles.map((m) => (
-                          <option key={m.numero} value={m.numero} style={{ background: "#0c1527", color: "white" }}>
-                            {m.nombre}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
+  <div>
+    {/* PANEL DE SELECCIÓN DE PERIODO Y ACCIONES (Se oculta al imprimir) */}
+    <div className="no-print card-dark" style={{ marginBottom: "20px" }}>
+      <p style={{ margin: "0 0 10px 0", fontSize: "12px", color: "#d4af37", fontWeight: "bold" }}>📅 SELECCIONAR PERIODO DE CONSULTA</p>
+      
+      <div style={{ display: "flex", gap: "15px", alignItems: "center", flexWrap: "wrap", marginBottom: "15px" }}>
+        <div style={{ flex: 1, minWidth: "180px" }}>
+          <label style={{ fontSize: "11px", color: "#94a3b8", display: "block", marginBottom: "4px" }}>MES:</label>
+          <select
+            value={mesSeleccionado}
+            onChange={(e) => setMesSeleccionado(Number(e.target.value))}
+            className="input-ahorro"
+            style={{ cursor: "pointer" }}
+          >
+            {listaMesesDisponibles.map((m) => (
+              <option key={m.numero} value={m.numero} style={{ background: "#0c1527", color: "white" }}>
+                {m.nombre}
+              </option>
+            ))}
+          </select>
+        </div>
 
-                    <div style={{ flex: 1, minWidth: "140px" }}>
-                      <label style={{ fontSize: "11px", color: "#94a3b8", display: "block", marginBottom: "4px" }}>AÑO:</label>
-                      <select
-                        value={anioSeleccionado}
-                        onChange={(e) => setAnioSeleccionado(Number(e.target.value))}
-                        className="input-ahorro"
-                        style={{ cursor: "pointer" }}
-                      >
-                        {aniosDisponibles.map((anio) => (
-                          <option key={anio} value={anio} style={{ background: "#0c1527", color: "white" }}>
-                            {anio}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
+        <div style={{ flex: 1, minWidth: "140px" }}>
+          <label style={{ fontSize: "11px", color: "#94a3b8", display: "block", marginBottom: "4px" }}>AÑO:</label>
+          <select
+            value={anioSeleccionado}
+            onChange={(e) => setAnioSeleccionado(Number(e.target.value))}
+            className="input-ahorro"
+            style={{ cursor: "pointer" }}
+          >
+            {aniosDisponibles.map((anio) => (
+              <option key={anio} value={anio} style={{ background: "#0c1527", color: "white" }}>
+                {anio}
+              </option>
+            ))}
+          </select>
+        </div>
 
-                    <div style={{ display: "flex", gap: "10px", flexWrap: "wrap", alignSelf: "flex-end" }}>
-                      <button 
-                        onClick={() => window.print()}
-                        className="btn-accion btn-guardar" 
-                        style={{ width: "auto", display: "flex", alignItems: "center", gap: "6px" }}
-                      >
-                        🖨️ Imprimir Estado de Cuenta
-                      </button>
+        <div style={{ display: "flex", gap: "10px", flexWrap: "wrap", alignSelf: "flex-end" }}>
+          <button 
+            onClick={() => window.print()}
+            className="btn-accion btn-guardar" 
+            style={{ width: "auto", display: "flex", alignItems: "center", gap: "6px" }}
+          >
+            🖨️ Imprimir Estado de Cuenta
+          </button>
 
-                      <button 
-                        onClick={() => {
-                          window.print();
-                          mostrarToast("Generando archivo para descarga...", "success");
-                        }}
-                        className="btn-accion" 
-                        style={{ width: "auto", background: "#10b981", color: "white", display: "flex", alignItems: "center", gap: "6px" }}
-                      >
-                        📥 Descargar Estado de Cuenta
-                      </button>
-                    </div>
-                  </div>
-                </div>
+          <button 
+            onClick={descargarPDFEstadoCuenta}
+            className="btn-accion" 
+            style={{ width: "auto", background: "#10b981", color: "white", display: "flex", alignItems: "center", gap: "6px", cursor: "pointer" }}
+          >
+            📥 Descargar Estado de Cuenta
+          </button>
+        </div>
+      </div>
+    </div>
 
-                {/* DOCUMENTO TIPO ESTADO DE CUENTA BANCARIO */}
-                <div className="statement-sheet">
-                  
-                  <div className="statement-header">
-                    <div className="bank-brand">
-                      <h1 className="bank-title">BANCO CEESUV</h1>
-                      <p className="bank-subtitle">Sistema Financiero Escolar</p>
-                    </div>
-                    <div className="statement-meta-box">
-                      <div className="meta-row"><span>Estado de Cuenta</span> <strong>Página 1/1</strong></div>
-                      <div className="meta-row"><span>Periodo</span> <strong>{nombreMesActual} {anioSeleccionado}</strong></div>
-                      <div className="meta-row"><span>Fecha de Corte</span> <strong>{new Date().toLocaleDateString()}</strong></div>
-                      <div className="meta-row"><span>No. de Cuenta</span> <strong>{alumno?.numero_cuenta || "CEESUV-2026"}</strong></div>
-                      <div className="meta-row"><span>No. de Cliente</span> <strong>{alumno?.alumno_id || alumno?.id}</strong></div>
-                    </div>
-                  </div>
+    {/* DOCUMENTO TIPO ESTADO DE CUENTA BANCARIO CON ID PARA CAPTURA */}
+    <div id="estado-de-cuenta-pdf" className="statement-sheet">
+      
+      <div className="statement-header">
+        <div className="bank-brand">
+          <h1 className="bank-title">BANCO CEESUV</h1>
+          <p className="bank-subtitle">Sistema Financiero Escolar</p>
+        </div>
+        <div className="statement-meta-box">
+          <div className="meta-row"><span>Estado de Cuenta</span> <strong>Página 1/1</strong></div>
+          <div className="meta-row"><span>Periodo</span> <strong>{nombreMesActual} {anioSeleccionado}</strong></div>
+          <div className="meta-row"><span>Fecha de Corte</span> <strong>{new Date().toLocaleDateString()}</strong></div>
+          <div className="meta-row"><span>No. de Cuenta</span> <strong>{alumno?.numero_cuenta || "CEESUV-2026"}</strong></div>
+          <div className="meta-row"><span>No. de Cliente</span> <strong>{alumno?.alumno_id || alumno?.id}</strong></div>
+        </div>
+      </div>
 
-                  <div className="statement-client-section">
-                    <div className="client-box">
-                      <p className="section-label">DATOS DEL TITULAR</p>
-                      <h3>{nombreCompletoAlumno}</h3>
-                      <p>Nivel: {alumno?.nivel || alumno?.grado_nivel || (esPrimaria ? "Primaria" : "Secundaria / Bachillerato")}</p>
-                      <p>CEESUV - MÉXICO</p>
-                    </div>
-                    <div className="branch-box">
-                      <p className="section-label">SUCURSAL Y CONTACTO</p>
-                      <p><strong>SUCURSAL:</strong> CEESUV</p>
-                      <p><strong>DIRECCIÓN:</strong> ANT. CARR. MÉXICO-LAREDO No. 617,       COL. 20 DE NOVIEMBRE</p>
-                      <p><strong>PLAZA:</strong> CIUDAD VALLES, S.L.P.</p>
-                      <p><strong>TELÉFONO:</strong> 481-382-12-02</p>
-                    </div>
-                  </div>
+      <div className="statement-client-section">
+        <div className="client-box">
+          <p className="section-label">DATOS DEL TITULAR</p>
+          <h3>{nombreCompletoAlumno}</h3>
+          <p>Nivel: {alumno?.nivel || alumno?.grado_nivel || (esPrimaria ? "Primaria" : "Secundaria / Bachillerato")}</p>
+          <p>CEESUV - MÉXICO</p>
+        </div>
+        <div className="branch-box">
+          <p className="section-label">SUCURSAL Y CONTACTO</p>
+          <p><strong>SUCURSAL:</strong> CEESUV</p>
+          <p><strong>DIRECCIÓN:</strong> ANT. CARR. MÉXICO-LAREDO No. 617, COL. 20 DE NOVIEMBRE</p>
+          <p><strong>PLAZA:</strong> CIUDAD VALLES, S.L.P.</p>
+          <p><strong>TELÉFONO:</strong> 481-382-12-02</p>
+        </div>
+      </div>
 
-                  <div className="financial-grid">
-                    <div className="financial-col">
-                      <h4>Información Financiera</h4>
-                      <div className="fin-row"><span>Rendimiento / Tasa Anual</span> <strong>2.5%</strong></div>
-                      <div className="fin-row"><span>Días del Periodo</span> <strong>30</strong></div>
-                      <div className="fin-row"><span>Intereses a Favor (+)</span> <strong>0.00 Coins</strong></div>
-                      <div className="fin-row"><span>ISR Retenido (-)</span> <strong>0.00 Coins</strong></div>
-                    </div>
-                    <div className="financial-col">
-                      <h4>Comportamiento ({nombreMesActual} {anioSeleccionado})</h4>
-                      <div className="fin-row"><span>Saldo Anterior</span> <strong>0.00</strong></div>
-                      <div className="fin-row"><span>Depósitos / Abonos (+)</span> <strong>{coinsDisponibles}</strong></div>
-                      <div className="fin-row"><span>Retiros / Cargos (-)</span> <strong>0.00</strong></div>
-                      <div className="fin-row highlight-row"><span>Saldo Final</span> <strong>{coinsDisponibles} Coins</strong></div>
-                    </div>
-                  </div>
+      <div className="financial-grid">
+        <div className="financial-col">
+          <h4>Información Financiera</h4>
+          <div className="fin-row"><span>Rendimiento / Tasa Anual</span> <strong>2.5%</strong></div>
+          <div className="fin-row"><span>Días del Periodo</span> <strong>30</strong></div>
+          <div className="fin-row"><span>Intereses a Favor (+)</span> <strong>0.00 Coins</strong></div>
+          <div className="fin-row"><span>ISR Retenido (-)</span> <strong>0.00 Coins</strong></div>
+        </div>
+        <div className="financial-col">
+          <h4>Comportamiento ({nombreMesActual} {anioSeleccionado})</h4>
+          <div className="fin-row"><span>Saldo Anterior</span> <strong>0.00</strong></div>
+          <div className="fin-row"><span>Depósitos / Abonos (+)</span> <strong>{coinsDisponibles}</strong></div>
+          <div className="fin-row"><span>Retiros / Cargos (-)</span> <strong>0.00</strong></div>
+          <div className="fin-row highlight-row"><span>Saldo Final</span> <strong>{coinsDisponibles} Coins</strong></div>
+        </div>
+      </div>
 
-                  <div className="movements-section">
-                    <h4>Detalle de Movimientos Realizados ({nombreMesActual} {anioSeleccionado})</h4>
-                    <table className="statement-table">
-                      <thead>
-                        <tr>
-                          <th>FECHA</th>
-                          <th>DESCRIPCIÓN / CONCEPTO</th>
-                          <th>REFERENCIA</th>
-                          <th>CARGOS</th>
-                          <th>ABONOS</th>
-                          <th>SALDO</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {movimientos && movimientos.length > 0 ? (
-                          movimientos.map((mov, idx) => (
-                            <tr key={mov.id || idx}>
-                              <td>{mov.fecha ? new Date(mov.fecha).toLocaleDateString() : "N/A"}</td>
-                              <td>{mov.descripcion || mov.motivo || "Movimiento general"}</td>
-                              <td>{mov.referencia || "REF-" + idx}</td>
-                              <td style={{ color: (mov.tipo === 'SALIDA' || mov.tipo === 'COMPRA') ? '#ef4444' : 'inherit' }}>
-                                {(mov.tipo === 'SALIDA' || mov.tipo === 'COMPRA') ? `- ${mov.cantidad}` : ''}
-                              </td>
-                              <td style={{ color: (mov.tipo === 'ENTRADA' || mov.tipo === 'AHORRO_DEPOSITO') ? '#10b981' : 'inherit' }}>
-                                {(mov.tipo === 'ENTRADA' || mov.tipo === 'AHORRO_DEPOSITO') ? `+ ${mov.cantidad}` : ''}
-                              </td>
-                              <td><strong>{mov.saldo_final || "-"}</strong></td>
-                            </tr>
-                          ))
-                        ) : (
-                          <tr>
-                            <td colSpan="6" style={{ textAlign: "center", padding: "15px", color: "#666" }}>
-                              No hay movimientos registrados en este periodo (o el programa aún no estaba activo).
-                            </td>
-                          </tr>
-                        )}
-                      </tbody>
-                    </table>
-                  </div>
-
-                  <div className="statement-footer">
-                    <p>BANCO CEESUV S.A., INSTITUCIÓN DE BANCA ESCOLAR, GRUPO FINANCIERO CEESUV</p>
-                    <p>Este documento es una representación impresa de un estado de cuenta digital generado para control interno escolar.</p>
-                  </div>
-
-                </div>
-              </div>
+      <div className="movements-section">
+        <h4>Detalle de Movimientos Realizados ({nombreMesActual} {anioSeleccionado})</h4>
+        <table className="statement-table">
+          <thead>
+            <tr>
+              <th>FECHA</th>
+              <th>DESCRIPCIÓN / CONCEPTO</th>
+              <th>REFERENCIA</th>
+              <th>CARGOS</th>
+              <th>ABONOS</th>
+              <th>SALDO</th>
+            </tr>
+          </thead>
+          <tbody>
+            {movimientos && movimientos.length > 0 ? (
+              movimientos.map((mov, idx) => (
+                <tr key={mov.id || idx}>
+                  <td>{mov.fecha ? new Date(mov.fecha).toLocaleDateString() : "N/A"}</td>
+                  <td>{mov.descripcion || mov.motivo || "Movimiento general"}</td>
+                  <td>{mov.referencia || "REF-" + idx}</td>
+                  <td style={{ color: (mov.tipo === 'SALIDA' || mov.tipo === 'COMPRA') ? '#ef4444' : 'inherit' }}>
+                    {(mov.tipo === 'SALIDA' || mov.tipo === 'COMPRA') ? `- ${mov.cantidad}` : ''}
+                  </td>
+                  <td style={{ color: (mov.tipo === 'ENTRADA' || mov.tipo === 'AHORRO_DEPOSITO') ? '#10b981' : 'inherit' }}>
+                    {(mov.tipo === 'ENTRADA' || mov.tipo === 'AHORRO_DEPOSITO') ? `+ ${mov.cantidad}` : ''}
+                  </td>
+                  <td><strong>{mov.saldo_final || "-"}</strong></td>
+                </tr>
+              ))
+            ) : (
+              <tr>
+                <td colSpan="6" style={{ textAlign: "center", padding: "15px", color: "#666" }}>
+                  No hay movimientos registrados en este periodo.
+                </td>
+              </tr>
             )}
+          </tbody>
+        </table>
+      </div>
+
+      <div className="statement-footer">
+        <p>BANCO CEESUV S.A., INSTITUCIÓN DE BANCA ESCOLAR, GRUPO FINANCIERO CEESUV</p>
+        <p>Este documento es una representación impresa de un estado de cuenta digital generado para control interno escolar.</p>
+      </div>
+
+    </div>
+  </div>
+)}
 
             {activeTab === 'historial' && (
               <div className="card-dark">
