@@ -135,26 +135,36 @@ export default function TransferenciaCoins({ alumnoActual, onTransferenciaExitos
     setProcesando(true);
 
     try {
-      const cuentaDestinoFinal = tipoDestino === "nuevo" 
-        ? identificadorDestino 
-        : (contactoSeleccionado?.cuenta || contactoSeleccionado?.numero_cuenta || contactoSeleccionado?.tarjeta_debito || contactoSeleccionado?.clabe);
+    // 1. Obtener y validar la cuenta destino de forma robusta
+    const cuentaDestinoFinal = tipoDestino === "nuevo" 
+      ? identificadorDestino 
+      : (contactoSeleccionado?.cuenta || contactoSeleccionado?.numero_cuenta || contactoSeleccionado?.tarjeta_debito || contactoSeleccionado?.clabe || contactoSeleccionado?.numeroCuenta);
 
-      const nombreDestinoFinal = tipoDestino === "nuevo" 
-        ? (destinatarioVerificado?.nombre || "Destinatario") 
-        : (contactoSeleccionado?.nombre || "Destinatario");
+    // DEPURACIÓN: Revisa tu consola (F12) para ver qué valor exacto está tomando
+    console.log("DEBUG - Cuenta destino enviada:", cuentaDestinoFinal);
 
-      const response = await fetch("https://banco-ceesuv-backend.onrender.com/api/movimientos", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          alumno_id: Number(alumnoActual?.alumno_id || alumnoActual?.id),
-          tipo: "SALIDA",
-          cantidad: Number(monto),
-          motivo: `Transferencia a ${nombreDestinoFinal} (${bancoDestino}): ${concepto || 'Sin concepto'}`,
-          usuario: alumnoActual?.nombre || "Estudiante",
-          cuentaDestino: cuentaDestinoFinal
-        })
-      });
+    if (!cuentaDestinoFinal) {
+      mostrarToast("No se pudo identificar la cuenta o tarjeta del destinatario.", "error");
+      setProcesando(false);
+      return;
+    }
+
+    const nombreDestinoFinal = tipoDestino === "nuevo" 
+      ? (destinatarioVerificado?.nombre || "Destinatario") 
+      : (contactoSeleccionado?.nombre || "Destinatario");
+
+    const response = await fetch("https://banco-ceesuv-backend.onrender.com/api/movimientos", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        alumno_id: Number(alumnoActual?.alumno_id || alumnoActual?.id),
+        tipo: "SALIDA",
+        cantidad: Number(monto),
+        motivo: `Transferencia a ${nombreDestinoFinal} (${bancoDestino}): ${concepto || 'Sin concepto'}`,
+        usuario: alumnoActual?.nombre || "Estudiante",
+        cuentaDestino: String(cuentaDestinoFinal).trim() // Aseguramos que viaje limpio y como texto
+      })
+    });
 
       if (response.ok) {
         // Si marcó guardar contacto y es nuevo, guardarlo en la Base de Datos
