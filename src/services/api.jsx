@@ -1,4 +1,4 @@
-const API_URL = "https://banco-ceesuv-backend.onrender.com";
+const API_URL = import.meta.env.VITE_API_URL || "https://banco-ceesuv-backend.onrender.com";
 
 // Función auxiliar para evitar caché en peticiones GET
 const getHeadersNoCache = {
