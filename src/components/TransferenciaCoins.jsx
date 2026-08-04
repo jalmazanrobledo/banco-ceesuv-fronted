@@ -287,7 +287,7 @@ export default function TransferenciaCoins({ alumnoActual, onTransferenciaExitos
                       onClick={() => buscarDestinatarioBackend(identificadorDestino)}
                       style={{ background: "#1e3250", color: "#f59e0b", border: "1px solid #f59e0b", padding: "0 12px", borderRadius: "8px", fontWeight: "bold", cursor: "pointer", fontSize: "12px" }}
                     >
-                      {buscandoStr => buscandoDestinatario ? "Buscando..." : "Buscar"}
+                      {buscandoDestinatario ? "Buscando..." : "Buscar"}
                     </button>
                   </div>
 
