@@ -1238,7 +1238,7 @@ export default function StudentDashboard() {
               </div>
             )}
 
-            {activeTab === 'transferencias' && (
+            {activeTab === 'transferencias' &&[cite: 10] && (
               <div className="card-dark">
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "15px", flexWrap: "wrap" }}>
                   <h3 style={{ margin: "0", fontSize: "18px", color: "#f59e0b" }}>💸 Módulo de Transferencias</h3>
