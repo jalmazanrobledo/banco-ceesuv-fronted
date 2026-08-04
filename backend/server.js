@@ -301,6 +301,38 @@ app.get(["/consulta/:token", "/api/consulta/:token"], async (req, res) => {
   }
 });
 
+// =====================================
+// COLOCAR ESTE ENDPOINT AQUÍ (ARRIBA DE TODO LO DEMÁS DE ALUMNOS)
+// =====================================
+app.get("/api/alumnos/buscar", async (req, res) => {
+  const { query } = req.query;
+  
+  if (!query) {
+    return res.status(400).json({ mensaje: "Identificador de búsqueda requerido." });
+  }
+
+  try {
+    const valorLimpio = String(query).trim();
+    const queryString = `
+      SELECT id, nombre, numero_cuenta, tarjeta_debito, clabe 
+      FROM alumnos 
+      WHERE TRIM(numero_cuenta) = $1 
+         OR TRIM(tarjeta_debito) = $1 
+         OR TRIM(clabe) = $1
+    `;
+    const resultado = await pool.query(queryString, [valorLimpio]);
+
+    if (resultado.rows.length > 0) {
+      res.json(resultado.rows[0]);
+    } else {
+      res.status(404).json({ mensaje: "No se encontró ningún alumno con ese número de cuenta, tarjeta o CLABE." });
+    }
+  } catch (error) {
+    console.error("Error al buscar alumno:", error);
+    res.status(500).json({ mensaje: "Error interno en el servidor" });
+  }
+});
+
 // Dashboard del Alumno Individual
 app.get(["/api/alumno-dashboard/:alumnoId", "/api/alumnos/:identifier", "/alumnos/:identifier"], async (req, res) => {
   try {
@@ -1205,38 +1237,6 @@ app.post('/api/aplicar-interes-credito', async (req, res) => {
         res.status(500).json({ exito: false, error: 'Error al aplicar intereses al crédito' });
     }
 });
-
-// Endpoint para buscar alumno mediante query param (?query=...)
-app.get("/api/alumnos/buscar", async (req, res) => {
-  const { query } = req.query;
-  
-  if (!query) {
-    return res.status(400).json({ mensaje: "Identificador de búsqueda requerido." });
-  }
-
-  try {
-    const valorLimpio = String(query).trim();
-    const queryString = `
-      SELECT id, nombre, numero_cuenta, tarjeta_debito, clabe 
-      FROM alumnos 
-      WHERE TRIM(numero_cuenta) = $1 
-         OR TRIM(tarjeta_debito) = $1 
-         OR TRIM(clabe) = $1
-    `;
-    // ✅ CORREGIDO: Usamos pool.query en lugar de client.query
-    const resultado = await pool.query(queryString, [valorLimpio]);
-
-    if (resultado.rows.length > 0) {
-      res.json(resultado.rows[0]);
-    } else {
-      res.status(404).json({ mensaje: "No se encontró ningún alumno con ese número de cuenta, tarjeta o CLABE." });
-    }
-  } catch (error) {
-    console.error("Error al buscar alumno:", error);
-    res.status(500).json({ mensaje: "Error interno en el servidor" });
-  }
-});
-
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
