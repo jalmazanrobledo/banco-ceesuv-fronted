@@ -1206,38 +1206,30 @@ app.post('/api/aplicar-interes-credito', async (req, res) => {
     }
 });
 
-// =====================================
-// RUTA DE BÚSQUEDA PARA TRANSFERENCIAS
-// =====================================
-app.get('/api/alumnos/buscar', async (req, res) => {
-    try {
-        const searchTerm = req.query.query || req.query.q;
+// Endpoint para buscar un alumno por cuenta, tarjeta o CLABE antes de transferir
+app.get("/api/alumnos/buscar/:identificador", async (req, res) => {
+  const { identificador } = req.params;
+  try {
+    const valorLimpio = String(identificador).trim();
+    const query = `
+      SELECT id, nombre, numero_cuenta, tarjeta_debito, clabe 
+      FROM alumnos 
+      WHERE TRIM(numero_cuenta) = $1 
+         OR TRIM(tarjeta_debito) = $1 
+         OR TRIM(clabe) = $1
+    `;
+    const resultado = await client.query(query, [valorLimpio]);
 
-        if (!searchTerm) {
-            return res.status(400).json({ mensaje: "Falta el parámetro de búsqueda" });
-        }
-
-        const queryText = `
-            SELECT id, nombre, grado, numero_cuenta, clabe, tarjeta_debito, saldo_disponible 
-            FROM alumnos 
-            WHERE numero_cuenta ILIKE $1 
-               OR tarjeta_debito ILIKE $1 
-               OR clabe ILIKE $1
-            LIMIT 1;
-        `;
-
-        const values = [`%${searchTerm}%`];
-        const result = await pool.query(queryText, values);
-
-        if (result.rows.length === 0) {
-            return res.status(404).json({ mensaje: "Alumno no encontrado." });
-        }
-
-        res.json(result.rows[0]);
-    } catch (error) {
-        console.error("Error en la búsqueda:", error);
-        res.status(500).json({ mensaje: "Error en el servidor" });
+    if (resultado.rows.length > 0) {
+      // Devolvemos los datos básicos del destinatario (sin información sensible como el PIN)
+      res.json(resultado.rows[0]);
+    } else {
+      res.status(404).json({ mensaje: "No se encontró ningún alumno con ese número de cuenta, tarjeta o CLABE." });
     }
+  } catch (error) {
+    console.error("Error al buscar alumno:", error);
+    res.status(500).json({ mensaje: "Error interno en el servidor" });
+  }
 });
 
 
