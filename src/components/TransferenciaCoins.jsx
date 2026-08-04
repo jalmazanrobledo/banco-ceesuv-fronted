@@ -108,8 +108,8 @@ export default function TransferenciaCoins({ alumnoActual, onTransferenciaExitos
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
                 usuario_id: Number(alumnoActual?.alumno_id || alumnoActual?.id),
-                nombre_contacto: aliasGuardar,
-                numero_cuenta: numeroCuentaDestino,
+                nombre: aliasGuardar,
+                cuenta: numeroCuentaDestino, // <-- Cambiado de numero_cuenta a cuenta para coincidir con tu server.js
                 banco: bancoDestino
               })
             });
