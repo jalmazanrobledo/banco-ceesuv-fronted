@@ -1206,22 +1206,26 @@ app.post('/api/aplicar-interes-credito', async (req, res) => {
     }
 });
 
-// Endpoint para buscar un alumno por cuenta, tarjeta o CLABE antes de transferir
-app.get("/api/alumnos/buscar/:identificador", async (req, res) => {
-  const { identificador } = req.params;
+// Endpoint para buscar alumno mediante query param (?query=...)
+app.get("/api/alumnos/buscar", async (req, res) => {
+  const { query } = req.query;
+  
+  if (!query) {
+    return res.status(400).json({ mensaje: "Frecuencia o identificador de búsqueda requerido." });
+  }
+
   try {
-    const valorLimpio = String(identificador).trim();
-    const query = `
+    const valorLimpio = String(query).trim();
+    const queryString = `
       SELECT id, nombre, numero_cuenta, tarjeta_debito, clabe 
       FROM alumnos 
       WHERE TRIM(numero_cuenta) = $1 
          OR TRIM(tarjeta_debito) = $1 
          OR TRIM(clabe) = $1
     `;
-    const resultado = await client.query(query, [valorLimpio]);
+    const resultado = await client.query(queryString, [valorLimpio]);
 
     if (resultado.rows.length > 0) {
-      // Devolvemos los datos básicos del destinatario (sin información sensible como el PIN)
       res.json(resultado.rows[0]);
     } else {
       res.status(404).json({ mensaje: "No se encontró ningún alumno con ese número de cuenta, tarjeta o CLABE." });
