@@ -615,40 +615,40 @@ app.post(["/movimientos", "/api/movimientos"], async (req, res) => {
       [alumno_id, tipo, monto, motivo || 'Movimiento de saldo', usuario || 'Sistema']
     );
 
-    // 3. SI ES UNA TRANSFERENCIA (viene cuentaDestino), abonar al receptor automáticamente
-    if (cuentaDestino && tipo === "SALIDA") {
-      // Buscar al receptor en la tabla alumnos por su número de cuenta
-      const receptorQuery = await client.query(
-        "SELECT id, coins, nombre FROM alumnos WHERE numero_cuenta = $1",
-        [cuentaDestino]
+   // 3. SI ES UNA TRANSFERENCIA (viene cuentaDestino), abonar al receptor automáticamente
+  if (cuentaDestino && tipo === "SALIDA") {
+    // Buscar al receptor en la tabla alumnos evaluando número de cuenta, tarjeta o clabe
+    const receptorQuery = await client.query(
+      `SELECT id, coins, nombre FROM alumnos 
+       WHERE numero_cuenta = $1 OR tarjeta_debito = $1 OR clabe = $1`,
+      [cuentaDestino]
+    );
+
+    if (receptorQuery.rows.length > 0) {
+      const receptor = receptorQuery.rows[0];
+      const nuevoSaldoReceptor = Number(receptor.coins) + monto;
+
+      // Sumar coins al receptor
+      await client.query(
+        "UPDATE alumnos SET coins = $1 WHERE id = $2",
+        [nuevoSaldoReceptor, receptor.id]
       );
 
-      if (receptorQuery.rows.length > 0) {
-        const receptor = receptorQuery.rows[0];
-        const nuevoSaldoReceptor = Number(receptor.coins) + monto;
-
-        // Sumar coins al receptor
-        await client.query(
-          "UPDATE alumnos SET coins = $1 WHERE id = $2",
-          [nuevoSaldoReceptor, receptor.id]
-        );
-
-        // Registrar el movimiento de ENTRADA para el receptor
-        const motivoEntrada = `Recepción de ${nombreEmisor} | Concepto: ${motivo || 'Transferencia'}`;
-        await client.query(
-          `INSERT INTO movimientos (alumno_id, tipo, cantidad, motivo, usuario)
-           VALUES ($1, 'ENTRADA', $2, $3, $4)`,
-          [receptor.id, monto, motivoEntrada, receptor.nombre]
-        );
-      } else {
-        // Opcional: si la cuenta no existe en alumnos, puedes decidir si cancelas o la dejas pasar.
-        // Por seguridad bancaria, se recomienda hacer rollback si la cuenta destino no existe:
-        await client.query('ROLLBACK');
-        return res.status(404).json({ mensaje: "El número de cuenta destino no existe en el sistema." });
-      }
+      // Registrar el movimiento de ENTRADA para el receptor
+      const motivoEntrada = `Recepción de ${nombreEmisor} | Concepto: ${motivo || 'Transferencia'}`;
+      await client.query(
+        `INSERT INTO movimientos (alumno_id, tipo, cantidad, motivo, usuario)
+         VALUES ($1, 'ENTRADA', $2, $3, $4)`,
+        [receptor.id, monto, motivoEntrada, receptor.nombre]
+      );
+    } else {
+      // Por seguridad bancaria, se hace rollback si el destino no existe bajo ninguna modalidad
+      await client.query('ROLLBACK');
+      return res.status(404).json({ mensaje: "El número de cuenta, tarjeta o CLABE destino no existe en el sistema." });
     }
+  }
 
-    await client.query('COMMIT'); // Confirmar transacción exitosa
+  await client.query('COMMIT'); // Confirmar transacción exitosa
 
     return res.status(200).json({
       mensaje: "Movimiento y transferencia procesados correctamente.",

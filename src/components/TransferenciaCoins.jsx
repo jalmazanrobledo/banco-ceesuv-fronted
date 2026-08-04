@@ -88,8 +88,15 @@ export default function TransferenciaCoins({ alumnoActual, onTransferenciaExitos
     setProcesando(true);
 
     try {
-      const cuentaDestinoFinal = tipoDestino === "nuevo" ? numeroCuentaDestino : contactoSeleccionado?.numero_cuenta;
-      const nombreDestinoFinal = tipoDestino === "nuevo" ? (numeroCuentaDestino) : contactoSeleccionado?.nombre;
+      // 1. Obtener la cuenta/tarjeta/clabe destino de forma segura sin importar de dónde venga
+      const cuentaDestinoFinal = tipoDestino === "nuevo" 
+        ? numeroCuentaDestino 
+        : (contactoSeleccionado?.cuenta || contactoSeleccionado?.numero_cuenta || contactoSeleccionado?.tarjeta_debito || contactoSeleccionado?.clabe);
+
+      // 2. Obtener el nombre del destino de forma segura
+      const nombreDestinoFinal = tipoDestino === "nuevo" 
+        ? numeroCuentaDestino 
+        : (contactoSeleccionado?.nombre || "Destinatario");
 
       const response = await fetch("https://banco-ceesuv-backend.onrender.com/api/movimientos", {
         method: "POST",
@@ -100,7 +107,7 @@ export default function TransferenciaCoins({ alumnoActual, onTransferenciaExitos
           cantidad: Number(monto),
           motivo: `Transferencia a ${nombreDestinoFinal} (${bancoDestino}): ${concepto || 'Sin concepto'}`,
           usuario: alumnoActual?.nombre || "Estudiante",
-          cuentaDestino: cuentaDestinoFinal // <-- ¡Faltaba enviar esta variable al backend!
+          cuentaDestino: cuentaDestinoFinal
         })
       });
 
