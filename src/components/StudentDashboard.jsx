@@ -35,8 +35,9 @@ export default function StudentDashboard() {
   // Estado para indicar qué campo se copió recientemente en el portapapeles
   const [copiadoTipo, setCopiadoTipo] = useState("");
 
-  // Estado para el periodo seleccionado en el estado de cuenta (ej. "AGOSTO 2026")
-  const [periodoSeleccionado, setPeriodoSeleccionado] = useState("");
+  // Estados para el periodo seleccionado en el estado de cuenta (Mes y Año numéricos)
+  const [mesSeleccionado, setMesSeleccionado] = useState(new Date().getMonth() + 1);
+  const [anioSeleccionado, setAnioSeleccionado] = useState(new Date().getFullYear());
 
   const mostrarToast = (mensaje, tipo = "success") => {
     setNotificacionToast({ mensaje, tipo });
@@ -69,37 +70,23 @@ export default function StudentDashboard() {
     return nivel.includes("primaria") || grado.includes("primaria");
   })();
 
-  // Lista de meses disponibles para consulta (Mes actual y meses anteriores del ciclo)
-  const obtenerListaPeriodos = () => {
-    const meses = [
-      "ENERO", "FEBRERO", "MARZO", "ABRIL", "MAYO", "JUNIO", 
-      "JULIO", "AGOSTO", "SEPTIEMBRE", "OCTUBRE", "NOVIEMBRE", "DICIEMBRE"
-    ];
-    const fechaActual = new Date();
-    const mesActualIdx = fechaActual.getMonth();
-    const anioActual = fechaActual.getFullYear();
+  // Lista de meses estructurada con número y nombre para el selector del estado de cuenta
+  const listaMesesDisponibles = [
+    { numero: 1, nombre: "ENERO" },
+    { numero: 2, nombre: "FEBRERO" },
+    { numero: 3, nombre: "MARZO" },
+    { numero: 4, nombre: "ABRIL" },
+    { numero: 5, nombre: "MAYO" },
+    { numero: 6, nombre: "JUNIO" },
+    { numero: 7, nombre: "JULIO" },
+    { numero: 8, nombre: "AGOSTO" },
+    { numero: 9, nombre: "SEPTIEMBRE" },
+    { numero: 10, nombre: "OCTUBRE" },
+    { numero: 11, nombre: "NOVIEMBRE" },
+    { numero: 12, nombre: "DICIEMBRE" }
+  ];
 
-    let lista = [];
-    // Generar los últimos 6 meses hacia atrás
-    for (let i = 0; i < 6; i++) {
-      let mIdx = mesActualIdx - i;
-      let anio = anioActual;
-      if (mIdx < 0) {
-        mIdx += 12;
-        anio -= 1;
-      }
-      lista.push(`${meses[mIdx]} ${anio}`);
-    }
-    return lista;
-  };
-
-  const listaPeriodosDisponibles = obtenerListaPeriodos();
-
-  useEffect(() => {
-    if (!periodoSeleccionado && listaPeriodosDisponibles.length > 0) {
-      setPeriodoSeleccionado(listaPeriodosDisponibles[0]);
-    }
-  }, [listaPeriodosDisponibles]);
+  const aniosDisponibles = [2026, 2027];
 
   useEffect(() => {
     async function obtenerTiposCambio() {
@@ -190,35 +177,53 @@ export default function StudentDashboard() {
 
       setAlumno(datosAlumno);
 
+      // Obtención de movimientos filtrados por periodo (mes y año)
       try {
-        const resMovs = await fetch(
-          `https://banco-ceesuv-backend.onrender.com/api/movimientos`
-        );
-
-        if (resMovs.ok) {
-          const todosMovimientos = await resMovs.json();
-          const nombreBuscado = (datosAlumno.nombre || userObj.nombre || "").toLowerCase();
-          const idBuscado = String(
-            datosAlumno.id || datosAlumno.alumno_id || userObj.id || ""
+        const alumnoId = datosAlumno?.alumno_id || datosAlumno?.id || identifier;
+        if (alumnoId) {
+          const resMovs = await fetch(
+            `https://banco-ceesuv-backend.onrender.com/api/estado-cuenta/${alumnoId}?mes=${mesSeleccionado}&anio=${anioSeleccionado}`
           );
 
-          const misMovs = todosMovimientos.filter((m) => {
-            const alumnoMov = (m.alumno || m.nombre || "").toLowerCase();
-            const alumnoIdMov = String(
-              m.alumno_id || m.alumnoId || m.id_alumno || ""
-            );
-            return (
-              (idBuscado && alumnoIdMov === idBuscado) ||
-              (nombreBuscado && alumnoMov.includes(nombreBuscado))
-            );
-          });
-
-          if (misMovs.length > 0) {
-            listaMovimientos = misMovs;
+          if (resMovs.ok) {
+            const dataEstadoCuenta = await resMovs.json();
+            if (dataEstadoCuenta && dataEstadoCuenta.movimientos) {
+              listaMovimientos = dataEstadoCuenta.movimientos;
+            }
           }
         }
       } catch (err) {
-        console.warn("Consulta de movimientos no disponible:", err);
+        console.warn("Consulta de estado de cuenta por periodo no disponible, usando respaldo general:", err);
+        try {
+          const resMovs = await fetch(
+            `https://banco-ceesuv-backend.onrender.com/api/movimientos`
+          );
+
+          if (resMovs.ok) {
+            const todosMovimientos = await resMovs.json();
+            const nombreBuscado = (datosAlumno.nombre || userObj.nombre || "").toLowerCase();
+            const idBuscado = String(
+              datosAlumno.id || datosAlumno.alumno_id || userObj.id || ""
+            );
+
+            const misMovs = todosMovimientos.filter((m) => {
+              const alumnoMov = (m.alumno || m.nombre || "").toLowerCase();
+              const alumnoIdMov = String(
+                m.alumno_id || m.alumnoId || m.id_alumno || ""
+              );
+              return (
+                (idBuscado && alumnoIdMov === idBuscado) ||
+                (nombreBuscado && alumnoMov.includes(nombreBuscado))
+              );
+            });
+
+            if (misMovs.length > 0) {
+              listaMovimientos = misMovs;
+            }
+          }
+        } catch (e) {
+          console.warn("Consulta de movimientos general omitida:", e);
+        }
       }
 
       setMovimientos(listaMovimientos);
@@ -231,7 +236,7 @@ export default function StudentDashboard() {
 
   useEffect(() => {
     cargarDatosEstudiante();
-  }, [navigate]);
+  }, [navigate, mesSeleccionado, anioSeleccionado]);
 
   const handleLogout = () => {
     localStorage.clear();
@@ -534,6 +539,8 @@ export default function StudentDashboard() {
   const movimientosAhorro = movimientos.filter(m => 
     m.tipo === "AHORRO_DEPOSITO" || m.tipo === "AHORRO_RETIRO" || m.tipo === "AHORRO_RENDIMIENTO"
   );
+
+  const nombreMesActual = listaMesesDisponibles.find(m => m.numero === Number(mesSeleccionado))?.nombre || "MES";
 
   return (
     <>
@@ -1386,22 +1393,39 @@ export default function StudentDashboard() {
                   <p style={{ margin: "0 0 10px 0", fontSize: "12px", color: "#d4af37", fontWeight: "bold" }}>📅 SELECCIONAR PERIODO DE CONSULTA</p>
                   
                   <div style={{ display: "flex", gap: "15px", alignItems: "center", flexWrap: "wrap", marginBottom: "15px" }}>
-                    <div style={{ flex: 1, minWidth: "220px" }}>
+                    <div style={{ flex: 1, minWidth: "180px" }}>
+                      <label style={{ fontSize: "11px", color: "#94a3b8", display: "block", marginBottom: "4px" }}>MES:</label>
                       <select
-                        value={periodoSeleccionado}
-                        onChange={(e) => setPeriodoSeleccionado(e.target.value)}
+                        value={mesSeleccionado}
+                        onChange={(e) => setMesSeleccionado(Number(e.target.value))}
                         className="input-ahorro"
                         style={{ cursor: "pointer" }}
                       >
-                        {listaPeriodosDisponibles.map((p, idx) => (
-                          <option key={idx} value={p} style={{ background: "#0c1527", color: "white" }}>
-                            {p} {idx === 0 ? "(Periodo Actual)" : ""}
+                        {listaMesesDisponibles.map((m) => (
+                          <option key={m.numero} value={m.numero} style={{ background: "#0c1527", color: "white" }}>
+                            {m.nombre}
                           </option>
                         ))}
                       </select>
                     </div>
 
-                    <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
+                    <div style={{ flex: 1, minWidth: "140px" }}>
+                      <label style={{ fontSize: "11px", color: "#94a3b8", display: "block", marginBottom: "4px" }}>AÑO:</label>
+                      <select
+                        value={anioSeleccionado}
+                        onChange={(e) => setAnioSeleccionado(Number(e.target.value))}
+                        className="input-ahorro"
+                        style={{ cursor: "pointer" }}
+                      >
+                        {aniosDisponibles.map((anio) => (
+                          <option key={anio} value={anio} style={{ background: "#0c1527", color: "white" }}>
+                            {anio}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div style={{ display: "flex", gap: "10px", flexWrap: "wrap", alignSelf: "flex-end" }}>
                       <button 
                         onClick={() => window.print()}
                         className="btn-accion btn-guardar" 
@@ -1434,7 +1458,7 @@ export default function StudentDashboard() {
                     </div>
                     <div className="statement-meta-box">
                       <div className="meta-row"><span>Estado de Cuenta</span> <strong>Página 1/1</strong></div>
-                      <div className="meta-row"><span>Periodo</span> <strong>{periodoSeleccionado}</strong></div>
+                      <div className="meta-row"><span>Periodo</span> <strong>{nombreMesActual} {anioSeleccionado}</strong></div>
                       <div className="meta-row"><span>Fecha de Corte</span> <strong>{new Date().toLocaleDateString()}</strong></div>
                       <div className="meta-row"><span>No. de Cuenta</span> <strong>{alumno?.numero_cuenta || "CEESUV-2026"}</strong></div>
                       <div className="meta-row"><span>No. de Cliente</span> <strong>{alumno?.alumno_id || alumno?.id}</strong></div>
@@ -1451,7 +1475,7 @@ export default function StudentDashboard() {
                     <div className="branch-box">
                       <p className="section-label">SUCURSAL Y CONTACTO</p>
                       <p><strong>SUCURSAL:</strong> CEESUV</p>
-                      <p><strong>DIRECCIÓN:</strong> ANT. CARR. MÉXICO-LAREDO No. 617, COL. 20 DE NOVIEMBRE</p>
+                      <p><strong>DIRECCIÓN:</strong> ANT. CARR. MÉXICO-LAREDO No. 617,       COL. 20 DE NOVIEMBRE</p>
                       <p><strong>PLAZA:</strong> CIUDAD VALLES, S.L.P.</p>
                       <p><strong>TELÉFONO:</strong> 481-382-12-02</p>
                     </div>
@@ -1466,7 +1490,7 @@ export default function StudentDashboard() {
                       <div className="fin-row"><span>ISR Retenido (-)</span> <strong>0.00 Coins</strong></div>
                     </div>
                     <div className="financial-col">
-                      <h4>Comportamiento ({periodoSeleccionado})</h4>
+                      <h4>Comportamiento ({nombreMesActual} {anioSeleccionado})</h4>
                       <div className="fin-row"><span>Saldo Anterior</span> <strong>0.00</strong></div>
                       <div className="fin-row"><span>Depósitos / Abonos (+)</span> <strong>{coinsDisponibles}</strong></div>
                       <div className="fin-row"><span>Retiros / Cargos (-)</span> <strong>0.00</strong></div>
@@ -1475,7 +1499,7 @@ export default function StudentDashboard() {
                   </div>
 
                   <div className="movements-section">
-                    <h4>Detalle de Movimientos Realizados ({periodoSeleccionado})</h4>
+                    <h4>Detalle de Movimientos Realizados ({nombreMesActual} {anioSeleccionado})</h4>
                     <table className="statement-table">
                       <thead>
                         <tr>
@@ -1506,7 +1530,7 @@ export default function StudentDashboard() {
                         ) : (
                           <tr>
                             <td colSpan="6" style={{ textAlign: "center", padding: "15px", color: "#666" }}>
-                              No hay movimientos registrados en este periodo.
+                              No hay movimientos registrados en este periodo (o el programa aún no estaba activo).
                             </td>
                           </tr>
                         )}
@@ -1551,7 +1575,7 @@ export default function StudentDashboard() {
                   </div>
                 ) : (
                   <div style={{ textAlign: "center", padding: "30px 0", color: "#94a3b8" }}>
-                    <p style={{ margin: 0, fontSize: "15px" }}>Aún no tienes movimientos registrados.</p>
+                    <p style={{ margin: 0, fontSize: "15px" }}>Aún no tienes movimientos registrados en este periodo.</p>
                   </div>
                 )}
               </div>
