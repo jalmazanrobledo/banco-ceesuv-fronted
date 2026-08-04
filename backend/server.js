@@ -1241,42 +1241,17 @@ app.get(["/alumnos/buscar", "/api/alumnos/buscar"], async (req, res) => {
 });
 
 // =====================================
-// NUEVA RUTA: Buscar destino de transferencia (Cuenta, Tarjeta o CLABE)
-// =====================================
-app.get(["/api/alumnos/buscar-destino/:query", "/buscar-destino/:query"], async (req, res) => {
-  try {
-    const { query } = req.params;
-    const destinoLimpio = query ? String(query).replace(/\s+/g, '') : '';
-
-    const alumnoRes = await pool.query(
-      `SELECT id, nombre, grado, numero_cuenta, tarjeta_debito, clabe 
-       FROM alumnos 
-       WHERE numero_cuenta = $1 OR tarjeta_debito = $1 OR clabe = $1`,
-      [destinoLimpio]
-    );
-
-    if (alumnoRes.rows.length === 0) {
-      return res.status(404).json({ mensaje: "Destino no encontrado." });
-    }
-
-    return res.status(200).json(alumnoRes.rows[0]);
-  } catch (error) {
-    console.error("Error al buscar destino:", error);
-    return res.status(500).json({ mensaje: "Error interno al buscar el destino." });
-  }
-});
-
-
-// =====================================
-// RUTA DE BÚSQUEDA DE ALUMNOS (Para Transferencias)
+// RUTA UNIFICADA DE BÚSQUEDA DE ALUMNOS (Para Transferencias y Panel)
 // =====================================
 app.get(["/alumnos/buscar", "/api/alumnos/buscar"], async (req, res) => {
   try {
-    const { q } = req.query; // Recibe el número de cuenta, tarjeta, CLABE o nombre
+    const { q } = req.query; 
     
     if (!q) {
       return res.status(400).json({ mensaje: "Debe proporcionar un parámetro de búsqueda 'q'." });
     }
+
+    const terminoLimpio = q.trim();
 
     const queryBusqueda = `
       SELECT 
@@ -1296,10 +1271,11 @@ app.get(["/alumnos/buscar", "/api/alumnos/buscar"], async (req, res) => {
           OR a.numero_cuenta = $2 
           OR a.tarjeta_debito = $2 
           OR a.clabe = $2
+          OR a.grado ILIKE $1
        LIMIT 1;
     `;
     
-    const resultado = await pool.query(queryBusqueda, [`%${q}%`, q.trim()]);
+    const resultado = await pool.query(queryBusqueda, [`%${terminoLimpio}%`, terminoLimpio]);
     
     if (resultado.rows.length === 0) {
       return res.status(404).json({ mensaje: "No se encontró ningún alumno con ese identificador." });
@@ -1311,7 +1287,6 @@ app.get(["/alumnos/buscar", "/api/alumnos/buscar"], async (req, res) => {
     return res.status(500).json({ mensaje: "Error al realizar la búsqueda de alumnos." });
   }
 });
-
 
 
 const PORT = process.env.PORT || 5000;
