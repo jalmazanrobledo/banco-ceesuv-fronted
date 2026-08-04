@@ -38,9 +38,13 @@ export default function TransferenciaCoins({ alumnoActual, onTransferenciaExitos
   // Avanzar al paso 2 (Monto) desde Destino
   const handleContinuarADestino = (e) => {
     e.preventDefault();
-    const cuentaFinal = tipoDestino === "nuevo" ? numeroCuentaStr(numeroCuentaDestino) : contactoSeleccionado?.numero_cuenta;
+    
+    // Validar si es cuenta nueva o contacto guardado (aceptando tanto 'cuenta' como 'numero_cuenta')
+    const cuentaFinal = tipoDestino === "nuevo" 
+      ? numeroCuentaStr(numeroCuentaDestino) 
+      : numeroCuentaStr(contactoSeleccionado?.cuenta || contactoSeleccionado?.numero_cuenta);
 
-    if (!cuentaFinal || cuentaFinal.length < 5) {
+    if (!cuentaFinal || cuentaFinal.length < 3) { // Ajustado por si el número de cuenta es corto
       mostrarToast("Ingresa o selecciona un número de cuenta válido.", "error");
       return;
     }
