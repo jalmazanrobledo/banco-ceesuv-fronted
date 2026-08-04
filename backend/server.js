@@ -552,64 +552,48 @@ app.delete(["/alumnos/:id", "/api/alumnos/:id"], async (req, res) => {
   }
 });
 
-// Movimientos
-app.get(["/movimientos", "/api/movimientos"], async (req, res) => {
-  try {
-    const resultado = await pool.query(`
-      SELECT
-        m.id,
-        a.nombre AS alumno,
-        m.tipo,
-        m.cantidad,
-        m.motivo,
-        m.fecha,
-        m.usuario
-      FROM movimientos m
-      INNER JOIN alumnos a ON m.alumno_id = a.id
-      LEFT JOIN usuarios u ON u.alumno_id = a.id
-      WHERE COALESCE(u.estado, 'Activo') = 'Activo'
-      ORDER BY m.fecha DESC
-    `);
-
-    return res.status(200).json(resultado.rows);
-  } catch (error) {
-    console.error(error);
-    return res.status(500).json({ mensaje: "Error al obtener movimientos." });
-  }
-});
-
 app.post(["/movimientos", "/api/movimientos"], async (req, res) => {
+  const client = await pool.connect();
   try {
-    const { alumno_id, tipo, cantidad, motivo, usuario } = req.body;
+    await client.query('BEGIN'); // Iniciar transacción segura
 
-    const alumnoQuery = await pool.query(
-      "SELECT coins, COALESCE(coins_ahorro, 0) AS coins_ahorro FROM alumnos WHERE id = $1",
+    const { alumno_id, tipo, cantidad, motivo, usuario, cuentaDestino } = req.body;
+    const monto = Number(cantidad);
+
+    // 1. Obtener saldos del alumno que realiza la operación
+    const alumnoQuery = await client.query(
+      "SELECT coins, COALESCE(coins_ahorro, 0) AS coins_ahorro, nombre, numero_cuenta FROM alumnos WHERE id = $1",
       [alumno_id]
     );
 
     if (alumnoQuery.rows.length === 0) {
+      await client.query('ROLLBACK');
       return res.status(404).json({ mensaje: "Alumno no encontrado." });
     }
 
     let coinsDisponibles = Number(alumnoQuery.rows[0].coins);
     let coinsAhorro = Number(alumnoQuery.rows[0].coins_ahorro);
-    const monto = Number(cantidad);
+    const nombreEmisor = alumnoQuery.rows[0].nombre;
 
+    // 2. Procesar según el tipo de movimiento
     if (tipo === "ENTRADA") {
       coinsDisponibles += monto;
     } else if (tipo === "SALIDA") {
       if (coinsDisponibles < monto) {
+        await client.query('ROLLBACK');
         return res.status(400).json({ mensaje: "El alumno no tiene suficientes Coins disponibles." });
       }
       coinsDisponibles -= monto;
     } else if (tipo === "AHORRO_DEPOSITO") {
       if (coinsDisponibles < monto) {
+        await client.query('ROLLBACK');
         return res.status(400).json({ mensaje: "El alumno no tiene suficiente saldo disponible para ahorrar." });
       }
       coinsDisponibles -= monto;
       coinsAhorro += monto;
     } else if (tipo === "AHORRO_RETIRO") {
       if (coinsAhorro < monto) {
+        await client.query('ROLLBACK');
         return res.status(400).json({ mensaje: "El alumno no tiene suficiente saldo en ahorro." });
       }
       coinsAhorro -= monto;
@@ -618,25 +602,66 @@ app.post(["/movimientos", "/api/movimientos"], async (req, res) => {
       coinsAhorro += monto;
     }
 
-    await pool.query(
+    // Actualizar saldos del emisor
+    await client.query(
       "UPDATE alumnos SET coins = $1, coins_ahorro = $2 WHERE id = $3",
       [coinsDisponibles, coinsAhorro, alumno_id]
     );
 
-    await pool.query(
+    // Registrar el movimiento principal (Salida del emisor)
+    await client.query(
       `INSERT INTO movimientos (alumno_id, tipo, cantidad, motivo, usuario)
        VALUES ($1, $2, $3, $4, $5)`,
       [alumno_id, tipo, monto, motivo || 'Movimiento de saldo', usuario || 'Sistema']
     );
 
+    // 3. SI ES UNA TRANSFERENCIA (viene cuentaDestino), abonar al receptor automáticamente
+    if (cuentaDestino && tipo === "SALIDA") {
+      // Buscar al receptor en la tabla alumnos por su número de cuenta
+      const receptorQuery = await client.query(
+        "SELECT id, coins, nombre FROM alumnos WHERE numero_cuenta = $1",
+        [cuentaDestino]
+      );
+
+      if (receptorQuery.rows.length > 0) {
+        const receptor = receptorQuery.rows[0];
+        const nuevoSaldoReceptor = Number(receptor.coins) + monto;
+
+        // Sumar coins al receptor
+        await client.query(
+          "UPDATE alumnos SET coins = $1 WHERE id = $2",
+          [nuevoSaldoReceptor, receptor.id]
+        );
+
+        // Registrar el movimiento de ENTRADA para el receptor
+        const motivoEntrada = `Recepción de ${nombreEmisor} | Concepto: ${motivo || 'Transferencia'}`;
+        await client.query(
+          `INSERT INTO movimientos (alumno_id, tipo, cantidad, motivo, usuario)
+           VALUES ($1, 'ENTRADA', $2, $3, $4)`,
+          [receptor.id, monto, motivoEntrada, receptor.nombre]
+        );
+      } else {
+        // Opcional: si la cuenta no existe en alumnos, puedes decidir si cancelas o la dejas pasar.
+        // Por seguridad bancaria, se recomienda hacer rollback si la cuenta destino no existe:
+        await client.query('ROLLBACK');
+        return res.status(404).json({ mensaje: "El número de cuenta destino no existe en el sistema." });
+      }
+    }
+
+    await client.query('COMMIT'); // Confirmar transacción exitosa
+
     return res.status(200).json({
-      mensaje: "Movimiento registrado correctamente.",
+      mensaje: "Movimiento y transferencia procesados correctamente.",
       coins: coinsDisponibles,
       coins_ahorro: coinsAhorro
     });
+
   } catch (error) {
+    await client.query('ROLLBACK'); // Revertir todo si ocurre un error inesperado
     console.error("Error al registrar movimiento:", error);
     return res.status(500).json({ mensaje: "Error al registrar movimiento." });
+  } finally {
+    client.release();
   }
 });
 
