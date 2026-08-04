@@ -50,7 +50,7 @@ export default function TransferenciaCoins({ alumnoActual, onTransferenciaExitos
 
     setBuscandoDestinatario(true);
     try {
-      const res = await fetch(`https://banco-ceesuv-backend.onrender.com/api/alumnos/buscar?q=${encodeURIComponent(query)}`);
+      const res = await fetch(`https://banco-ceesuv-backend.onrender.com/api/alumnos/buscar?query=${encodeURIComponent(query)}`);
       if (res.ok) {
         const data = await res.json();
         if (data && data.nombre) {
