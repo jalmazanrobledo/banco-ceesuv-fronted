@@ -35,6 +35,14 @@ export default function StudentDashboard() {
   // Estado para indicar qué campo se copió recientemente en el portapapeles
   const [copiadoTipo, setCopiadoTipo] = useState("");
 
+  // Estado para la configuración de la sucursal en el estado de cuenta
+  const [sucursalInfo, setSucursalInfo] = useState({
+    nombreSucursal: "PLANTEL CENTRAL CEESUV",
+    direccion: "CAMPUS PRINCIPAL",
+    plaza: "VER / MÉXICO",
+    telefono: "228-CEESUV-1"
+  });
+
   const mostrarToast = (mensaje, tipo = "success") => {
     setNotificacionToast({ mensaje, tipo });
     setTimeout(() => {
@@ -834,11 +842,139 @@ export default function StudentDashboard() {
           border: 1px solid rgba(59, 130, 246, 0.4);
         }
 
+        /* ESTILOS PROFESIONALES PARA EL ESTADO DE CUENTA TIPO BANCARIO Y SU IMPRESIÓN */
+        .statement-sheet {
+          background: #ffffff;
+          color: #1e293b;
+          padding: 30px;
+          border-radius: 12px;
+          max-width: 800px;
+          margin: 0 auto;
+          font-family: Arial, sans-serif;
+          box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+        }
+        .statement-header {
+          display: flex;
+          justify-content: space-between;
+          border-bottom: 3px solid #0f172a;
+          padding-bottom: 15px;
+          margin-bottom: 20px;
+        }
+        .bank-title {
+          color: #0f172a;
+          margin: 0;
+          font-size: 24px;
+          font-weight: 900;
+          letter-spacing: 1px;
+        }
+        .bank-subtitle {
+          margin: 0;
+          font-size: 11px;
+          color: #64748b;
+          font-weight: bold;
+        }
+        .statement-meta-box {
+          background: #f1f5f9;
+          padding: 10px;
+          border-radius: 6px;
+          font-size: 11px;
+          width: 250px;
+        }
+        .meta-row {
+          display: flex;
+          justify-content: space-between;
+          margin-bottom: 3px;
+        }
+        .statement-client-section {
+          display: flex;
+          justify-content: space-between;
+          margin-bottom: 20px;
+          font-size: 12px;
+        }
+        .client-box, .branch-box {
+          width: 48%;
+          background: #f8fafc;
+          padding: 12px;
+          border-radius: 6px;
+          border-left: 4px solid #d4af37;
+        }
+        .section-label {
+          font-size: 10px;
+          color: #64748b;
+          font-weight: bold;
+          margin-bottom: 5px;
+        }
+        .client-box h3 {
+          margin: 0 0 5px 0;
+          font-size: 15px;
+          color: #0f172a;
+        }
+        .financial-grid {
+          display: flex;
+          gap: 15px;
+          margin-bottom: 25px;
+        }
+        .financial-col {
+          flex: 1;
+          background: #f8fafc;
+          border: 1px solid #e2e8f0;
+          border-radius: 6px;
+          padding: 12px;
+        }
+        .financial-col h4 {
+          margin: 0 0 10px 0;
+          font-size: 13px;
+          color: #0f172a;
+          border-bottom: 1px solid #cbd5e1;
+          padding-bottom: 5px;
+        }
+        .fin-row {
+          display: flex;
+          justify-content: space-between;
+          font-size: 11px;
+          margin-bottom: 6px;
+        }
+        .highlight-row {
+          border-top: 1px dashed #cbd5e1;
+          padding-top: 6px;
+          font-weight: bold;
+          color: #0f172a;
+        }
+        .movements-section h4 {
+          font-size: 13px;
+          color: #0f172a;
+          margin-bottom: 10px;
+        }
+        .statement-table {
+          width: 100%;
+          border-collapse: collapse;
+          font-size: 11px;
+          margin-bottom: 20px;
+        }
+        .statement-table th {
+          background: #0f172a;
+          color: #ffffff;
+          text-align: left;
+          padding: 8px;
+        }
+        .statement-table td {
+          padding: 8px;
+          border-bottom: 1px solid #e2e8f0;
+          color: #1e293b !important;
+        }
+        .statement-footer {
+          text-align: center;
+          font-size: 9px;
+          color: #64748b;
+          border-top: 1px solid #e2e8f0;
+          padding-top: 10px;
+        }
+
         @media print {
           body { background: white !important; color: black !important; }
-          .portal-header, .modern-tabs-bar, .btn-logout, .btn-accion, button, .toast-notif { display: none !important; }
-          .card-dark { background: white !important; color: black !important; border: 1px solid #ccc !important; box-shadow: none !important; }
-          .tabla-movs th, .tabla-movs td { color: black !important; border-bottom: 1px solid #ddd !important; }
+          .portal-header, .modern-tabs-bar, .btn-logout, .btn-accion, button, .toast-notif, .no-print { display: none !important; }
+          .card-dark { background: white !important; color: black !important; border: none !important; box-shadow: none !important; padding: 0 !important; }
+          .statement-sheet { box-shadow: none !important; padding: 0 !important; width: 100% !important; max-width: 100% !important; }
         }
       `}</style>
 
@@ -1040,7 +1176,7 @@ export default function StudentDashboard() {
                 <p style={{ color: "#94a3b8", fontSize: "14px", marginBottom: "20px" }}>
                   Envía coins a tus compañeros usando su número de cuenta.
                 </p>
-                <TransferenciaCoins alumnoActual={alumno} onTransferenciaExitosa={() => { cargarDatosEstudiante(); mostrarToast(); }} />
+                <TransferenciaCoins alumnoActual={alumno} onTransferenciaExitosa={() => { cargarDatosEstudiante(); }} mostrarToast={mostrarToast} />
               </div>
             )}
 
@@ -1214,78 +1350,156 @@ export default function StudentDashboard() {
             )}
 
             {activeTab === 'estadocuenta' && (
-              <div className="card-dark">
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px", flexWrap: "wrap", gap: "10px" }}>
-                  <div>
-                    <h3 style={{ margin: 0, fontSize: "20px", color: "#f59e0b" }}>📄 Estado de Cuenta Institucional</h3>
-                    <p style={{ margin: "4px 0 0 0", color: "#94a3b8", fontSize: "13px" }}>Banco CEESUV - Reporte Oficial de Movimientos y Saldos</p>
+              <div>
+                {/* PANEL DE CONFIGURACIÓN DE SUCURSAL (Se oculta al imprimir) */}
+                <div className="no-print card-dark" style={{ marginBottom: "20px" }}>
+                  <p style={{ margin: "0 0 10px 0", fontSize: "12px", color: "#d4af37", fontWeight: "bold" }}>⚙️ CONFIGURACIÓN DE DATOS DE SUCURSAL (Para impresión)</p>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px", marginBottom: "12px" }}>
+                    <input
+                      type="text"
+                      placeholder="Nombre de Sucursal"
+                      value={sucursalInfo.nombreSucursal}
+                      onChange={(e) => setSucursalInfo({...sucursalInfo, nombreSucursal: e.target.value})}
+                      className="input-ahorro"
+                      style={{ margin: 0, fontSize: "12px" }}
+                    />
+                    <input
+                      type="text"
+                      placeholder="Dirección"
+                      value={sucursalInfo.direccion}
+                      onChange={(e) => setSucursalInfo({...sucursalInfo, direccion: e.target.value})}
+                      className="input-ahorro"
+                      style={{ margin: 0, fontSize: "12px" }}
+                    />
+                    <input
+                      type="text"
+                      placeholder="Plaza"
+                      value={sucursalInfo.plaza}
+                      onChange={(e) => setSucursalInfo({...sucursalInfo, plaza: e.target.value})}
+                      className="input-ahorro"
+                      style={{ margin: 0, fontSize: "12px" }}
+                    />
+                    <input
+                      type="text"
+                      placeholder="Teléfono"
+                      value={sucursalInfo.telefono}
+                      onChange={(e) => setSucursalInfo({...sucursalInfo, telefono: e.target.value})}
+                      className="input-ahorro"
+                      style={{ margin: 0, fontSize: "12px" }}
+                    />
                   </div>
-                  <button onClick={() => window.print()} className="btn-accion btn-guardar" style={{ width: "auto" }}>
-                    🖨️ Imprimir / Descargar PDF
-                  </button>
+                  <div style={{ textAlign: "right" }}>
+                    <button 
+                      onClick={() => window.print()}
+                      className="btn-accion btn-guardar" 
+                      style={{ width: "auto" }}
+                    >
+                      🖨️ Imprimir Estado de Cuenta
+                    </button>
+                  </div>
                 </div>
 
-                <div style={{ background: "rgba(12, 21, 39, 0.7)", padding: "16px", borderRadius: "12px", marginBottom: "20px", border: "1px solid #1e3250" }}>
-                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "15px" }}>
-                    <div>
-                      <p style={{ margin: 0, color: "#94a3b8", fontSize: "12px" }}>Titular:</p>
-                      <p style={{ margin: "2px 0 0 0", fontWeight: "bold", fontSize: "14px" }}>{nombreCompletoAlumno}</p>
+                {/* DOCUMENTO TIPO ESTADO DE CUENTA BANCARIO */}
+                <div className="statement-sheet">
+                  
+                  {/* ENCABEZADO: LOGO Y DATOS DE CUENTA */}
+                  <div className="statement-header">
+                    <div className="bank-brand">
+                      <h1 className="bank-title">BANCO CEESUV</h1>
+                      <p className="bank-subtitle">Sistema Financiero Escolar</p>
                     </div>
-                    <div>
-                      <p style={{ margin: 0, color: "#94a3b8", fontSize: "12px" }}>Matrícula / ID:</p>
-                      <p style={{ margin: "2px 0 0 0", fontWeight: "bold", fontSize: "14px" }}>{matricula}</p>
-                    </div>
-                    <div>
-                      <p style={{ margin: 0, color: "#94a3b8", fontSize: "12px" }}>Fecha de Emisión:</p>
-                      <p style={{ margin: "2px 0 0 0", fontWeight: "bold", fontSize: "14px" }}>{new Date().toLocaleDateString()}</p>
+                    <div className="statement-meta-box">
+                      <div className="meta-row"><span>Estado de Cuenta</span> <strong>Página 1/1</strong></div>
+                      <div className="meta-row"><span>Periodo</span> <strong>MES ACTUAL</strong></div>
+                      <div className="meta-row"><span>Fecha de Corte</span> <strong>{new Date().toLocaleDateString()}</strong></div>
+                      <div className="meta-row"><span>No. de Cuenta</span> <strong>{alumno?.numero_cuenta || "CEESUV-2026"}</strong></div>
+                      <div className="meta-row"><span>No. de Cliente</span> <strong>{alumno?.alumno_id || alumno?.id}</strong></div>
                     </div>
                   </div>
-                </div>
 
-                <div style={{ display: "grid", gridTemplateColumns: `repeat(auto-fit, minmax(180px, 1fr))`, gap: "12px", marginBottom: "20px" }}>
-                  <div style={{ background: "rgba(12, 21, 39, 0.5)", padding: "12px", borderRadius: "8px", border: "1px solid #1e3250" }}>
-                    <p style={{ margin: 0, color: "#94a3b8", fontSize: "12px" }}>Saldo Coins:</p>
-                    <p style={{ margin: "4px 0 0 0", fontSize: "16px", fontWeight: "bold", color: "#f59e0b" }}>{coinsDisponibles} COINS</p>
-                  </div>
-                  <div style={{ background: "rgba(12, 21, 39, 0.5)", padding: "12px", borderRadius: "8px", border: "1px solid #1e3250" }}>
-                    <p style={{ margin: 0, color: "#94a3b8", fontSize: "12px" }}>Ahorro:</p>
-                    <p style={{ margin: "4px 0 0 0", fontSize: "16px", fontWeight: "bold", color: "#3b82f6" }}>{coinsAhorro} COINS</p>
-                  </div>
-                  {!esPrimaria && (
-                    <div style={{ background: "rgba(12, 21, 39, 0.5)", padding: "12px", borderRadius: "8px", border: "1px solid #1e3250" }}>
-                      <p style={{ margin: 0, color: "#94a3b8", fontSize: "12px" }}>Crédito Usado:</p>
-                      <p style={{ margin: "4px 0 0 0", fontSize: "16px", fontWeight: "bold", color: "#ef4444" }}>${creditoUtilizado.toFixed(2)}</p>
+                  {/* DATOS DEL TITULAR Y SUCURSAL */}
+                  <div className="statement-client-section">
+                    <div className="client-box">
+                      <p className="section-label">DATOS DEL TITULAR</p>
+                      <h3>{nombreCompletoAlumno}</h3>
+                      <p>Nivel: {alumno?.nivel || alumno?.grado_nivel || "Secundaria / Bachillerato"}</p>
+                      <p>CEESUV - MÉXICO</p>
                     </div>
-                  )}
-                </div>
+                    <div className="branch-box">
+                      <p className="section-label">SUCURSAL Y CONTACTO</p>
+                      <p><strong>SUCURSAL:</strong> {sucursalInfo.nombreSucursal}</p>
+                      <p><strong>DIRECCIÓN:</strong> {sucursalInfo.direccion}</p>
+                      <p><strong>PLAZA:</strong> {sucursalInfo.plaza}</p>
+                      <p><strong>TELÉFONO:</strong> {sucursalInfo.telefono}</p>
+                    </div>
+                  </div>
 
-                <h4 style={{ margin: "0 0 10px 0", fontSize: "15px" }}>Detalle de Transacciones del Periodo</h4>
-                {movimientos && movimientos.length > 0 ? (
-                  <div style={{ overflowX: "auto" }}>
-                    <table className="tabla-movs">
+                  {/* INFORMACIÓN FINANCIERA Y COMPORTAMIENTO */}
+                  <div className="financial-grid">
+                    <div className="financial-col">
+                      <h4>Información Financiera</h4>
+                      <div className="fin-row"><span>Rendimiento / Tasa Anual</span> <strong>2.5%</strong></div>
+                      <div className="fin-row"><span>Días del Periodo</span> <strong>30</strong></div>
+                      <div className="fin-row"><span>Intereses a Favor (+)</span> <strong>0.00 Coins</strong></div>
+                      <div className="fin-row"><span>ISR Retenido (-)</span> <strong>0.00 Coins</strong></div>
+                    </div>
+                    <div className="financial-col">
+                      <h4>Comportamiento (Moneda Nacional / Coins)</h4>
+                      <div className="fin-row"><span>Saldo Anterior</span> <strong>0.00</strong></div>
+                      <div className="fin-row"><span>Depósitos / Abonos (+)</span> <strong>{coinsDisponibles}</strong></div>
+                      <div className="fin-row"><span>Retiros / Cargos (-)</span> <strong>0.00</strong></div>
+                      <div className="fin-row highlight-row"><span>Saldo Final</span> <strong>{coinsDisponibles} Coins</strong></div>
+                    </div>
+                  </div>
+
+                  {/* DETALLE DE MOVIMIENTOS */}
+                  <div className="movements-section">
+                    <h4>Detalle de Movimientos Realizados</h4>
+                    <table className="statement-table">
                       <thead>
                         <tr>
-                          <th>Fecha</th>
-                          <th>Tipo</th>
-                          <th>Monto</th>
-                          <th>Motivo / Concepto</th>
+                          <th>FECHA</th>
+                          <th>DESCRIPCIÓN / CONCEPTO</th>
+                          <th>REFERENCIA</th>
+                          <th>CARGOS</th>
+                          <th>ABONOS</th>
+                          <th>SALDO</th>
                         </tr>
                       </thead>
                       <tbody>
-                        {movimientos.map((m, idx) => (
-                          <tr key={m.id || idx}>
-                            <td style={{ color: "#cbd5e1" }}>{m.fecha ? new Date(m.fecha).toLocaleString() : "N/A"}</td>
-                            <td style={{ color: obtenerColorTipo(m.tipo), fontWeight: "bold" }}>{m.tipo}</td>
-                            <td style={{ color: obtenerColorTipo(m.tipo), fontWeight: "bold" }}>🪙 {obtenerSignoMonto(m.tipo, m.cantidad)}</td>
-                            <td style={{ color: "#cbd5e1" }}>{m.motivo || "-"}</td>
+                        {movimientos && movimientos.length > 0 ? (
+                          movimientos.map((mov, idx) => (
+                            <tr key={mov.id || idx}>
+                              <td>{mov.fecha ? new Date(mov.fecha).toLocaleDateString() : "N/A"}</td>
+                              <td>{mov.descripcion || mov.motivo || "Movimiento general"}</td>
+                              <td>{mov.referencia || "REF-" + idx}</td>
+                              <td style={{ color: (mov.tipo === 'SALIDA' || mov.tipo === 'COMPRA') ? '#ef4444' : 'inherit' }}>
+                                {(mov.tipo === 'SALIDA' || mov.tipo === 'COMPRA') ? `- ${mov.cantidad}` : ''}
+                              </td>
+                              <td style={{ color: (mov.tipo === 'ENTRADA' || mov.tipo === 'AHORRO_DEPOSITO') ? '#10b981' : 'inherit' }}>
+                                {(mov.tipo === 'ENTRADA' || mov.tipo === 'AHORRO_DEPOSITO') ? `+ ${mov.cantidad}` : ''}
+                              </td>
+                              <td><strong>{mov.saldo_final || "-"}</strong></td>
+                            </tr>
+                          ))
+                        ) : (
+                          <tr>
+                            <td colSpan="6" style={{ textAlign: "center", padding: "15px", color: "#666" }}>
+                              No hay movimientos registrados en este periodo.
+                            </td>
                           </tr>
-                        ))}
+                        )}
                       </tbody>
                     </table>
                   </div>
-                ) : (
-                  <p style={{ color: "#94a3b8", textAlign: "center", padding: "20px 0" }}>No hay transacciones registradas en este estado de cuenta.</p>
-                )}
+
+                  {/* PIE DE PÁGINA LEGAL / INSTITUCIONAL */}
+                  <div className="statement-footer">
+                    <p>BANCO CEESUV S.A., INSTITUCIÓN DE BANCA ESCOLAR, GRUPO FINANCIERO CEESUV</p>
+                    <p>Este documento es una representación impresa de un estado de cuenta digital generado para control interno escolar.</p>
+                  </div>
+
+                </div>
               </div>
             )}
 
