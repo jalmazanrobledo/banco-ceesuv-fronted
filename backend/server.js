@@ -159,6 +159,16 @@ const inicializarBaseDeDatos = async () => {
         usuario VARCHAR(50),
         fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
+
+      CREATE TABLE IF NOT EXISTS contactos_frecuentes (
+        id SERIAL PRIMARY KEY,
+        usuario_id INT REFERENCES usuarios(id) ON DELETE CASCADE,
+        nombre VARCHAR(100) NOT NULL,
+        cuenta VARCHAR(20),
+        tarjeta VARCHAR(20),
+        clabe VARCHAR(20),
+        banco VARCHAR(50)
+      );
     `);
 
     await pool.query(`
@@ -906,6 +916,69 @@ app.put(["/usuarios/:id", "/api/usuarios/:id"], async (req, res) => {
   } catch (error) {
     console.error("Error al actualizar usuario:", error);
     return res.status(500).json({ mensaje: "Error al actualizar el usuario." });
+  }
+});
+
+// =========================================================================
+// ENDPOINTS DE CONTACTOS FRECUENTES (MODELO UNIFICADO)
+// =========================================================================
+app.get(["/api/contactos/:usuarioId", "/contactos/:usuarioId"], async (req, res) => {
+  try {
+    const { usuarioId } = req.params;
+    const resultado = await pool.query(
+      `SELECT id, nombre, cuenta, tarjeta, clabe, banco FROM contactos_frecuentes WHERE usuario_id = $1 ORDER BY id DESC`,
+      [usuarioId]
+    );
+    return res.status(200).json(resultado.rows);
+  } catch (error) {
+    console.error("Error al obtener contactos:", error);
+    return res.status(500).json({ mensaje: "Error al obtener los contactos frecuentes." });
+  }
+});
+
+app.post(["/api/contactos", "/contactos"], async (req, res) => {
+  try {
+    const { usuario_id, nombre, cuenta, tarjeta, clabe, banco } = req.body;
+
+    if (!usuario_id || !nombre) {
+      return res.status(400).json({ mensaje: "Faltan datos obligatorios (usuario_id, nombre)." });
+    }
+
+    const queryBusqueda = `
+      SELECT id, cuenta, tarjeta, clabe FROM contactos_frecuentes 
+      WHERE usuario_id = $1 AND (
+        ($2::text IS NOT NULL AND cuenta = $2) OR 
+        ($3::text IS NOT NULL AND tarjeta = $3) OR 
+        ($4::text IS NOT NULL AND clabe = $4)
+      )
+    `;
+    const existente = await pool.query(queryBusqueda, [usuario_id, cuenta || null, tarjeta || null, clabe || null]);
+
+    if (existente.rows.length > 0) {
+      const contactoId = existente.rows[0].id;
+      const updateQuery = `
+        UPDATE contactos_frecuentes 
+        SET cuenta = COALESCE(NULLIF(cuenta, ''), $1),
+            tarjeta = COALESCE(NULLIF(tarjeta, ''), $2),
+            clabe = COALESCE(NULLIF(clabe, ''), $3),
+            banco = COALESCE(NULLIF(banco, ''), $4)
+        WHERE id = $5
+        RETURNING *;
+      `;
+      const actualizado = await pool.query(updateQuery, [cuenta || null, tarjeta || null, clabe || null, banco || 'BANCO CEESUV', contactoId]);
+      return res.status(200).json({ mensaje: "Contacto actualizado exitosamente.", contacto: actualizado.rows[0] });
+    } else {
+      const insertQuery = `
+        INSERT INTO contactos_frecuentes (usuario_id, nombre, cuenta, tarjeta, clabe, banco)
+        VALUES ($1, $2, $3, $4, $5, $6)
+        RETURNING *;
+      `;
+      const nuevo = await pool.query(insertQuery, [usuario_id, nombre, cuenta || null, tarjeta || null, clabe || null, banco || 'BANCO CEESUV']);
+      return res.status(200).json({ mensaje: "Contacto guardado exitosamente.", contacto: nuevo.rows[0] });
+    }
+  } catch (error) {
+    console.error("Error al guardar contacto:", error);
+    return res.status(500).json({ mensaje: "Error interno al procesar el contacto frecuente." });
   }
 });
 
