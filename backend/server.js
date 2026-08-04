@@ -349,6 +349,92 @@ app.get(["/api/alumno-dashboard/:alumnoId", "/api/alumnos/:identifier", "/alumno
   }
 });
 
+// =========================================================================
+// NUEVO ENDPOINT: ESTADO DE CUENTA FILTRADO POR PERIODO (MES Y AÑO)
+// =========================================================================
+app.get(["/api/estado-cuenta/:identifier", "/estado-cuenta/:identifier"], async (req, res) => {
+  try {
+    const identifier = req.params.identifier;
+    const { mes, anio } = req.query; 
+
+    const mesNum = parseInt(mes, 10);
+    const anioNum = parseInt(anio, 10);
+
+    // 🛡️ REGLA DE NEGOCIO: El programa empezó en Julio de 2026. Periodos anteriores devuelven vacío.
+    if (!isNaN(anioNum) && !isNaN(mesNum)) {
+      if (anioNum < 2026 || (anioNum === 2026 && mesNum < 7)) {
+        let alumnoRes;
+        if (!isNaN(identifier)) {
+          alumnoRes = await pool.query(
+            `SELECT id, nombre, grado, coins, COALESCE(coins_ahorro, 0) AS coins_ahorro, numero_cuenta, tarjeta_debito, clabe FROM alumnos WHERE id = $1`,
+            [parseInt(identifier, 10)]
+          );
+        } else {
+          alumnoRes = await pool.query(
+            `SELECT a.id, a.nombre, a.grado, a.coins, COALESCE(a.coins_ahorro, 0) AS coins_ahorro, a.numero_cuenta, a.tarjeta_debito, a.clabe 
+             FROM alumnos a JOIN usuarios u ON u.alumno_id = a.id WHERE LOWER(u.usuario) = LOWER($1)`,
+            [identifier]
+          );
+        }
+        
+        if (alumnoRes.rows.length === 0) {
+          return res.status(404).json({ mensaje: "Alumno no encontrado." });
+        }
+
+        return res.status(200).json({
+          ...alumnoRes.rows[0],
+          movimientos: []
+        });
+      }
+    }
+
+    let alumnoRes;
+    if (!isNaN(identifier)) {
+      alumnoRes = await pool.query(
+        `SELECT id, nombre, grado, coins, COALESCE(coins_ahorro, 0) AS coins_ahorro, numero_cuenta, tarjeta_debito, clabe FROM alumnos WHERE id = $1`,
+        [parseInt(identifier, 10)]
+      );
+    } else {
+      alumnoRes = await pool.query(
+        `SELECT a.id, a.nombre, a.grado, a.coins, COALESCE(a.coins_ahorro, 0) AS coins_ahorro, a.numero_cuenta, a.tarjeta_debito, a.clabe 
+         FROM alumnos a JOIN usuarios u ON u.alumno_id = a.id WHERE LOWER(u.usuario) = LOWER($1)`,
+        [identifier]
+      );
+    }
+
+    if (alumnoRes.rows.length === 0) {
+      return res.status(404).json({ mensaje: "Alumno no encontrado." });
+    }
+
+    const alumno = alumnoRes.rows[0];
+
+    let queryMovs = `
+      SELECT id, tipo, cantidad, motivo, fecha 
+      FROM movimientos 
+      WHERE alumno_id = $1
+    `;
+    let paramsMovs = [alumno.id];
+
+    if (!isNaN(mesNum) && !isNaN(anioNum)) {
+      queryMovs += ` AND EXTRACT(MONTH FROM fecha) = $2 AND EXTRACT(YEAR FROM fecha) = $3`;
+      paramsMovs.push(mesNum, anioNum);
+    }
+
+    queryMovs += ` ORDER BY fecha DESC`;
+
+    const movsRes = await pool.query(queryMovs, paramsMovs);
+
+    return res.status(200).json({
+      ...alumno,
+      movimientos: movsRes.rows
+    });
+
+  } catch (error) {
+    console.error("Error al obtener el estado de cuenta filtrado:", error);
+    return res.status(500).json({ mensaje: "Error al obtener los datos del estado de cuenta." });
+  }
+});
+
 // Obtener todos los alumnos
 app.get(["/alumnos", "/api/alumnos"], async (req, res) => {
   try {

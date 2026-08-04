@@ -1450,10 +1450,10 @@ export default function StudentDashboard() {
                     </div>
                     <div className="branch-box">
                       <p className="section-label">SUCURSAL Y CONTACTO</p>
-                      <p><strong>SUCURSAL:</strong> PLANTEL CENTRAL CEESUV</p>
-                      <p><strong>DIRECCIÓN:</strong> CAMPUS PRINCIPAL</p>
-                      <p><strong>PLAZA:</strong> VER / MÉXICO</p>
-                      <p><strong>TELÉFONO:</strong> 228-CEESUV-1</p>
+                      <p><strong>SUCURSAL:</strong> CEESUV</p>
+                      <p><strong>DIRECCIÓN:</strong> ANT. CARR. MÉXICO-LAREDO No. 617, COL. 20 DE NOVIEMBRE</p>
+                      <p><strong>PLAZA:</strong> CIUDAD VALLES, S.L.P.</p>
+                      <p><strong>TELÉFONO:</strong> 481-382-12-02</p>
                     </div>
                   </div>
 
