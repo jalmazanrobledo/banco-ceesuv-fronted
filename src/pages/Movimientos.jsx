@@ -9,9 +9,11 @@ function Movimientos() {
   async function cargar() {
     try {
       const datos = await obtenerMovimientos();
-      setMovimientos(datos || []);
+      // Nos aseguramos de que siempre sea un arreglo, incluso si la API manda otra cosa
+      setMovimientos(Array.isArray(datos) ? datos : []);
     } catch (error) {
       console.error("Error al cargar movimientos:", error);
+      setMovimientos([]); // Evita que la pantalla colapse si falla el servidor
     }
   }
 
