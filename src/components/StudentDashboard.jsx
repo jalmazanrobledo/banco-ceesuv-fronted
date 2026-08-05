@@ -1121,7 +1121,7 @@ export default function StudentDashboard() {
         }
 
         #chat-ia-btn {
-          background: linear-gradient(135deg, #f59e0b, #d97706);
+          background: #0f172a;
           color: white;
           border: none;
           width: 60px;
@@ -1132,12 +1132,19 @@ export default function StudentDashboard() {
           display: flex;
           align-items: center;
           justify-content: center;
-          font-size: 26px;
+          overflow: hidden;
+          padding: 0;
           transition: transform 0.2s ease;
         }
 
         #chat-ia-btn:hover {
           transform: scale(1.08);
+        }
+
+        #chat-ia-btn img {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
         }
 
         #chat-ia-container {
