@@ -1287,6 +1287,25 @@ app.post(["/api/soporte-ia", "/soporte-ia"], async (req, res) => {
   }
 });
 
+app.get(["/movimientos", "/api/movimientos"], async (req, res) => {
+  const client = await pool.connect();
+  try {
+    const query = `
+      SELECT m.id, m.tipo, m.cantidad, m.motivo, m.usuario, m.created_at AS fecha, a.nombre AS alumno
+      FROM movimientos m
+      LEFT JOIN alumnos a ON m.alumno_id = a.id
+      ORDER BY m.id DESC
+    `;
+    const resultado = await client.query(query);
+    return res.status(200).json(resultado.rows);
+  } catch (error) {
+    console.error("Error al obtener movimientos:", error);
+    return res.status(500).json({ mensaje: "Error al obtener los movimientos." });
+  } finally {
+    client.release();
+  }
+});
+
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`Servidor corriendo en el puerto ${PORT}[cite: 2]`);
