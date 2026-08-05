@@ -1808,7 +1808,7 @@ export default function StudentDashboard() {
             )}
           </div>
         </main>
-            {/* WIDGET FLOTANTE DE ASISTENTE DE IA */}
+          {/* WIDGET FLOTANTE DE ASISTENTE DE IA */}
         <div id="chat-ia-widget">
           <div id="chat-ia-container">
             <div id="chat-ia-header">
@@ -1818,14 +1818,16 @@ export default function StudentDashboard() {
               <button onClick={toggleChatIA} style={{ background: "none", border: "none", color: "white", fontSize: "18px", cursor: "pointer" }}>&times;</button>
             </div>
             <div id="chat-ia-messages">
-              <div className="chat-msg bot">¡Hola! Soy tu asistente virtual de CEESUV. ¿En qué puedo ayudarte hoy con tus Coins, ahorros o transferencias?</div>
+              <div className="chat-msg bot">¡Hola {alumno?.nombre || alumno?.nombre_completo || "estudiante"}! Soy tu asistente virtual de CEESUV. ¿En qué puedo ayudarte hoy con tus Coins, ahorros o transferencias?</div>
             </div>
             <div id="chat-ia-input-area">
               <input type="text" id="chat-ia-input" placeholder="Escribe tu duda..." onKeyPress={handleChatKey} />
               <button id="chat-ia-send" onClick={enviarMensajeIA}>Enviar</button>
             </div>
           </div>
-          <button id="chat-ia-btn" onClick={toggleChatIA} title="Asistente IA">💬</button>
+          <button id="chat-ia-btn" onClick={toggleChatIA} title="Asistente IA">
+            <img src="/images/asistente.png" alt="Asistente IA" style={{ width: "100%", height: "100%", borderRadius: "50%", objectFit: "cover" }} />
+          </button>
         </div>
 
       </div>
