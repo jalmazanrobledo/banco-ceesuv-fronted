@@ -558,9 +558,7 @@ app.put(["/alumnos/:id", "/api/alumnos/:id"], async (req, res) => {
 
     const alumnoEditado = resultado.rows[0];
 
-    if (alumnoEditado) {
-      await asegurarUsuarioAlumno(alumnoEditado.id, alumnoEditado.nombre);
-    }
+    // Se eliminó la llamada a asegurarUsuarioAlumno para evitar crear cuentas duplicadas
 
     return res.status(200).json(alumnoEditado);
   } catch (error) {
