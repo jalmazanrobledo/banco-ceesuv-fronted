@@ -1833,7 +1833,12 @@ export default function StudentDashboard() {
             </div>
           </div>
           <button id="chat-ia-btn" onClick={toggleChatIA} title="Asistente IA">
-            <img src="/images/asistente.png" alt="Asistente IA" style={{ width: "100%", height: "100%", borderRadius: "50%", objectFit: "cover" }} />
+            <img 
+              src="/asistente.png" 
+              alt="Bot" 
+              onError={(e) => { e.target.style.display = 'none'; e.target.parentNode.innerHTML += '🎧'; }}
+              style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: "50%" }} 
+            />
           </button>
         </div>
 
