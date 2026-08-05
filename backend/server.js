@@ -1238,6 +1238,55 @@ app.post('/api/aplicar-interes-credito', async (req, res) => {
     }
 });
 
+// =====================================
+// ASISTENTE VIRTUAL DE SOPORTE (IA)
+// =====================================
+app.post(["/api/soporte-ia", "/soporte-ia"], async (req, res) => {
+  try {
+    const { alumno_id, mensaje_usuario } = req.body;
+
+    if (!mensaje_usuario) {
+      return res.status(400).json({ mensaje: "El mensaje es requerido." });
+    }
+
+    // Opcional: Obtener datos básicos del alumno para dar contexto al asistente
+    let contextoAlumno = "";
+    if (alumno_id) {
+      const alumnoRes = await pool.query(
+        "SELECT nombre, grado, coins, COALESCE(coins_ahorro, 0) AS coins_ahorro FROM alumnos WHERE id = $1",
+        [alumno_id]
+      );
+      if (alumnoRes.rows.length > 0) {
+        const alu = alumnoRes.rows[0];
+        contextoAlumno = `Estás hablando con el alumno ${alu.nombre}, de ${alu.grado}, que tiene ${alu.coins} Coins disponibles y ${alu.coins_ahorro} Coins en ahorro.`;
+      }
+    }
+
+    const promptSistema = `
+      Actúa como "CEESUV Bot", un asistente virtual amigable, servicial y experto del Banco Escolar CEESUV.
+      Ayuda a los estudiantes con dudas sobre cómo transferir Coins, consultar su saldo, usar el ahorro con rendimiento semanal del 5%, o compras en la tienda escolar.
+      ${contextoAlumno}
+      Mantén las respuestas breves, claras, motivadoras y orientadas a estudiantes.
+    `;
+
+    const completion = await groq.chat.completions.create({
+      messages: [
+        { role: "system", content: promptSistema },
+        { role: "user", content: mensaje_usuario }
+      ],
+      model: "llama-3.3-70b-versatile",
+    });
+
+    const respuestaBot = completion.choices[0]?.message?.content || "Lo siento, en este momento no puedo procesar tu consulta.";
+    
+    return res.status(200).json({ respuesta: respuestaBot });
+
+  } catch (error) {
+    console.error("Error en el asistente virtual de IA:", error);
+    return res.status(500).json({ mensaje: "Error al procesar la respuesta del asistente." });
+  }
+});
+
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`Servidor corriendo en el puerto ${PORT}[cite: 2]`);

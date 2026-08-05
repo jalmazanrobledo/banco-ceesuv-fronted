@@ -272,6 +272,82 @@ export default function StudentDashboard() {
     cargarDatosEstudiante();
   }, [navigate, mesSeleccionado, anioSeleccionado]);
 
+  const toggleChatIA = () => {
+    const container = document.getElementById('chat-ia-container');
+    if (!container) return;
+    container.style.display = container.style.display === 'flex' ? 'none' : 'flex';
+    if (container.style.display === 'flex') {
+      const inputEl = document.getElementById('chat-ia-input');
+      if (inputEl) inputEl.focus();
+    }
+  };
+
+  const handleChatKey = (e) => {
+    if (e.key === 'Enter') {
+      enviarMensajeIA();
+    }
+  };
+
+  const enviarMensajeIA = async () => {
+    const input = document.getElementById('chat-ia-input');
+    const messagesContainer = document.getElementById('chat-ia-messages');
+    if (!input || !messagesContainer) return;
+
+    const texto = input.value.trim();
+    if (!texto) return;
+
+    const userMsg = document.createElement('div');
+    userMsg.className = 'chat-msg user';
+    userMsg.textContent = texto;
+    messagesContainer.appendChild(userMsg);
+
+    input.value = '';
+    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+
+    const loadingMsg = document.createElement('div');
+    loadingMsg.className = 'chat-msg bot';
+    loadingMsg.id = 'loading-bot';
+    loadingMsg.textContent = 'Pensando...';
+    messagesContainer.appendChild(loadingMsg);
+    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+
+    try {
+      const alumnoId = alumno?.alumno_id || alumno?.id || 1;
+      const backendUrl = "https://banco-ceesuv-backend.onrender.com/api/soporte-ia"; 
+      
+      const response = await fetch(backendUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          alumno_id: Number(alumnoId),
+          mensaje_usuario: texto
+        })
+      });
+
+      const data = await response.json();
+      
+      const loadingElem = document.getElementById('loading-bot');
+      if (loadingElem) loadingElem.remove();
+
+      const botMsg = document.createElement('div');
+      botMsg.className = 'chat-msg bot';
+      botMsg.textContent = data.respuesta || "Lo siento, ocurrió un error al responder.";
+      messagesContainer.appendChild(botMsg);
+
+    } catch (error) {
+      console.error("Error al comunicarse con la IA:", error);
+      const loadingElem = document.getElementById('loading-bot');
+      if (loadingElem) loadingElem.remove();
+      
+      const errorMsg = document.createElement('div');
+      errorMsg.className = 'chat-msg bot';
+      errorMsg.textContent = "Error de conexión con el asistente.";
+      messagesContainer.appendChild(errorMsg);
+    }
+
+    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+  };
+
   const handleLogout = () => {
     localStorage.clear();
     navigate("/login");
@@ -1035,6 +1111,125 @@ export default function StudentDashboard() {
           padding-top: 10px;
         }
 
+        /* ESTILOS DEL ASISTENTE VIRTUAL IA */
+        #chat-ia-widget {
+          position: fixed;
+          bottom: 25px;
+          right: 25px;
+          z-index: 9999;
+          font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        }
+
+        #chat-ia-btn {
+          background: linear-gradient(135deg, #f59e0b, #d97706);
+          color: white;
+          border: none;
+          width: 60px;
+          height: 60px;
+          border-radius: 50%;
+          cursor: pointer;
+          box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 26px;
+          transition: transform 0.2s ease;
+        }
+
+        #chat-ia-btn:hover {
+          transform: scale(1.08);
+        }
+
+        #chat-ia-container {
+          display: none;
+          width: 350px;
+          height: 480px;
+          background: #0f172a;
+          border: 1px solid #334155;
+          border-radius: 16px;
+          box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+          flex-direction: column;
+          overflow: hidden;
+          position: absolute;
+          bottom: 75px;
+          right: 0;
+        }
+
+        #chat-ia-header {
+          background: #1e293b;
+          color: white;
+          padding: 15px;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          border-bottom: 1px solid #334155;
+        }
+
+        #chat-ia-messages {
+          flex: 1;
+          padding: 15px;
+          overflow-y: auto;
+          display: flex;
+          flex-direction: column;
+          gap: 10px;
+          font-size: 14px;
+        }
+
+        .chat-msg {
+          max-width: 80%;
+          padding: 10px 14px;
+          border-radius: 12px;
+          line-height: 1.4;
+        }
+
+        .chat-msg.bot {
+          background: #1e293b;
+          color: #f8fafc;
+          align-self: flex-start;
+          border-bottom-left-radius: 2px;
+        }
+
+        .chat-msg.user {
+          background: #d97706;
+          color: white;
+          align-self: flex-end;
+          border-bottom-right-radius: 2px;
+        }
+
+        #chat-ia-input-area {
+          padding: 12px;
+          background: #1e293b;
+          display: flex;
+          gap: 8px;
+          border-top: 1px solid #334155;
+        }
+
+        #chat-ia-input {
+          flex: 1;
+          background: #0f172a;
+          border: 1px solid #475569;
+          border-radius: 8px;
+          padding: 10px;
+          color: white;
+          outline: none;
+          font-size: 14px;
+        }
+
+        #chat-ia-send {
+          background: #d97706;
+          color: white;
+          border: none;
+          padding: 0 15px;
+          border-radius: 8px;
+          cursor: pointer;
+          font-weight: bold;
+          transition: background 0.2s;
+        }
+
+        #chat-ia-send:hover {
+          background: #b45309;
+        }
+
         @media print {
           body * {
             visibility: hidden !important;
@@ -1613,6 +1808,26 @@ export default function StudentDashboard() {
             )}
           </div>
         </main>
+            {/* WIDGET FLOTANTE DE ASISTENTE DE IA */}
+        <div id="chat-ia-widget">
+          <div id="chat-ia-container">
+            <div id="chat-ia-header">
+              <span style={{ fontWeight: "bold", display: "flex", alignItems: "center", gap: "8px" }}>
+                🤖 CEESUV Bot
+              </span>
+              <button onClick={toggleChatIA} style={{ background: "none", border: "none", color: "white", fontSize: "18px", cursor: "pointer" }}>&times;</button>
+            </div>
+            <div id="chat-ia-messages">
+              <div className="chat-msg bot">¡Hola! Soy tu asistente virtual de CEESUV. ¿En qué puedo ayudarte hoy con tus Coins, ahorros o transferencias?</div>
+            </div>
+            <div id="chat-ia-input-area">
+              <input type="text" id="chat-ia-input" placeholder="Escribe tu duda..." onKeyPress={handleChatKey} />
+              <button id="chat-ia-send" onClick={enviarMensajeIA}>Enviar</button>
+            </div>
+          </div>
+          <button id="chat-ia-btn" onClick={toggleChatIA} title="Asistente IA">💬</button>
+        </div>
+
       </div>
     </>
   );
