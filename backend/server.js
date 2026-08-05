@@ -1291,7 +1291,7 @@ app.get(["/movimientos", "/api/movimientos"], async (req, res) => {
   const client = await pool.connect();
   try {
     const query = `
-      SELECT m.id, m.tipo, m.cantidad, m.motivo, m.usuario, m.created_at AS fecha, a.nombre AS alumno
+      SELECT m.*, a.nombre AS alumno
       FROM movimientos m
       LEFT JOIN alumnos a ON m.alumno_id = a.id
       ORDER BY m.id DESC
