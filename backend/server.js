@@ -1294,7 +1294,7 @@ app.get(["/movimientos", "/api/movimientos"], async (req, res) => {
       SELECT m.*, a.nombre AS alumno
       FROM movimientos m
       INNER JOIN alumnos a ON m.alumno_id = a.id
-      WHERE a.estatus = 'ACTIVO' OR a.estatus IS NULL OR a.activo = true
+      WHERE UPPER(a.estatus) = 'ACTIVO'
       ORDER BY m.id DESC
     `;
     const resultado = await client.query(query);
