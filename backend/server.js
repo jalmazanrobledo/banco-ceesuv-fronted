@@ -754,23 +754,41 @@ app.post(["/login", "/api/login"], async (req, res) => {
       return res.status(400).json({ mensaje: "Credenciales requeridas." });
     }
 
+    // 1. Si ingresan un PIN de 4 dígitos, buscar primero en Alumnos y luego en Usuarios (Docentes/Admins)
     if (passClean.length === 4 && !isNaN(passClean)) {
-      const resPin = await pool.query(
+      // Buscar en Alumnos
+      const resPinAlumnos = await pool.query(
         `SELECT id, nombre, grado, coins, COALESCE(coins_ahorro, 0) as coins_ahorro, estatus
          FROM alumnos
          WHERE pin = $1 AND COALESCE(estatus, 'Activo') = 'Activo'`,
         [passClean]
       );
 
-      if (resPin.rows.length > 0) {
+      if (resPinAlumnos.rows.length > 0) {
         return res.status(200).json({
-          ...resPin.rows[0],
+          ...resPinAlumnos.rows[0],
           rol: "Alumno",
+          loginTipo: "PIN"
+        });
+      }
+
+      // Buscar en Usuarios (Docentes / Administradores)
+      const resPinUsuarios = await pool.query(
+        `SELECT id, nombre, usuario, rol, estado 
+         FROM usuarios 
+         WHERE pin = $1 AND COALESCE(estado, 'Activo') = 'Activo'`,
+        [passClean]
+      );
+
+      if (resPinUsuarios.rows.length > 0) {
+        return res.status(200).json({
+          ...resPinUsuarios.rows[0],
           loginTipo: "PIN"
         });
       }
     }
 
+    // 2. Si no es PIN de 4 dígitos o no coincidió, buscar por nombre de usuario tradicional
     const resultado = await pool.query(
       `SELECT id, nombre, usuario, password, rol, estado FROM usuarios WHERE LOWER(usuario) = LOWER($1)`,
       [userClean]
