@@ -76,7 +76,6 @@ export default function TransferenciaCoins({ alumnoActual, onTransferenciaExitos
     e.preventDefault();
 
     let cuentaFinal = "";
-    let nombreFinal = "";
 
     if (tipoDestino === "nuevo") {
       cuentaFinal = String(identificadorDestino).trim();
@@ -88,14 +87,12 @@ export default function TransferenciaCoins({ alumnoActual, onTransferenciaExitos
         mostrarToast("Debes verificar o ingresar un destinatario válido.", "error");
         return;
       }
-      nombreFinal = destinatarioVerificado.nombre;
     } else {
       if (!contactoSeleccionado) {
         mostrarToast("Selecciona un contacto guardado.", "error");
         return;
       }
       cuentaFinal = String(contactoSeleccionado.cuenta || contactoSeleccionado.numero_cuenta || contactoSeleccionado.tarjeta_debito || contactoSeleccionado.clabe).trim();
-      nombreFinal = contactoSeleccionado.nombre;
     }
 
     if (String(cuentaFinal) === String(alumnoActual?.numero_cuenta || alumnoActual?.cuenta)) {
@@ -135,48 +132,51 @@ export default function TransferenciaCoins({ alumnoActual, onTransferenciaExitos
     setProcesando(true);
 
     try {
-    // 1. Obtener y validar la cuenta destino de forma robusta
-    const cuentaDestinoFinal = tipoDestino === "nuevo" 
-      ? identificadorDestino 
-      : (contactoSeleccionado?.cuenta || contactoSeleccionado?.numero_cuenta || contactoSeleccionado?.tarjeta_debito || contactoSeleccionado?.clabe || contactoSeleccionado?.numeroCuenta);
+      const cuentaDestinoFinal = tipoDestino === "nuevo" 
+        ? identificadorDestino 
+        : (contactoSeleccionado?.cuenta || contactoSeleccionado?.numero_cuenta || contactoSeleccionado?.tarjeta_debito || contactoSeleccionado?.clabe || contactoSeleccionado?.numeroCuenta);
 
-    // DEPURACIÓN: Revisa tu consola (F12) para ver qué valor exacto está tomando
-    console.log("DEBUG - Cuenta destino enviada:", cuentaDestinoFinal);
+      if (!cuentaDestinoFinal) {
+        mostrarToast("No se pudo identificar la cuenta o tarjeta del destinatario.", "error");
+        setProcesando(false);
+        return;
+      }
 
-    if (!cuentaDestinoFinal) {
-      mostrarToast("No se pudo identificar la cuenta o tarjeta del destinatario.", "error");
-      setProcesando(false);
-      return;
-    }
+      const nombreDestinoFinal = tipoDestino === "nuevo" 
+        ? (destinatarioVerificado?.nombre || "Destinatario") 
+        : (contactoSeleccionado?.nombre || "Destinatario");
 
-    const nombreDestinoFinal = tipoDestino === "nuevo" 
-      ? (destinatarioVerificado?.nombre || "Destinatario") 
-      : (contactoSeleccionado?.nombre || "Destinatario");
-
-    const response = await fetch("https://banco-ceesuv-backend.onrender.com/api/movimientos", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        alumno_id: Number(alumnoActual?.alumno_id || alumnoActual?.id),
-        tipo: "SALIDA",
-        cantidad: Number(monto),
-        motivo: `Transferencia a ${nombreDestinoFinal} (${bancoDestino}): ${concepto || 'Sin concepto'}`,
-        usuario: alumnoActual?.nombre || "Estudiante",
-        cuentaDestino: String(cuentaDestinoFinal).trim() // Aseguramos que viaje limpio y como texto
-      })
-    });
+      // Petición principal al backend de movimientos
+      const response = await fetch("https://banco-ceesuv-backend.onrender.com/api/movimientos", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          alumno_id: Number(alumnoActual?.alumno_id || alumnoActual?.id),
+          tipo: "SALIDA",
+          cantidad: Number(monto),
+          motivo: `Transferencia a ${nombreDestinoFinal} (${bancoDestino}): ${concepto || 'Sin concepto'}`,
+          usuario: alumnoActual?.nombre || "Estudiante",
+          cuentaDestino: String(cuentaDestinoFinal).trim()
+        })
+      });
 
       if (response.ok) {
-        // Si marcó guardar contacto y es nuevo, guardarlo en la Base de Datos
+        // Guardar contacto automáticamente si se marcó la casilla y es una cuenta nueva
         if (guardarContactoCheck && tipoDestino === "nuevo" && aliasGuardar) {
           try {
+            const esTarjeta = identificadorDestino.length === 16 ? identificadorDestino : null;
+            const esClabe = identificadorDestino.length === 18 ? identificadorDestino : null;
+            const esCuenta = identificadorDestino.length < 16 ? identificadorDestino : null;
+
             await fetch("https://banco-ceesuv-backend.onrender.com/api/contactos", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
                 usuario_id: Number(alumnoActual?.alumno_id || alumnoActual?.id),
-                nombre: aliasGuardar,
-                cuenta: identificadorDestino,
+                nombre: aliasGuardar.trim(),
+                cuenta: esCuenta,
+                tarjeta: esTarjeta,
+                clabe: esClabe,
                 banco: bancoDestino
               })
             });
@@ -301,7 +301,6 @@ export default function TransferenciaCoins({ alumnoActual, onTransferenciaExitos
                     </button>
                   </div>
 
-                  {/* Nombre Dinámico del Destinatario Encontrado */}
                   {destinatarioVerificado && (
                     <div style={{ marginTop: "8px", background: "rgba(16, 185, 129, 0.1)", border: "1px solid #10b981", padding: "8px", borderRadius: "6px", fontSize: "12px", color: "#34d399" }}>
                       ✔ Destinatario: <strong>{destinatarioVerificado.nombre}</strong> (Banco CEESUV)
