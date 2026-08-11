@@ -10,11 +10,11 @@ function Login() {
   const [error, setError] = useState("");
   const navigate = useNavigate();
 
-  async function handleSubmit(e) {
+async function handleSubmit(e) {
     e.preventDefault();
     setError("");
 
-  // Validación flexible
+    // Validación flexible
     if (!credenciales.usuario && !credenciales.password) {
       setError("Ingresa tu usuario y contraseña, o tu PIN de alumno.");
       return;
@@ -26,22 +26,19 @@ function Login() {
       if (res.mensaje && !res.rol && !res.nombre) {
         setError(res.mensaje);
       } else {
-        // ❌ ELIMINADO: Ya no necesitamos localStorage.clear() ni localStorage.setItem()
-        // El backend maneja la sesión automáticamente al autenticar.
-
         // Normalizar comparación de rol (soporta 'Alumno', 'alumno', 'ALUMNO', 'student')
         const rolUsuario = String(res.rol || res.role || "").toLowerCase();
 
         if (rolUsuario === "alumno" || rolUsuario === "student") {
-          navigate("/mi-cuenta");
+          window.location.href = "/mi-cuenta";
         } else {
-          navigate("/dashboard");
+          window.location.href = "/dashboard";
         }
       }
     } catch (err) {
       setError(err.message || "Error al conectar con el servidor.");
-   }
     }
+  }
   return (
     <div
       style={{
