@@ -10,18 +10,26 @@ import ConsultaAlumno from "./pages/ConsultaAlumno";
 import Operaciones from "./pages/Operaciones";
 import StudentDashboard from "./components/StudentDashboard";
 import Reportes from "./pages/Reportes";
+import Sidebar from "./components/Sidebar"; // Asegúrate de importar tu Sidebar
 
 // Importamos el componente del ticker de divisas
 import TickerDivisas from "./components/TickerDivisas";
 import { obtenerDashboard } from "./services/api";
 
-// Layout EXCLUSIVO para el panel interno (Admin y Docentes)
-function LayoutPanel() {
+// Layout EXCLUSIVO para el panel interno (Admin y Docentes) que incluye Sidebar dinámico
+function LayoutPanel({ usuario, onLogout }) {
   return (
-    <>
-      <TickerDivisas />
-      <Outlet />
-    </>
+    <div style={{ display: "flex", minHeight: "100vh" }}>
+      {/* Sidebar dinámico con datos de sesión reales */}
+      <Sidebar usuario={usuario} onLogout={onLogout} />
+      
+      <div style={{ flex: 1, display: "flex", flexDirection: "column", overflowX: "hidden" }}>
+        <TickerDivisas />
+        <div style={{ padding: "20px", flex: 1, backgroundColor: "#f8f9fa" }}>
+          <Outlet />
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -31,7 +39,6 @@ function RutaProtegida({ usuario, children }) {
     return <Navigate to="/login" replace />;
   }
 
-  // Si un alumno intenta entrar al panel administrativo, lo mandamos a su dashboard
   if (usuario.rol === 'Alumno') {
     return <Navigate to="/mi-cuenta" replace />;
   }
@@ -57,7 +64,6 @@ function RutaAdmin({ usuario, children }) {
     return <Navigate to="/login" replace />;
   }
 
-  // Si no es Administrador/Admin, redirecciona al dashboard
   if (!esAdmin) {
     return <Navigate to="/dashboard" replace />;
   }
@@ -95,11 +101,9 @@ function App({ usuarioProp = null, onLogoutProp = () => {} }) {
   const [usuario, setUsuario] = useState(usuarioProp);
   const [cargando, setCargando] = useState(true);
 
-  // Valida la sesión activa al arrancar la app
   useEffect(() => {
     async function verificarSesion() {
       try {
-        // Primero intentamos recuperar del almacenamiento de sesión temporal de la pestaña
         const sesionLocal = sessionStorage.getItem("sesion_activa_ceesuv");
         if (sesionLocal) {
           setUsuario(JSON.parse(sesionLocal));
@@ -107,7 +111,6 @@ function App({ usuarioProp = null, onLogoutProp = () => {} }) {
           return;
         }
 
-        // Si no hay sesión local, consultamos al backend por si acaso
         const data = await obtenerDashboard();
         setUsuario(data?.usuario || null);
       } catch (err) {
@@ -122,6 +125,7 @@ function App({ usuarioProp = null, onLogoutProp = () => {} }) {
   const handleLogout = async () => {
     try {
       sessionStorage.removeItem("sesion_activa_ceesuv");
+      localStorage.clear();
     } catch (error) {
       console.error("Error al limpiar sesión", error);
     } finally {
@@ -137,16 +141,11 @@ function App({ usuarioProp = null, onLogoutProp = () => {} }) {
   return (
     <BrowserRouter>
       <Routes>
-        {/* Redirección inicial */}
         <Route path="/" element={<RedireccionInicial usuario={usuario} />} />
 
-        {/* -----------------------------------------------------------
-            RUTAS PÚBLICAS / ALUMNOS (SIN TICKER DE DIVISAS)
-            ----------------------------------------------------------- */}
         <Route path="/login" element={<Login />} />
         <Route path="/consulta/:token" element={<ConsultaAlumno />} />
 
-        {/* Vista del Dashboard del Alumno */}
         <Route
           path="/mi-cuenta"
           element={
@@ -156,10 +155,8 @@ function App({ usuarioProp = null, onLogoutProp = () => {} }) {
           }
         />
 
-        {/* -----------------------------------------------------------
-            RUTAS PRIVADAS / ADMIN Y DOCENTES (CON TICKER DE DIVISAS)
-            ----------------------------------------------------------- */}
-        <Route element={<LayoutPanel />}>
+        {/* Pasamos el usuario y la función de cierre de sesión dinámicamente al layout del panel */}
+        <Route element={<LayoutPanel usuario={usuario} onLogout={handleLogout} />}>
           
           <Route
             path="/dashboard"
@@ -197,7 +194,6 @@ function App({ usuarioProp = null, onLogoutProp = () => {} }) {
             }
           />
 
-          {/* Ruta para la nueva página de Reportes */}
           <Route
             path="/reportes"
             element={
@@ -207,7 +203,6 @@ function App({ usuarioProp = null, onLogoutProp = () => {} }) {
             }
           />
 
-          {/* Ruta EXCLUSIVA para Administradores */}
           <Route
             path="/usuarios"
             element={
@@ -219,7 +214,6 @@ function App({ usuarioProp = null, onLogoutProp = () => {} }) {
 
         </Route>
 
-        {/* Redirección por defecto si la ruta no existe */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>
