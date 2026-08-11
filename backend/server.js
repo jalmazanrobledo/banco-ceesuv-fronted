@@ -1011,12 +1011,19 @@ app.get(["/api/contactos/:usuarioId", "/contactos/:usuarioId"], async (req, res)
 
 app.post(["/api/contactos", "/contactos"], async (req, res) => {
   try {
-    const { usuario_id, nombre, cuenta, tarjeta, clabe, banco } = req.body;
+    let { usuario_id, nombre, cuenta, tarjeta, clabe, banco } = req.body;
 
     if (!usuario_id || !nombre) {
       return res.status(400).json({ mensaje: "Faltan datos obligatorios (usuario_id, nombre)." });
     }
 
+    // Limpiamos los campos vacíos para que sean NULL reales
+    cuenta = cuenta && cuenta.trim() !== "" ? cuenta : null;
+    tarjeta = tarjeta && tarjeta.trim() !== "" ? tarjeta : null;
+    clabe = clabe && clabe.trim() !== "" ? clabe : null;
+    banco = banco && banco.trim() !== "" ? banco : 'BANCO CEESUV';
+
+    // Buscamos si ya existe el contacto por cuenta, tarjeta o clabe (siempre que no sean nulos)
     const queryBusqueda = `
       SELECT id, cuenta, tarjeta, clabe FROM contactos_frecuentes 
       WHERE usuario_id = $1 AND (
@@ -1025,20 +1032,21 @@ app.post(["/api/contactos", "/contactos"], async (req, res) => {
         ($4::text IS NOT NULL AND clabe = $4)
       )
     `;
-    const existente = await pool.query(queryBusqueda, [usuario_id, cuenta || null, tarjeta || null, clabe || null]);
+    const existente = await pool.query(queryBusqueda, [usuario_id, cuenta, tarjeta, clabe]);
 
     if (existente.rows.length > 0) {
       const contactoId = existente.rows[0].id;
       const updateQuery = `
         UPDATE contactos_frecuentes 
-        SET cuenta = COALESCE(NULLIF(cuenta, ''), $1),
-            tarjeta = COALESCE(NULLIF(tarjeta, ''), $2),
-            clabe = COALESCE(NULLIF(clabe, ''), $3),
-            banco = COALESCE(NULLIF(banco, ''), $4)
-        WHERE id = $5
+        SET nombre = $1,
+            cuenta = COALESCE($2, cuenta),
+            tarjeta = COALESCE($3, tarjeta),
+            clabe = COALESCE($4, clabe),
+            banco = COALESCE($5, banco)
+        WHERE id = $6
         RETURNING *;
       `;
-      const actualizado = await pool.query(updateQuery, [cuenta || null, tarjeta || null, clabe || null, banco || 'BANCO CEESUV', contactoId]);
+      const actualizado = await pool.query(updateQuery, [nombre, cuenta, tarjeta, clabe, banco, contactoId]);
       return res.status(200).json({ mensaje: "Contacto actualizado exitosamente.", contacto: actualizado.rows[0] });
     } else {
       const insertQuery = `
@@ -1046,12 +1054,12 @@ app.post(["/api/contactos", "/contactos"], async (req, res) => {
         VALUES ($1, $2, $3, $4, $5, $6)
         RETURNING *;
       `;
-      const nuevo = await pool.query(insertQuery, [usuario_id, nombre, cuenta || null, tarjeta || null, clabe || null, banco || 'BANCO CEESUV']);
+      const nuevo = await pool.query(insertQuery, [usuario_id, nombre, cuenta, tarjeta, clabe, banco]);
       return res.status(200).json({ mensaje: "Contacto guardado exitosamente.", contacto: nuevo.rows[0] });
     }
   } catch (error) {
     console.error("Error al guardar contacto:", error);
-    return res.status(500).json({ mensaje: "Error interno al procesar el contacto frecuente." });
+    return res.status(500).json({ mensaje: "Error interno al procesar el contacto frecuente.", detalle: error.message });
   }
 });
 
