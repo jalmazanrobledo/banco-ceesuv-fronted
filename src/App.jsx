@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate, Outlet } from "react-router-dom";
+import { useState, useEffect } from "react";
 
 import Dashboard from "./pages/Dashboard";
 import Alumnos from "./pages/Alumnos";
@@ -12,6 +13,7 @@ import Reportes from "./pages/Reportes";
 
 // Importamos el componente del ticker de divisas
 import TickerDivisas from "./components/TickerDivisas";
+import { obtenerDashboard } from "./services/api";
 
 // Layout EXCLUSIVO para el panel interno (Admin y Docentes)
 function LayoutPanel() {
@@ -89,7 +91,34 @@ function PortalAlumno({ usuario, onLogout }) {
   );
 }
 
-function App({ usuario = null, onLogout = () => {} }) {
+function App({ usuarioProp = null, onLogoutProp = () => {} }) {
+  const [usuario, setUsuario] = useState(usuarioProp);
+  const [cargando, setCargando] = useState(true);
+
+  // Valida la sesión activa mediante la cookie del backend al arrancar la app
+  useEffect(() => {
+    async function verificarSesion() {
+      try {
+        const data = await obtenerDashboard();
+        setUsuario(data.usuario || { rol: "Admin", nombre: "Administrador" });
+      } catch (err) {
+        setUsuario(null);
+      } finally {
+        setCargando(false);
+      }
+    }
+    verificarSesion();
+  }, []);
+
+  const handleLogout = () => {
+    setUsuario(null);
+    onLogoutProp();
+  };
+
+  if (cargando) {
+    return <div style={{ textAlign: "center", marginTop: "15rem", fontFamily: "sans-serif" }}>Cargando Banco Escolar...</div>;
+  }
+
   return (
     <BrowserRouter>
       <Routes>
@@ -107,7 +136,7 @@ function App({ usuario = null, onLogout = () => {} }) {
           path="/mi-cuenta"
           element={
             <RutaAlumno usuario={usuario}>
-              <PortalAlumno usuario={usuario} onLogout={onLogout} />
+              <PortalAlumno usuario={usuario} onLogout={handleLogout} />
             </RutaAlumno>
           }
         />
