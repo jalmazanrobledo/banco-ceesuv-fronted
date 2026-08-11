@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import Sidebar from "../components/Sidebar";
 import { obtenerAlumnos, guardarAlumno, editarAlumno, eliminarAlumno } from "../services/api";
 
 function Alumnos() {
@@ -61,7 +60,6 @@ function Alumnos() {
     }
   };
 
-  // 🔄 Lógica para cambiar estatus (Activo / Inactivo) usando la ruta directa corregida
   const handleCambiarEstatus = async (alumno) => {
     const estatusActual = alumno.estatus || "Activo";
     const nuevoEstatus = estatusActual === "Inactivo" ? "Activo" : "Inactivo";
@@ -74,7 +72,6 @@ function Alumnos() {
       try {
         const idAlumno = alumno.id || alumno._id;
         
-        // Usamos la ruta explícita para evitar colisiones con /api/alumnos/:id
         const respuesta = await fetch(`https://banco-ceesuv-backend.onrender.com/api/alumnos-cambiar-estatus/${idAlumno}`, {
           method: "PUT",
           headers: {
@@ -87,7 +84,6 @@ function Alumnos() {
           throw new Error("No se pudo cambiar el estatus en el servidor");
         }
 
-        // Actualización optimista inmediata en interfaz
         setAlumnos(prevAlumnos => 
           prevAlumnos.map(a => ((a.id === idAlumno || a._id === idAlumno) ? { ...a, estatus: nuevoEstatus } : a))
         );
@@ -117,7 +113,6 @@ function Alumnos() {
     setEstatusForm("Activo");
   };
 
-  // 🔍 Lógica de filtrado
   const alumnosFiltrados = alumnos.filter((alumno) =>
     alumno.nombre.toLowerCase().includes(busqueda.toLowerCase())
   );
@@ -246,7 +241,6 @@ function Alumnos() {
       `}</style>
 
       <div className="alumnos-container">
-        <Sidebar />
         <div className="alumnos-content">
           <div style={{ marginBottom: "25px" }}>
             <h1 style={{ color: "#0B2341", margin: 0, fontSize: "28px", display: "flex", alignItems: "center", gap: "10px" }}>
@@ -335,9 +329,9 @@ function Alumnos() {
                           </span>
                         </td>
                          <td style={{ padding: "15px 20px", textAlign: "center" }}>
-                       <span className="pin-badge">
-                           🔑 {a.pin || "N/A"}
-                        </span>
+                           <span className="pin-badge">
+                               🔑 {a.pin || "N/A"}
+                            </span>
                         </td>
                         <td style={{ padding: "15px 20px", textAlign: "center", whiteSpace: "nowrap" }}>
                           <button

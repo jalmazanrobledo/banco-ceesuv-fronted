@@ -1,23 +1,19 @@
 import { useEffect, useState } from "react";
 import { obtenerAlumnos, registrarMovimiento } from "../services/api";
-import Sidebar from "../components/Sidebar";
 
 function Operaciones() {
   const [alumnos, setAlumnos] = useState([]);
   const [alumnoSeleccionado, setAlumnoSeleccionado] = useState("");
   
-  // Estados para el Buscador Autocompletado
   const [busqueda, setBusqueda] = useState("");
   const [mostrarLista, setMostrarLista] = useState(false);
 
-  const [pestana, setPestana] = useState("directa"); // 'directa' o 'ahorro'
+  const [pestana, setPestana] = useState("directa");
 
-  // Formulario Operación Directa
   const [tipoDirecto, setTipoDirecto] = useState("ENTRADA");
   const [montoDirecto, setMontoDirecto] = useState("");
   const [motivoDirecto, setMotivoDirecto] = useState("");
 
-  // Formulario Ahorro y Rendimiento
   const [tipoAhorro, setTipoAhorro] = useState("AHORRO_DEPOSITO");
   const [montoAhorro, setMontoAhorro] = useState("");
   const [porcentajeInteres, setPorcentajeInteres] = useState("5");
@@ -25,7 +21,6 @@ function Operaciones() {
 
   const [mensaje, setMensaje] = useState(null);
 
-  // Obtener alumno actual de forma segura
   const alumnoActual = alumnos?.find((a) => String(a.id) === String(alumnoSeleccionado));
 
   useEffect(() => {
@@ -42,7 +37,6 @@ function Operaciones() {
     }
   }
 
-  // Filtrado predictivo
   const alumnosFiltrados = (alumnos || []).filter((a) => {
     const textoCompleto = `${a?.nombre || ""} ${a?.grado || ""} ${a?.matricula || ""}`.toLowerCase();
     return textoCompleto.includes((busqueda || "").toLowerCase());
@@ -55,7 +49,6 @@ function Operaciones() {
     setMensaje(null);
   };
 
-  // Calcular rendimiento automático seguro
   const calcularRendimiento = () => {
     if (!alumnoActual) return 0;
     const ahorroActual = Number(alumnoActual.coins_ahorro) || 0;
@@ -63,7 +56,6 @@ function Operaciones() {
     return Math.round((ahorroActual * pct) / 100);
   };
 
-  // Operación Directa
   const handleOperacionDirecta = async (e) => {
     e.preventDefault();
     if (!alumnoSeleccionado || !montoDirecto) {
@@ -88,7 +80,6 @@ function Operaciones() {
     }
   };
 
-  // Operaciones de Ahorro
   const handleOperacionAhorro = async (e) => {
     e.preventDefault();
     if (!alumnoSeleccionado) {
@@ -129,7 +120,6 @@ function Operaciones() {
 
   return (
     <>
-      {/* Estilos responsive agregados dinámicamente */}
       <style>{`
         .contenedor-operaciones {
           display: flex;
@@ -166,7 +156,6 @@ function Operaciones() {
           flex-wrap: wrap;
         }
 
-        /* Adaptación para Celulares y Tablets */
         @media (max-width: 768px) {
           .contenedor-operaciones {
             flex-direction: column;
@@ -182,8 +171,6 @@ function Operaciones() {
       `}</style>
 
       <div className="contenedor-operaciones">
-        <Sidebar />
-
         <div className="contenido-principal">
           <h1 style={{ color: "#0B2341", margin: 0, fontSize: "clamp(20px, 4vw, 32px)" }}>
             💳 Módulo de Operaciones
@@ -207,7 +194,6 @@ function Operaciones() {
             </div>
           )}
 
-          {/* SELECCIÓN DE ALUMNO CON BUSCADOR DINÁMICO */}
           <div
             style={{
               background: "white",
@@ -321,7 +307,6 @@ function Operaciones() {
               </ul>
             )}
 
-            {/* TARJETAS DE SALDO ADAPTABLES */}
             {alumnoActual && (
               <div className="tarjetas-saldo">
                 <div className="tarjeta-item" style={{ background: "#E8F0FE", padding: "12px", borderRadius: "8px" }}>
@@ -340,7 +325,6 @@ function Operaciones() {
             )}
           </div>
 
-          {/* PESTAÑAS DE NAVEGACIÓN ADAPTABLES */}
           <div className="botones-pestanas">
             <button
               onClick={() => setPestana("directa")}
@@ -372,7 +356,6 @@ function Operaciones() {
             </button>
           </div>
 
-          {/* FORMULARIO 1: OPERACIÓN DIRECTA */}
           {pestana === "directa" && (
             <form
               onSubmit={handleOperacionDirecta}
@@ -456,7 +439,6 @@ function Operaciones() {
             </form>
           )}
 
-          {/* FORMULARIO 2: AHORRO Y RENDIMIENTOS */}
           {pestana === "ahorro" && (
             <form
               onSubmit={handleOperacionAhorro}

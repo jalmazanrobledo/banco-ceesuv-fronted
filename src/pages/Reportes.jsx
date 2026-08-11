@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import Sidebar from "../components/Sidebar";
 import { obtenerAlumnos } from "../services/api";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
@@ -8,7 +7,6 @@ function Reportes() {
   const [alumnos, setAlumnos] = useState([]);
   const [cargando, setCargando] = useState(true);
   
-  // Estados para la funcionalidad de IA con Gemini
   const [analisisIA, setAnalisisIA] = useState("");
   const [analizando, setAnalizando] = useState(false);
 
@@ -19,7 +17,6 @@ function Reportes() {
   const cargarDatosAlumnos = async () => {
     try {
       const data = await obtenerAlumnos();
-      // Filtramos para que solo guarde los alumnos que están activos en los reportes
       const alumnosActivos = (data || []).filter(
         (alumno) => !alumno.estado || alumno.estado.toLowerCase() === 'activo'
       );
@@ -33,7 +30,6 @@ function Reportes() {
 
   const DOMINIO_PUBLICO = "https://banco-ceesuv-fronted.vercel.app";
 
-  // Función auxiliar para convertir una imagen externa (URL del QR) en Base64 para jsPDF
   const obtenerImagenBase64DesdeUrl = async (urlImagen) => {
     try {
       const respuesta = await fetch(urlImagen);
@@ -49,7 +45,6 @@ function Reportes() {
     }
   };
 
-  // 📄 FUNCIÓN PARA EXPORTAR PDF POR GRADO / SEMESTRE CON CÓDIGOS QR
   const exportarPDFPorGrado = async (gradoSeleccionado) => {
     const alumnosFiltradosGrado = alumnos.filter(
       (alumno) => alumno.grado && alumno.grado.trim().toLowerCase() === gradoSeleccionado.trim().toLowerCase()
@@ -62,7 +57,6 @@ function Reportes() {
 
     const doc = new jsPDF();
 
-    // Encabezado institucional
     doc.setFont("helvetica", "bold");
     doc.setFontSize(16);
     doc.setTextColor(11, 35, 65);
@@ -82,10 +76,8 @@ function Reportes() {
       const tokenAlumno = alumno.token_qr || alumno.token || alumno.id || alumno._id;
       const enlaceQR = `${DOMINIO_PUBLICO}/consulta/${tokenAlumno}`;
 
-      // URL del servicio generador de QR en formato PNG
       const urlApiQR = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(enlaceQR)}`;
       
-      // Convertimos la imagen del QR a Base64 para que jsPDF la incruste de forma segura
       const qrBase64 = await obtenerImagenBase64DesdeUrl(urlApiQR);
 
       tablaDatos.push([
@@ -142,8 +134,7 @@ function Reportes() {
     doc.save(`Credenciales_Y_Accesos_${gradoSeleccionado.replace(/°\s/g, "_").toLowerCase()}.pdf`);
   };
 
-  // 🤖 FUNCIÓN PARA CONECTAR CON GEMINI DESDE EL BACKEND
- const generarAnalisisGemini = async () => {
+  const generarAnalisisGemini = async () => {
     setAnalizando(true);
     setAnalisisIA("");
     try {
@@ -154,9 +145,11 @@ function Reportes() {
       });
       const data = await respuesta.json();
       setAnalisisIA(data.analisis || "No se obtuvo respuesta de la IA.");
-    }  catch (error) {
+    } catch (error) {
       console.error("Error:", error);
       alert("Hubo un error al generar el análisis inteligente.");
+    } finally {
+      setAnalizando(false);
     }
   };
 
@@ -169,7 +162,6 @@ function Reportes() {
 
   return (
     <div style={{ display: "flex", minHeight: "100vh", backgroundColor: "#F4F7FA", fontFamily: "sans-serif" }}>
-      <Sidebar />
       <div style={{ flex: 1, padding: "30px", boxSizing: "border-box" }}>
         
         <div style={{ marginBottom: "25px" }}>
@@ -179,7 +171,6 @@ function Reportes() {
           </p>
         </div>
 
-        {/* Sección 1: Descarga de Credenciales PDF */}
         <div style={{ background: "white", padding: "25px", borderRadius: "12px", boxShadow: "0 2px 8px rgba(0,0,0,0.05)" }}>
           <h3 style={{ color: "#0B2341", marginTop: 0, marginBottom: "15px", fontSize: "18px" }}>
             📥 Descargar Credenciales y Accesos (PDF por Grado)
@@ -221,7 +212,6 @@ function Reportes() {
           )}
         </div>
 
-        {/* Sección 2: Análisis Inteligente con Gemini */}
         <div style={{ background: "white", padding: "25px", borderRadius: "12px", boxShadow: "0 2px 8px rgba(0,0,0,0.05)", marginTop: "25px" }}>
           <h3 style={{ color: "#0B2341", marginTop: 0, marginBottom: "15px", fontSize: "18px" }}>
             🤖 Análisis Ejecutivo con IA
@@ -234,7 +224,7 @@ function Reportes() {
             onClick={generarAnalisisGemini}
             disabled={analizando || cargando}
             style={{
-              background: "#D4AF37", // Color dorado institucional
+              background: "#D4AF37",
               color: "#0B2341",
               border: "none",
               padding: "12px 20px",
@@ -245,7 +235,7 @@ function Reportes() {
               transition: "background 0.2s"
             }}
           >
-            {analizando ? "Analizando datos con Gemini..." : "🤖 Generar Informe Inteligente"}
+            {analizando ? "Analizando datos con la Inteligencia Artificial..." : "🤖 Generar Informe Inteligente"}
           </button>
 
           {analisisIA && (

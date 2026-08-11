@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import Sidebar from "../components/Sidebar";
 import {
   obtenerUsuarios,
   guardarUsuario,
@@ -39,7 +38,6 @@ function Usuarios() {
       return;
     }
 
-    // Opcional: Autogenerar el campo usuario si el usuario lo deja en blanco
     let usernameFinal = nuevoUsuario.usuario;
     if (!usernameFinal) {
       const partes = nuevoUsuario.nombre.trim().toLowerCase().split(/\s+/);
@@ -158,11 +156,10 @@ function Usuarios() {
           margin-top: 30px;
           background: white;
           border-radius: 10px;
-          overflow-x: auto; /* Scroll horizontal para móviles */
+          overflow-x: auto;
           box-shadow: 0 5px 15px rgba(0,0,0,.15);
         }
 
-        /* Ajustes Responsivos Móviles (< 768px) */
         @media (max-width: 768px) {
           .usuarios-container {
             flex-direction: column;
@@ -188,8 +185,6 @@ function Usuarios() {
       `}</style>
 
       <div className="usuarios-container">
-        <Sidebar />
-
         <div className="usuarios-main">
           <h1 style={{ color: "#0B2341", margin: 0 }}>
             👤 Usuarios
@@ -199,7 +194,6 @@ function Usuarios() {
             Administración de usuarios
           </h3>
 
-          {/* FORMULARIO DE NUEVO USUARIO */}
           <div className="form-card">
             <h3 style={{ marginTop: 0, color: "#0B2341" }}>➕ Nuevo Usuario</h3>
 
@@ -261,7 +255,6 @@ function Usuarios() {
             </div>
           </div>
 
-          {/* TABLA DE USUARIOS */}
           <div className="table-card">
             <table
               style={{

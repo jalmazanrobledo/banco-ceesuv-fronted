@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { obtenerMovimientos } from "../services/api";
-import Sidebar from "../components/Sidebar";
 
 function Movimientos() {
   const [movimientos, setMovimientos] = useState([]);
@@ -9,11 +8,10 @@ function Movimientos() {
   async function cargar() {
     try {
       const datos = await obtenerMovimientos();
-      // Nos aseguramos de que siempre sea un arreglo, incluso si la API manda otra cosa
       setMovimientos(Array.isArray(datos) ? datos : []);
     } catch (error) {
       console.error("Error al cargar movimientos:", error);
-      setMovimientos([]); // Evita que la pantalla colapse si falla el servidor
+      setMovimientos([]);
     }
   }
 
@@ -25,20 +23,18 @@ function Movimientos() {
     (m.alumno || "").toLowerCase().includes(busqueda.toLowerCase())
   );
 
-  // Función para definir el color según el tipo de movimiento
   const obtenerColorTipo = (tipo) => {
     if (tipo === "ENTRADA" || tipo === "AHORRO_RENDIMIENTO") return "green";
     if (tipo === "SALIDA") return "red";
-    if (tipo === "AHORRO_DEPOSITO") return "#0B2341"; // Azul institucional
-    if (tipo === "AHORRO_RETIRO") return "#D4AF37"; // Dorado
+    if (tipo === "AHORRO_DEPOSITO") return "#0B2341";
+    if (tipo === "AHORRO_RETIRO") return "#D4AF37";
     return "#333";
   };
 
-  // Función para mostrar el signo (+ o -)
   const obtenerSignoMonto = (tipo, cantidad) => {
     if (tipo === "ENTRADA" || tipo === "AHORRO_RENDIMIENTO") return `+${cantidad}`;
     if (tipo === "SALIDA") return `-${cantidad}`;
-    return `${cantidad}`; // Para depósitos y retiros de ahorro se muestra el valor de la transferencia
+    return `${cantidad}`;
   };
 
   return (
@@ -80,11 +76,10 @@ function Movimientos() {
           margin-top: 25px;
           background: white;
           border-radius: 10px;
-          overflow-x: auto; /* Permite scroll horizontal en celulares */
+          overflow-x: auto;
           box-shadow: 0 5px 15px rgba(0,0,0,.15);
         }
 
-        /* Estilos móviles (< 768px) */
         @media (max-width: 768px) {
           .movimientos-container {
             flex-direction: column;
@@ -101,8 +96,6 @@ function Movimientos() {
       `}</style>
 
       <div className="movimientos-container">
-        <Sidebar />
-
         <div className="movimientos-main">
           <h1 style={{ color: "#0B2341", margin: 0 }}>
             💰 Movimientos CEESUV Coins
