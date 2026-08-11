@@ -24,10 +24,7 @@ function LayoutPanel() {
 }
 
 // 1. Protege rutas que requieren estar logueado (Admin o Docente)
-function RutaProtegida({ children }) {
-  const usuarioGuardado = localStorage.getItem("usuarioCEESUV");
-  const usuario = usuarioGuardado ? JSON.parse(usuarioGuardado) : null;
-
+function RutaProtegida({ usuario, children }) {
   if (!usuario) {
     return <Navigate to="/login" replace />;
   }
@@ -41,10 +38,7 @@ function RutaProtegida({ children }) {
 }
 
 // 2. Protege la ruta del Alumno (/mi-cuenta)
-function RutaAlumno({ children }) {
-  const usuarioGuardado = localStorage.getItem("usuarioCEESUV");
-  const usuario = usuarioGuardado ? JSON.parse(usuarioGuardado) : null;
-
+function RutaAlumno({ usuario, children }) {
   if (!usuario) {
     return <Navigate to="/login" replace />;
   }
@@ -53,10 +47,7 @@ function RutaAlumno({ children }) {
 }
 
 // 3. Protege rutas EXCLUSIVAS de Administrador
-function RutaAdmin({ children }) {
-  const usuarioGuardado = localStorage.getItem("usuarioCEESUV");
-  const usuario = usuarioGuardado ? JSON.parse(usuarioGuardado) : null;
-
+function RutaAdmin({ usuario, children }) {
   const rolLwr = usuario?.rol?.toLowerCase() || "";
   const esAdmin = rolLwr.includes("admin");
 
@@ -73,11 +64,8 @@ function RutaAdmin({ children }) {
 }
 
 // 4. Redirección inteligente para la raíz "/"
-function RedireccionInicial() {
-  const usuarioGuardado = localStorage.getItem("usuarioCEESUV");
-  
-  if (usuarioGuardado) {
-    const usuario = JSON.parse(usuarioGuardado);
+function RedireccionInicial({ usuario }) {
+  if (usuario) {
     if (usuario.rol === 'Alumno') {
       return <Navigate to="/mi-cuenta" replace />;
     }
@@ -88,15 +76,7 @@ function RedireccionInicial() {
 }
 
 // Componente Wrapper para la sesión del Alumno
-function PortalAlumno() {
-  const usuarioGuardado = localStorage.getItem("usuarioCEESUV");
-  const usuario = usuarioGuardado ? JSON.parse(usuarioGuardado) : null;
-
-  const handleLogout = () => {
-    localStorage.removeItem("usuarioCEESUV");
-    window.location.href = "/login";
-  };
-
+function PortalAlumno({ usuario, onLogout }) {
   return (
     <StudentDashboard 
       alumno={{
@@ -104,17 +84,17 @@ function PortalAlumno() {
         nombre: usuario?.nombre,
         grado: usuario?.grado
       }} 
-      onLogout={handleLogout} 
+      onLogout={onLogout} 
     />
   );
 }
 
-function App() {
+function App({ usuario = null, onLogout = () => {} }) {
   return (
     <BrowserRouter>
       <Routes>
         {/* Redirección inicial */}
-        <Route path="/" element={<RedireccionInicial />} />
+        <Route path="/" element={<RedireccionInicial usuario={usuario} />} />
 
         {/* -----------------------------------------------------------
             RUTAS PÚBLICAS / ALUMNOS (SIN TICKER DE DIVISAS)
@@ -126,8 +106,8 @@ function App() {
         <Route
           path="/mi-cuenta"
           element={
-            <RutaAlumno>
-              <PortalAlumno />
+            <RutaAlumno usuario={usuario}>
+              <PortalAlumno usuario={usuario} onLogout={onLogout} />
             </RutaAlumno>
           }
         />
@@ -140,7 +120,7 @@ function App() {
           <Route
             path="/dashboard"
             element={
-              <RutaProtegida>
+              <RutaProtegida usuario={usuario}>
                 <Dashboard />
               </RutaProtegida>
             }
@@ -149,7 +129,7 @@ function App() {
           <Route
             path="/alumnos"
             element={
-              <RutaProtegida>
+              <RutaProtegida usuario={usuario}>
                 <Alumnos />
               </RutaProtegida>
             }
@@ -158,7 +138,7 @@ function App() {
           <Route
             path="/operaciones"
             element={
-              <RutaProtegida>
+              <RutaProtegida usuario={usuario}>
                 <Operaciones />
               </RutaProtegida>
             }
@@ -167,7 +147,7 @@ function App() {
           <Route
             path="/movimientos"
             element={
-              <RutaProtegida>
+              <RutaProtegida usuario={usuario}>
                 <Movimientos />
               </RutaProtegida>
             }
@@ -177,7 +157,7 @@ function App() {
           <Route
             path="/reportes"
             element={
-              <RutaProtegida>
+              <RutaProtegida usuario={usuario}>
                 <Reportes />
               </RutaProtegida>
             }
@@ -187,7 +167,7 @@ function App() {
           <Route
             path="/usuarios"
             element={
-              <RutaAdmin>
+              <RutaAdmin usuario={usuario}>
                 <Usuarios />
               </RutaAdmin>
             }
