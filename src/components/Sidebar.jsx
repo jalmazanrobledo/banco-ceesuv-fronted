@@ -1,21 +1,17 @@
 import React, { useState, useEffect } from "react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import logoCeesuv from "/logo-ceesuv.png";
 
-function Sidebar() {
+function Sidebar({ usuario = null, onLogout = () => {} }) {
   const [menuAbierto, setMenuAbierto] = useState(false);
   const [esMovil, setEsMovil] = useState(window.innerWidth <= 768);
   const location = useLocation();
-  const navigate = useNavigate();
 
-  // 1. LEER SESIÓN DESDE LOCALSTORAGE
-  const resSesion = JSON.parse(localStorage.getItem("usuarioCEESUV")) || {};
+  // 1. EXTRAER PROPIEDADES DIRECTAS DEL OBJETO RECIBIDO POR PROPS
+  const nombreUsuario = usuario?.nombre || usuario?.usuario || "Usuario";
+  const rolRaw = (usuario?.rol || "").toString().trim();
 
-  // 2. EXTRAER PROPIEDADES DIRECTAS DE LA API
-  const nombreUsuario = resSesion.nombre || resSesion.usuario || "Usuario";
-  const rolRaw = (resSesion.rol || "").toString().trim();
-
-  // 3. DETERMINAR SI ES ADMINISTRADOR ('Admin', 'admin', 'Administrador')
+  // 2. DETERMINAR SI ES ADMINISTRADOR ('Admin', 'admin', 'Administrador')
   const esAdmin = rolRaw.toLowerCase() === "admin" || rolRaw.toLowerCase() === "administrador";
 
   // Formato para mostrar visualmente en la tarjeta
@@ -26,13 +22,6 @@ function Sidebar() {
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, []);
-
-  const handleCerrarSesion = () => {
-    localStorage.removeItem("usuarioCEESUV");
-    localStorage.clear();
-    sessionStorage.clear();
-    navigate("/login");
-  };
 
   const estylosBoton = (path) => {
     const isActive = location.pathname === path;
@@ -267,7 +256,7 @@ function Sidebar() {
         {/* CERRAR SESIÓN */}
         <div style={{ marginTop: "auto", paddingTop: "15px" }}>
           <button
-            onClick={handleCerrarSesion}
+            onClick={onLogout}
             style={{
               width: "100%",
               padding: "12px",
