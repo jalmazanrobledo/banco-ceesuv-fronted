@@ -10,7 +10,7 @@ function Login() {
   const [error, setError] = useState("");
   const navigate = useNavigate();
 
-async function handleSubmit(e) {
+  async function handleSubmit(e) {
     e.preventDefault();
     setError("");
 
@@ -21,7 +21,7 @@ async function handleSubmit(e) {
     }
 
     try {
-     const res = await loginUsuario(credenciales);
+      const res = await loginUsuario(credenciales);
 
       if (res.mensaje && !res.rol && !res.nombre) {
         setError(res.mensaje);
@@ -31,13 +31,15 @@ async function handleSubmit(e) {
 
         const rolUsuario = String(res.rol || res.role || "").toLowerCase();
 
-        sessionStorage.setItem("sesion_activa_ceesuv", JSON.stringify(res));
+        // Navegación limpia sin perder el contexto de React
         navigate(rolUsuario === "alumno" || rolUsuario === "student" ? "/mi-cuenta" : "/dashboard", { replace: true });
+        window.location.reload(); 
       }
     } catch (err) {
       setError(err.message || "Error al conectar con el servidor.");
     }
   }
+
   return (
     <div
       style={{

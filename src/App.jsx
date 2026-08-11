@@ -34,7 +34,9 @@ function LayoutPanel({ usuario, onLogout }) {
 }
 
 // 1. Protege rutas que requieren estar logueado (Admin o Docente)
-function RutaProtegida({ usuario, children }) {
+function RutaProtegida({ usuario, cargando, children }) {
+  if (cargando) return <div style={{ textAlign: "center", marginTop: "15rem", fontFamily: "sans-serif" }}>Verificando sesión...</div>;
+  
   if (!usuario) {
     return <Navigate to="/login" replace />;
   }
@@ -46,9 +48,9 @@ function RutaProtegida({ usuario, children }) {
   return children;
 }
 
-// Modifica RutaAlumno para que reciba el estado 'cargando'
+// 2. Protege la ruta del Alumno (/mi-cuenta)
 function RutaAlumno({ usuario, cargando, children }) {
-  if (cargando) return <div>Cargando...</div>; // Muestra un mensaje mientras verifica
+  if (cargando) return <div style={{ textAlign: "center", marginTop: "15rem", fontFamily: "sans-serif" }}>Verificando sesión...</div>;
   
   if (!usuario) {
     return <Navigate to="/login" replace />;
@@ -58,7 +60,9 @@ function RutaAlumno({ usuario, cargando, children }) {
 }
 
 // 3. Protege rutas EXCLUSIVAS de Administrador
-function RutaAdmin({ usuario, children }) {
+function RutaAdmin({ usuario, cargando, children }) {
+  if (cargando) return <div style={{ textAlign: "center", marginTop: "15rem", fontFamily: "sans-serif" }}>Verificando sesión...</div>;
+
   const rolLwr = usuario?.rol?.toLowerCase() || "";
   const esAdmin = rolLwr.includes("admin");
 
@@ -99,7 +103,7 @@ function PortalAlumno({ usuario, onLogout }) {
   );
 }
 
-function App({ usuarioProp = null, onLogoutProp = () => {} }) {
+function App({ usuarioProp = null }) {
   const [usuario, setUsuario] = useState(usuarioProp);
   const [cargando, setCargando] = useState(true);
 
@@ -149,13 +153,13 @@ function App({ usuarioProp = null, onLogoutProp = () => {} }) {
         <Route path="/consulta/:token" element={<ConsultaAlumno />} />
 
         <Route
-  path="/mi-cuenta"
-  element={
-    <RutaAlumno usuario={usuario} cargando={cargando}>
-      <PortalAlumno usuario={usuario} onLogout={handleLogout} />
-    </RutaAlumno>
-  }
-/>
+          path="/mi-cuenta"
+          element={
+            <RutaAlumno usuario={usuario} cargando={cargando}>
+              <PortalAlumno usuario={usuario} onLogout={handleLogout} />
+            </RutaAlumno>
+          }
+        />
 
         {/* Pasamos el usuario real y la función de cierre de sesión al layout principal */}
         <Route element={<LayoutPanel usuario={usuario} onLogout={handleLogout} />}>
@@ -163,7 +167,7 @@ function App({ usuarioProp = null, onLogoutProp = () => {} }) {
           <Route
             path="/dashboard"
             element={
-              <RutaProtegida usuario={usuario}>
+              <RutaProtegida usuario={usuario} cargando={cargando}>
                 <Dashboard />
               </RutaProtegida>
             }
@@ -172,7 +176,7 @@ function App({ usuarioProp = null, onLogoutProp = () => {} }) {
           <Route
             path="/alumnos"
             element={
-              <RutaProtegida usuario={usuario}>
+              <RutaProtegida usuario={usuario} cargando={cargando}>
                 <Alumnos />
               </RutaProtegida>
             }
@@ -181,7 +185,7 @@ function App({ usuarioProp = null, onLogoutProp = () => {} }) {
           <Route
             path="/operaciones"
             element={
-              <RutaProtegida usuario={usuario}>
+              <RutaProtegida usuario={usuario} cargando={cargando}>
                 <Operaciones />
               </RutaProtegida>
             }
@@ -190,7 +194,7 @@ function App({ usuarioProp = null, onLogoutProp = () => {} }) {
           <Route
             path="/movimientos"
             element={
-              <RutaProtegida usuario={usuario}>
+              <RutaProtegida usuario={usuario} cargando={cargando}>
                 <Movimientos />
               </RutaProtegida>
             }
@@ -199,7 +203,7 @@ function App({ usuarioProp = null, onLogoutProp = () => {} }) {
           <Route
             path="/reportes"
             element={
-              <RutaProtegida usuario={usuario}>
+              <RutaProtegida usuario={usuario} cargando={cargando}>
                 <Reportes />
               </RutaProtegida>
             }
@@ -208,7 +212,7 @@ function App({ usuarioProp = null, onLogoutProp = () => {} }) {
           <Route
             path="/usuarios"
             element={
-              <RutaAdmin usuario={usuario}>
+              <RutaAdmin usuario={usuario} cargando={cargando}>
                 <Usuarios />
               </RutaAdmin>
             }
