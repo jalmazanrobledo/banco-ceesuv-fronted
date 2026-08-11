@@ -46,8 +46,10 @@ function RutaProtegida({ usuario, children }) {
   return children;
 }
 
-// 2. Protege la ruta del Alumno (/mi-cuenta)
-function RutaAlumno({ usuario, children }) {
+// Modifica RutaAlumno para que reciba el estado 'cargando'
+function RutaAlumno({ usuario, cargando, children }) {
+  if (cargando) return <div>Cargando...</div>; // Muestra un mensaje mientras verifica
+  
   if (!usuario) {
     return <Navigate to="/login" replace />;
   }
@@ -147,13 +149,13 @@ function App({ usuarioProp = null, onLogoutProp = () => {} }) {
         <Route path="/consulta/:token" element={<ConsultaAlumno />} />
 
         <Route
-          path="/mi-cuenta"
-          element={
-            <RutaAlumno usuario={usuario}>
-              <PortalAlumno usuario={usuario} onLogout={handleLogout} />
-            </RutaAlumno>
-          }
-        />
+  path="/mi-cuenta"
+  element={
+    <RutaAlumno usuario={usuario} cargando={cargando}>
+      <PortalAlumno usuario={usuario} onLogout={handleLogout} />
+    </RutaAlumno>
+  }
+/>
 
         {/* Pasamos el usuario real y la función de cierre de sesión al layout principal */}
         <Route element={<LayoutPanel usuario={usuario} onLogout={handleLogout} />}>
