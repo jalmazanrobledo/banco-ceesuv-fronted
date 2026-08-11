@@ -64,7 +64,7 @@ function RedireccionInicial({ usuario }) {
 }
 
 function PortalAlumno({ usuario, onLogout }) {
-  return <StudentDashboard alumno={{ id: usuario?.alumno_id || usuario?.id, nombre: usuario?.nombre, grado: usuario?.grado }} onLogout={onLogout} />;
+  return <StudentDashboard usuarioProp={usuario} onLogout={onLogout} />;
 }
 
 function App({ usuarioProp = null }) {
