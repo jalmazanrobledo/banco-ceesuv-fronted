@@ -333,14 +333,14 @@ export default function TransferenciaCoins({ alumnoActual, onTransferenciaExitos
                   {contactosGuardados.length > 0 ? (
                     <select
                       onChange={(e) => {
-                        const encontrado = contactosGuardados.find(c => String(c.cuenta || c.numero_cuenta || c.tarjeta_debito || c.clabe) === e.target.value);
+                        const encontrado = contactosGuardados.find(c => String(c.cuenta || c.tarjeta || c.clabe) === e.target.value);
                         setContactoSeleccionado(encontrado);
                       }}
                       style={{ width: "100%", background: "#0c1527", border: "1px solid #1e3250", color: "white", padding: "10px", borderRadius: "8px", fontSize: "13px" }}
                     >
                       <option value="">-- Selecciona contacto --</option>
                       {contactosGuardados.map((c, idx) => {
-                        const valCuenta = c.cuenta || c.numero_cuenta || c.tarjeta_debito || c.clabe;
+                        const valCuenta = c.cuenta || c.tarjeta || c.clabe;
                         return (
                           <option key={idx} value={valCuenta}>
                             {c.nombre} - {valCuenta}
