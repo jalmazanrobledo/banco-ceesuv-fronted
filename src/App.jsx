@@ -10,18 +10,26 @@ import ConsultaAlumno from "./pages/ConsultaAlumno";
 import Operaciones from "./pages/Operaciones";
 import StudentDashboard from "./components/StudentDashboard";
 import Reportes from "./pages/Reportes";
+import Sidebar from "./components/Sidebar";
 
 // Importamos el componente del ticker de divisas
 import TickerDivisas from "./components/TickerDivisas";
 import { obtenerDashboard } from "./services/api";
 
-// Layout EXCLUSIVO para el panel interno (Admin y Docentes) sin duplicar el Sidebar
-function LayoutPanel() {
+// Layout EXCLUSIVO para el panel interno que inyecta el Sidebar dinámicamente
+function LayoutPanel({ usuario, onLogout }) {
   return (
-    <>
-      <TickerDivisas />
-      <Outlet />
-    </>
+    <div style={{ display: "flex", minHeight: "100vh", backgroundColor: "#f8f9fa" }}>
+      {/* Sidebar con los datos reales del usuario y el botón de cerrar sesión funcional */}
+      <Sidebar usuario={usuario} onLogout={onLogout} />
+      
+      <div style={{ flex: 1, display: "flex", flexDirection: "column", overflowX: "hidden" }}>
+        <TickerDivisas />
+        <div style={{ flex: 1 }}>
+          <Outlet />
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -147,8 +155,8 @@ function App({ usuarioProp = null, onLogoutProp = () => {} }) {
           }
         />
 
-        {/* Layout del panel interno */}
-        <Route element={<LayoutPanel />}>
+        {/* Pasamos el usuario real y la función de cierre de sesión al layout principal */}
+        <Route element={<LayoutPanel usuario={usuario} onLogout={handleLogout} />}>
           
           <Route
             path="/dashboard"
