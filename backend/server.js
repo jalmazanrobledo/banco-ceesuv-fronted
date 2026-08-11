@@ -1017,46 +1017,29 @@ app.post(["/api/contactos", "/contactos"], async (req, res) => {
       return res.status(400).json({ mensaje: "Faltan datos obligatorios (usuario_id, nombre)." });
     }
 
-    // Limpiamos los campos vacíos para que sean NULL reales
-    cuenta = cuenta && cuenta.trim() !== "" ? cuenta : null;
-    tarjeta = tarjeta && tarjeta.trim() !== "" ? tarjeta : null;
-    clabe = clabe && clabe.trim() !== "" ? clabe : null;
-    banco = banco && banco.trim() !== "" ? banco : 'BANCO CEESUV';
+    // Convertir valores vacíos a null real para evitar conflictos en PostgreSQL
+    const cuentaValida = cuenta && cuenta !== "" ? cuenta : null;
+    const tarjetaValida = tarjeta && tarjeta !== "" ? tarjeta : null;
+    const clabeValida = clabe && clabe !== "" ? clabe : null;
+    const bancoValido = banco && banco !== "" ? banco : 'BANCO CEESUV';
 
-    // Buscamos si ya existe el contacto por cuenta, tarjeta o clabe (siempre que no sean nulos)
-    const queryBusqueda = `
-      SELECT id, cuenta, tarjeta, clabe FROM contactos_frecuentes 
-      WHERE usuario_id = $1 AND (
-        ($2::text IS NOT NULL AND cuenta = $2) OR 
-        ($3::text IS NOT NULL AND tarjeta = $3) OR 
-        ($4::text IS NOT NULL AND clabe = $4)
-      )
+    const insertQuery = `
+      INSERT INTO contactos_frecuentes (usuario_id, nombre, cuenta, tarjeta, clabe, banco)
+      VALUES ($1, $2, $3, $4, $5, $6)
+      RETURNING *;
     `;
-    const existente = await pool.query(queryBusqueda, [usuario_id, cuenta, tarjeta, clabe]);
+    
+    const nuevo = await pool.query(insertQuery, [
+      usuario_id, 
+      nombre, 
+      cuentaValida, 
+      tarjetaValida, 
+      clabeValida, 
+      bancoValido
+    ]);
 
-    if (existente.rows.length > 0) {
-      const contactoId = existente.rows[0].id;
-      const updateQuery = `
-        UPDATE contactos_frecuentes 
-        SET nombre = $1,
-            cuenta = COALESCE($2, cuenta),
-            tarjeta = COALESCE($3, tarjeta),
-            clabe = COALESCE($4, clabe),
-            banco = COALESCE($5, banco)
-        WHERE id = $6
-        RETURNING *;
-      `;
-      const actualizado = await pool.query(updateQuery, [nombre, cuenta, tarjeta, clabe, banco, contactoId]);
-      return res.status(200).json({ mensaje: "Contacto actualizado exitosamente.", contacto: actualizado.rows[0] });
-    } else {
-      const insertQuery = `
-        INSERT INTO contactos_frecuentes (usuario_id, nombre, cuenta, tarjeta, clabe, banco)
-        VALUES ($1, $2, $3, $4, $5, $6)
-        RETURNING *;
-      `;
-      const nuevo = await pool.query(insertQuery, [usuario_id, nombre, cuenta, tarjeta, clabe, banco]);
-      return res.status(200).json({ mensaje: "Contacto guardado exitosamente.", contacto: nuevo.rows[0] });
-    }
+    return res.status(200).json({ mensaje: "Contacto guardado exitosamente.", contacto: nuevo.rows[0] });
+
   } catch (error) {
     console.error("Error al guardar contacto:", error);
     return res.status(500).json({ mensaje: "Error interno al procesar el contacto frecuente.", detalle: error.message });
