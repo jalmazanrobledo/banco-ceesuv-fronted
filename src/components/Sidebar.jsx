@@ -7,14 +7,9 @@ function Sidebar({ usuario = null, onLogout = () => {} }) {
   const [esMovil, setEsMovil] = useState(window.innerWidth <= 768);
   const location = useLocation();
 
-  // 1. EXTRAER PROPIEDADES DIRECTAS DEL OBJETO RECIBIDO POR PROPS
   const nombreUsuario = usuario?.nombre || usuario?.usuario || "Usuario";
   const rolRaw = (usuario?.rol || "").toString().trim();
-
-  // 2. DETERMINAR SI ES ADMINISTRADOR ('Admin', 'admin', 'Administrador')
   const esAdmin = rolRaw.toLowerCase() === "admin" || rolRaw.toLowerCase() === "administrador";
-
-  // Formato para mostrar visualmente en la tarjeta
   const rolMostrar = esAdmin ? "ADMINISTRADOR" : (rolRaw.toUpperCase() || "DOCENTE");
 
   useEffect(() => {
@@ -52,12 +47,15 @@ function Sidebar({ usuario = null, onLogout = () => {} }) {
           width: 240px;
           background-color: #0B2341;
           color: white;
-          min-height: 100vh;
+          height: 100vh;
+          position: sticky;
+          top: 0;
           padding: 20px 15px;
           box-sizing: border-box;
           display: flex;
           flex-direction: column;
           justify-content: space-between;
+          overflow-y: auto;
         }
 
         .mobile-header-bar {
@@ -77,10 +75,12 @@ function Sidebar({ usuario = null, onLogout = () => {} }) {
 
           .sidebar-wrapper {
             width: 100%;
-            min-height: auto;
+            height: auto;
+            position: relative;
             display: ${menuAbierto ? "flex" : "none"};
             padding: 15px;
             border-bottom: 2px solid #D4AF37;
+            overflow-y: visible;
           }
         }
       `}</style>
@@ -244,7 +244,6 @@ function Sidebar({ usuario = null, onLogout = () => {} }) {
               <button style={estylosBoton("/reportes")}>📊 Reportes</button>
             </Link>
 
-            {/* MUESTRA 'USUARIOS' ÚNICAMENTE SI ES ADMINISTRADOR */}
             {esAdmin && (
               <Link to="/usuarios" style={{ textDecoration: "none" }} onClick={() => setMenuAbierto(false)}>
                 <button style={estylosBoton("/usuarios")}>👥 Usuarios</button>
@@ -254,7 +253,7 @@ function Sidebar({ usuario = null, onLogout = () => {} }) {
         </div>
 
         {/* CERRAR SESIÓN */}
-        <div style={{ marginTop: "auto", paddingTop: "15px" }}>
+        <div style={{ marginTop: "20px", paddingTop: "15px", borderTop: "1px solid rgba(255,255,255,0.1)" }}>
           <button
             onClick={onLogout}
             style={{
