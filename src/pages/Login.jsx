@@ -14,7 +14,7 @@ function Login() {
     e.preventDefault();
     setError("");
 
-    // Validación flexible
+  // Validación flexible
     if (!credenciales.usuario && !credenciales.password) {
       setError("Ingresa tu usuario y contraseña, o tu PIN de alumno.");
       return;
@@ -26,12 +26,8 @@ function Login() {
       if (res.mensaje && !res.rol && !res.nombre) {
         setError(res.mensaje);
       } else {
-        // Limpiamos cualquier rastro de sesiones pasadas o datos residuales en caché
-        localStorage.clear();
-
-        // Guardamos la sesión limpia en ambas claves para compatibilidad total
-        localStorage.setItem("usuarioCEESUV", JSON.stringify(res));
-        localStorage.setItem("usuario", JSON.stringify(res));
+        // ❌ ELIMINADO: Ya no necesitamos localStorage.clear() ni localStorage.setItem()
+        // El backend maneja la sesión automáticamente al autenticar.
 
         // Normalizar comparación de rol (soporta 'Alumno', 'alumno', 'ALUMNO', 'student')
         const rolUsuario = String(res.rol || res.role || "").toLowerCase();
@@ -44,9 +40,8 @@ function Login() {
       }
     } catch (err) {
       setError(err.message || "Error al conectar con el servidor.");
+   }
     }
-  }
-
   return (
     <div
       style={{
