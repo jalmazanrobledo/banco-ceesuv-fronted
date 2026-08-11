@@ -4,9 +4,9 @@ import TarjetaDebito from "./TarjetaDebito";
 import TarjetaCredito from "./TarjetaCredito";
 import TransferenciaCoins from "./TransferenciaCoins";
 
-export default function StudentDashboard() {
+export default function StudentDashboard({ usuarioProp = null, onLogout = () => {} }) {
   const navigate = useNavigate();
-  const [alumno, setAlumno] = useState(null);
+  const [alumno, setAlumno] = useState(usuarioProp);
   const [movimientos, setMovimientos] = useState([]);
   const [cargando, setCargando] = useState(true);
   
@@ -158,22 +158,21 @@ export default function StudentDashboard() {
 
   const cargarDatosEstudiante = async () => {
     try {
-      const storedUser = localStorage.getItem("usuario");
-      if (!storedUser) {
+      if (!usuarioProp) {
+        onLogout();
         navigate("/login");
         return;
       }
 
-      const userObj = JSON.parse(storedUser);
-      let datosAlumno = userObj;
-      let listaMovimientos = userObj.movimientos || [];
+      let datosAlumno = usuarioProp;
+      let listaMovimientos = usuarioProp.movimientos || [];
 
       const identifier =
-        userObj.id ||
-        userObj.alumno_id ||
-        userObj.usuario ||
-        userObj.username ||
-        userObj.nombre;
+        usuarioProp.id ||
+        usuarioProp.alumno_id ||
+        usuarioProp.usuario ||
+        usuarioProp.username ||
+        usuarioProp.nombre;
 
       if (identifier) {
         const param = encodeURIComponent(identifier);
@@ -198,8 +197,8 @@ export default function StudentDashboard() {
                   String(a.id) === String(identifier) ||
                   String(a.alumno_id) === String(identifier) ||
                   (a.nombre &&
-                    userObj.nombre &&
-                    a.nombre.toLowerCase() === userObj.nombre.toLowerCase())
+                    usuarioProp.nombre &&
+                    a.nombre.toLowerCase() === usuarioProp.nombre.toLowerCase())
               );
               if (encontrado) datosAlumno = encontrado;
             }
@@ -235,9 +234,9 @@ export default function StudentDashboard() {
 
           if (resMovs.ok) {
             const todosMovimientos = await resMovs.json();
-            const nombreBuscado = (datosAlumno.nombre || userObj.nombre || "").toLowerCase();
+            const nombreBuscado = (datosAlumno.nombre || usuarioProp.nombre || "").toLowerCase();
             const idBuscado = String(
-              datosAlumno.id || datosAlumno.alumno_id || userObj.id || ""
+              datosAlumno.id || datosAlumno.alumno_id || usuarioProp.id || ""
             );
 
             const misMovs = todosMovimientos.filter((m) => {
@@ -270,7 +269,7 @@ export default function StudentDashboard() {
 
   useEffect(() => {
     cargarDatosEstudiante();
-  }, [navigate, mesSeleccionado, anioSeleccionado]);
+  }, [navigate, mesSeleccionado, anioSeleccionado, usuarioProp]);
 
   const toggleChatIA = () => {
     const container = document.getElementById('chat-ia-container');
@@ -349,7 +348,7 @@ export default function StudentDashboard() {
   };
 
   const handleLogout = () => {
-    localStorage.clear();
+    onLogout();
     navigate("/login");
   };
 
