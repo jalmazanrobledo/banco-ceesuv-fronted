@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { FaUserGraduate, FaCoins, FaChartBar } from "react-icons/fa";
-import Sidebar from "../components/Sidebar";
 import { obtenerDashboard } from "../services/api";
 
 function Dashboard() {
@@ -12,8 +11,14 @@ function Dashboard() {
 
   useEffect(() => {
     async function cargar() {
-      const respuesta = await obtenerDashboard();
-      setDatos(respuesta);
+      try {
+        const respuesta = await obtenerDashboard();
+        if (respuesta) {
+          setDatos(respuesta);
+        }
+      } catch (err) {
+        console.error("Error al cargar dashboard", err);
+      }
     }
     cargar();
   }, []);
@@ -87,70 +92,66 @@ function Dashboard() {
         }
       `}</style>
 
-      <div className="dashboard-container">
-        <Sidebar />
+      {/* CONTENEDOR PRINCIPAL CON FONDO DE LA ESCUELA */}
+      <div className="dashboard-main">
+        {/* Capa con la imagen de la escuela y difuminado */}
+        <div
+          style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundImage: "url('/fondo-escuela.png')",
+            backgroundSize: "cover",
+            backgroundPosition: "center",
+            filter: "blur(5px) brightness(0.95)",
+            transform: "scale(1.05)", // Evita bordes blancos generados por el blur
+            zIndex: 1
+          }}
+        />
 
-        {/* CONTENEDOR PRINCIPAL CON FONDO DE LA ESCUELA */}
-        <div className="dashboard-main">
-          {/* Capa con la imagen de la escuela y difuminado */}
-          <div
-            style={{
-              position: "absolute",
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              backgroundImage: "url('/fondo-escuela.png')",
-              backgroundSize: "cover",
-              backgroundPosition: "center",
-              filter: "blur(5px) brightness(0.95)",
-              transform: "scale(1.05)", // Evita bordes blancos generados por el blur
-              zIndex: 1
-            }}
-          />
+        {/* Capa de contraste semitransparente */}
+        <div
+          style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: "rgba(244, 247, 250, 0.70)",
+            zIndex: 2
+          }}
+        />
 
-          {/* Capa de contraste semitransparente */}
-          <div
-            style={{
-              position: "absolute",
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              backgroundColor: "rgba(244, 247, 250, 0.70)",
-              zIndex: 2
-            }}
-          />
+        {/* CONTENIDO PRINCIPAL (Encima del fondo) */}
+        <div style={{ position: "relative", zIndex: 3 }}>
+          <h1 className="dashboard-title" style={{ color: "#0B2341", marginTop: 0 }}>
+            🏦 Banco Escolar CEESUV
+          </h1>
 
-          {/* CONTENIDO PRINCIPAL (Encima del fondo) */}
-          <div style={{ position: "relative", zIndex: 3 }}>
-            <h1 className="dashboard-title" style={{ color: "#0B2341", marginTop: 0 }}>
-              🏦 Banco Escolar CEESUV
-            </h1>
+          <h2 className="dashboard-subtitle" style={{ color: "#555" }}>
+            Panel Principal
+          </h2>
 
-            <h2 className="dashboard-subtitle" style={{ color: "#555" }}>
-              Panel Principal
-            </h2>
+          <div className="cards-grid">
+            <Tarjeta
+              icon={<FaUserGraduate size={35} />}
+              titulo="Alumnos"
+              valor={datos.alumnos}
+            />
 
-            <div className="cards-grid">
-              <Tarjeta
-                icon={<FaUserGraduate size={35} />}
-                titulo="Alumnos"
-                valor={datos.alumnos}
-              />
+            <Tarjeta
+              icon={<FaCoins size={35} />}
+              titulo="CEESUV Coins"
+              valor={datos.coins ? datos.coins.toLocaleString() : 0}
+            />
 
-              <Tarjeta
-                icon={<FaCoins size={35} />}
-                titulo="CEESUV Coins"
-                valor={datos.coins ? datos.coins.toLocaleString() : 0}
-              />
-
-              <Tarjeta
-                icon={<FaChartBar size={35} />}
-                titulo="Movimientos"
-                valor={datos.movimientos}
-              />
-            </div>
+            <Tarjeta
+              icon={<FaChartBar size={35} />}
+              titulo="Movimientos"
+              valor={datos.movimientos}
+            />
           </div>
         </div>
       </div>
