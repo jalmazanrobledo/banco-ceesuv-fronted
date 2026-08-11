@@ -21,12 +21,14 @@ async function handleSubmit(e) {
     }
 
     try {
-      const res = await loginUsuario(credenciales);
+     const res = await loginUsuario(credenciales);
 
       if (res.mensaje && !res.rol && !res.nombre) {
         setError(res.mensaje);
       } else {
-        // Normalizar comparación de rol (soporta 'Alumno', 'alumno', 'ALUMNO', 'student')
+        // Guardado temporal que se borra al cerrar la pestaña (Ideal para equipos compartidos)
+        sessionStorage.setItem("sesion_activa_ceesuv", JSON.stringify(res));
+
         const rolUsuario = String(res.rol || res.role || "").toLowerCase();
 
         if (rolUsuario === "alumno" || rolUsuario === "student") {

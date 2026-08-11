@@ -95,12 +95,20 @@ function App({ usuarioProp = null, onLogoutProp = () => {} }) {
   const [usuario, setUsuario] = useState(usuarioProp);
   const [cargando, setCargando] = useState(true);
 
-  // Valida la sesión activa mediante la cookie del backend al arrancar la app
+  // Valida la sesión activa al arrancar la app
   useEffect(() => {
     async function verificarSesion() {
       try {
+        // Primero intentamos recuperar del almacenamiento de sesión temporal de la pestaña
+        const sesionLocal = sessionStorage.getItem("sesion_activa_ceesuv");
+        if (sesionLocal) {
+          setUsuario(JSON.parse(sesionLocal));
+          setCargando(false);
+          return;
+        }
+
+        // Si no hay sesión local, consultamos al backend por si acaso
         const data = await obtenerDashboard();
-        // CORREGIDO: Si no hay usuario, se queda en null (eliminamos el Admin falso)
         setUsuario(data?.usuario || null);
       } catch (err) {
         setUsuario(null);
@@ -113,13 +121,11 @@ function App({ usuarioProp = null, onLogoutProp = () => {} }) {
 
   const handleLogout = async () => {
     try {
-      // Opcional: Si tienes una petición al backend para destruir la cookie, ponla aquí.
-      // Ej: await apiLogout();
+      sessionStorage.removeItem("sesion_activa_ceesuv");
     } catch (error) {
-      console.error("Error al cerrar sesión", error);
+      console.error("Error al limpiar sesión", error);
     } finally {
       setUsuario(null);
-      // Forzamos la redirección total para limpiar el estado del navegador y la cookie
       window.location.href = "/login";
     }
   };
