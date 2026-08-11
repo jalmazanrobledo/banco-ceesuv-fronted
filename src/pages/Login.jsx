@@ -31,11 +31,8 @@ async function handleSubmit(e) {
 
         const rolUsuario = String(res.rol || res.role || "").toLowerCase();
 
-        if (rolUsuario === "alumno" || rolUsuario === "student") {
-          window.location.href = "/mi-cuenta";
-        } else {
-          window.location.href = "/dashboard";
-        }
+        sessionStorage.setItem("sesion_activa_ceesuv", JSON.stringify(res));
+        navigate(rolUsuario === "alumno" || rolUsuario === "student" ? "/mi-cuenta" : "/dashboard", { replace: true });
       }
     } catch (err) {
       setError(err.message || "Error al conectar con el servidor.");
