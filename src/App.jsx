@@ -100,7 +100,8 @@ function App({ usuarioProp = null, onLogoutProp = () => {} }) {
     async function verificarSesion() {
       try {
         const data = await obtenerDashboard();
-        setUsuario(data.usuario || { rol: "Admin", nombre: "Administrador" });
+        // CORREGIDO: Si no hay usuario, se queda en null (eliminamos el Admin falso)
+        setUsuario(data?.usuario || null);
       } catch (err) {
         setUsuario(null);
       } finally {
@@ -110,9 +111,17 @@ function App({ usuarioProp = null, onLogoutProp = () => {} }) {
     verificarSesion();
   }, []);
 
-  const handleLogout = () => {
-    setUsuario(null);
-    onLogoutProp();
+  const handleLogout = async () => {
+    try {
+      // Opcional: Si tienes una petición al backend para destruir la cookie, ponla aquí.
+      // Ej: await apiLogout();
+    } catch (error) {
+      console.error("Error al cerrar sesión", error);
+    } finally {
+      setUsuario(null);
+      // Forzamos la redirección total para limpiar el estado del navegador y la cookie
+      window.location.href = "/login";
+    }
   };
 
   if (cargando) {
